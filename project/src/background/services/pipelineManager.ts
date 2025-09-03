@@ -86,7 +86,7 @@ const generateReply = async (
 
     const replyText = await client.createChatCompletion({
       model: aiConfig.model,
-      messages: messages,
+      messages,
       temperature: aiConfig.temperature,
       top_p: aiConfig.top_p,
       max_tokens: aiConfig.max_tokens,
