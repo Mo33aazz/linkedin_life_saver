@@ -1,0 +1,26 @@
+[
+  {
+    "type": null,
+    "path": "/Users/bahy/Documents/playground/capstone_project/server/projects/linkedin_life_saver/project/src/content-scripts/index.ts",
+    "obj": "N/A",
+    "message": "Parsing error: An unary expression with the '~' operator is not allowed in the left-hand side of an exponentiation expression. Consider enclosing the expression in parentheses.",
+    "line": 1,
+    "column": 0
+  },
+  {
+    "type": "@typescript-eslint/no-unused-vars",
+    "path": "/Users/bahy/Documents/playground/capstone_project/server/projects/linkedin_life_saver/project/tests/e2e/real-time-ui.spec.ts",
+    "obj": "N/A",
+    "message": "'UIState' is defined but never used.",
+    "line": 3,
+    "column": 3
+  },
+  {
+    "type": "no-unused-vars",
+    "path": "/Users/bahy/Documents/playground/capstone_project/server/projects/linkedin_life_saver/project/tests/e2e/real-time-ui.spec.ts",
+    "obj": "Identifier",
+    "message": "'UIState' is defined but never used.",
+    "line": 3,
+    "column": 3
+  }
+]
