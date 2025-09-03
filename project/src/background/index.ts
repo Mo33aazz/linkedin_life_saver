@@ -6,8 +6,13 @@ import {
   loadAllStates,
   getPostState,
 } from './services/stateManager';
-import { initializeConfig, updateConfig } from './services/configManager';
+import {
+  initializeConfig,
+  updateConfig,
+  getConfig,
+} from './services/configManager';
 import { Post, PostState, UIState, AIConfig } from '../shared/types';
+import { OpenRouterClient } from './services/openRouterClient';
 
 console.log('LinkedIn Engagement Assistant Service Worker loaded.');
 
@@ -110,6 +115,25 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
         console.error('Failed to update AI config:', error);
         sendResponse({ status: 'error', message: error.message });
       });
+    return true; // Indicate async response
+  }
+
+  if (message.type === 'GET_MODELS') {
+    console.log('Received request to get models from OpenRouter.');
+    (async () => {
+      try {
+        const config = getConfig();
+        if (!config.apiKey) {
+          throw new Error('OpenRouter API key is not set.');
+        }
+        const client = new OpenRouterClient(config.apiKey, config.attribution);
+        const models = await client.getModels();
+        sendResponse({ status: 'success', payload: models });
+      } catch (error) {
+        console.error('Failed to fetch models from OpenRouter:', error);
+        sendResponse({ status: 'error', message: (error as Error).message });
+      }
+    })();
     return true; // Indicate async response
   }
 

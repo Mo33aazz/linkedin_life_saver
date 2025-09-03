@@ -71,6 +71,14 @@ export interface PostState {
 }
 
 /**
+ * Represents a model from the OpenRouter API.
+ */
+export interface OpenRouterModel {
+  id: string;
+  name: string;
+}
+
+/**
  * Configuration for AI-generated replies.
  */
 export interface ReplyConfig {
@@ -141,6 +149,7 @@ export interface ExtensionMessage {
     | 'STATE_UPDATE'
     | 'GET_LATEST_STATE'
     | 'REQUEST_POST_STATE_FOR_EXPORT'
-    | 'UPDATE_AI_CONFIG';
+    | 'UPDATE_AI_CONFIG'
+    | 'GET_MODELS';
   payload?: unknown;
 }

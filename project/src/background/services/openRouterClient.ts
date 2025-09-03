@@ -1,5 +1,5 @@
 // 1. Import the AttributionConfig type for type safety.
-import { AttributionConfig } from '../../shared/types';
+import { AttributionConfig, OpenRouterModel } from '../../shared/types';
 
 // 2. Define the base URL for the OpenRouter API as a constant.
 const API_BASE_URL = 'https://openrouter.ai/api/v1';
@@ -33,11 +33,23 @@ export class OpenRouterClient {
    * Fetches the list of available models from OpenRouter.
    * @returns A promise that resolves to the list of models.
    */
-  public async getModels(): Promise<unknown> {
-    // TODO: Implement the fetch call to the /models endpoint in I5.T4.
-    console.log(`Fetching models from ${API_BASE_URL}/models...`);
-    // For now, returning a resolved promise with an empty array.
-    return Promise.resolve([]);
+  public async getModels(): Promise<OpenRouterModel[]> {
+    const response = await fetch(`${API_BASE_URL}/models`, {
+      method: 'GET',
+      headers: this.#headers,
+    });
+
+    if (!response.ok) {
+      // Try to parse the error response from OpenRouter, but don't fail if it's not JSON
+      const errorBody = await response.json().catch(() => ({}));
+      const errorMessage =
+        errorBody?.error?.message || `HTTP error! status: ${response.status}`;
+      throw new Error(`Failed to fetch models: ${errorMessage}`);
+    }
+
+    const jsonResponse = await response.json();
+    // The models are in the 'data' property of the response object
+    return jsonResponse.data as OpenRouterModel[];
   }
 
   /**
