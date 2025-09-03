@@ -33,9 +33,9 @@ export class OpenRouterClient {
    * Fetches the list of available models from OpenRouter.
    * @returns A promise that resolves to the list of models.
    */
-  public async getModels(): Promise<any> {
+  public async getModels(): Promise<unknown> {
     // TODO: Implement the fetch call to the /models endpoint in I5.T4.
-    console.log('Fetching models from OpenRouter...');
+    console.log(`Fetching models from ${API_BASE_URL}/models...`);
     // For now, returning a resolved promise with an empty array.
     return Promise.resolve([]);
   }
@@ -44,7 +44,7 @@ export class OpenRouterClient {
    * Creates a chat completion using the specified model and messages.
    * @returns A promise that resolves to the chat completion response.
    */
-  public async createChatCompletion(): Promise<any> {
+  public async createChatCompletion(): Promise<unknown> {
     // TODO: Implement the fetch call to the /chat/completions endpoint in a later task.
     console.log('Creating chat completion...');
     // For now, returning a resolved promise.
