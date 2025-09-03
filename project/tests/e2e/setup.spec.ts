@@ -1,37 +1,15 @@
-import { test, expect, chromium, type BrowserContext } from '@playwright/test';
-import path from 'path';
-
-const pathToExtension = path.resolve(__dirname, '../../dist');
+import { test, expect } from '@playwright/test';
 
 test.describe('Extension E2E Setup', () => {
-  let context: BrowserContext;
+  test('should load the extension and inject the content script on linkedin.com', async ({ page }) => {
+    // Navigate to a page where the content script is expected to run.
+    await page.goto('https://www.linkedin.com/');
 
-  test.beforeAll(async () => {
-    context = await chromium.launchPersistentContext('', {
-      headless: false, // Set to true for CI/CD, false for local debugging
-      args: [
-        `--disable-extensions-except=${pathToExtension}`,
-        `--load-extension=${pathToExtension}`,
-      ],
-    });
-  });
-
-  test.afterAll(async () => {
-    if (context) {
-      await context.close();
-    }
-  });
-
-  test('should load the extension and inject the content script on linkedin.com', async () => {
-    const page = await context.newPage();
-    await page.goto('https://www.linkedin.com');
-
-    // The content script from src/content-scripts/index.ts injects a div with class 'sidebar'
+    // The content script from src/content-scripts/index.ts injects a div with class 'sidebar'.
+    // We wait for this element to be visible to confirm the script has run.
     const sidebarLocator = page.locator('.sidebar');
 
-    // Assert that the sidebar is visible, which confirms the content script has run
+    // Assert that the sidebar is visible, which confirms the content script is active.
     await expect(sidebarLocator).toBeVisible({ timeout: 10000 });
-
-    await page.close();
   });
 });
