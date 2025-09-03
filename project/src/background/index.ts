@@ -4,6 +4,7 @@ import {
   calculateCommentStats,
   savePostState,
   loadAllStates,
+  getPostState,
 } from './services/stateManager';
 import { Post, PostState, UIState } from '../shared/types';
 
@@ -67,5 +68,31 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
 
     sendResponse({ status: 'success', stats });
     return true; // Keep the message channel open for async response
+  }
+
+  if (message.type === 'REQUEST_POST_STATE_FOR_EXPORT') {
+    console.log('Received request for post state export.');
+    const postUrnRegex = /(urn:li:activity:\d+)/;
+    const match = sender.tab?.url?.match(postUrnRegex);
+
+    if (match && match[1]) {
+      const postUrn = match[1];
+      const state = getPostState(postUrn);
+      if (state) {
+        sendResponse({ status: 'success', payload: state });
+      } else {
+        sendResponse({
+          status: 'error',
+          message: `No state found for post ${postUrn}`,
+        });
+      }
+    } else {
+      sendResponse({
+        status: 'error',
+        message: 'Could not determine post URN from URL.',
+      });
+    }
+
+    return true; // Important for async response
   }
 });
