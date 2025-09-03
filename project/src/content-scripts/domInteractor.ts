@@ -58,6 +58,9 @@ const SELECTORS = {
     timestamp: 'time',
     repliesContainer: 'div.comments-comment-item__replies-container',
     likeButton: 'button.reactions-react-button[aria-label*="React Like"]',
+    replyButton: 'button.comments-comment-social-bar__reply-action-button',
+    replyEditor: 'div.ql-editor[contenteditable="true"]',
+    replySubmitButton: 'button.comments-comment-box__submit-button',
   },
 };
 
@@ -215,5 +218,78 @@ export const likeComment = async (commentId: string): Promise<boolean> => {
   await delay(500); // Brief delay to simulate human interaction
 
   console.log(`Successfully liked comment: ${commentId}`);
+  return true;
+};
+
+/**
+ * Finds a specific comment, clicks the reply button, types the given text in a
+ * human-like manner, and submits the reply.
+ * @param commentId - The 'data-entity-urn' of the target comment.
+ * @param replyText - The AI-generated text to post as a reply.
+ * @returns A promise that resolves to true if the action was successful, false otherwise.
+ */
+export const replyToComment = async (
+  commentId: string,
+  replyText: string
+): Promise<boolean> => {
+  console.log(`Attempting to reply to comment: ${commentId}`);
+  const commentSelector = `${SELECTORS.comment.container}[data-entity-urn='${commentId}']`;
+  const commentElement = document.querySelector<HTMLElement>(commentSelector);
+
+  if (!commentElement) {
+    console.warn(`Could not find comment element with ID: ${commentId}`);
+    return false;
+  }
+
+  const replyButton = commentElement.querySelector<HTMLButtonElement>(
+    SELECTORS.comment.replyButton
+  );
+
+  if (!replyButton) {
+    console.warn(`Could not find 'Reply' button for comment: ${commentId}`);
+    return false;
+  }
+
+  replyButton.click();
+  await delay(1500); // Wait for the reply editor to appear
+
+  const editor = commentElement.querySelector<HTMLDivElement>(
+    SELECTORS.comment.replyEditor
+  );
+  const submitButton = commentElement.querySelector<HTMLButtonElement>(
+    SELECTORS.comment.replySubmitButton
+  );
+
+  if (!editor || !submitButton) {
+    console.warn(
+      `Could not find reply editor or submit button for comment: ${commentId}`
+    );
+    return false;
+  }
+
+  editor.focus();
+  // Clear any placeholder text.
+  editor.innerHTML = '';
+
+  for (const char of replyText) {
+    editor.innerHTML += char;
+    // Use a random delay to simulate human typing speed
+    await delay(50 + Math.random() * 50);
+  }
+
+  // Dispatch an input event to ensure LinkedIn's framework recognizes the change
+  editor.dispatchEvent(new Event('input', { bubbles: true, cancelable: true }));
+  await delay(500); // A brief pause after typing
+
+  // Check if the button is disabled before clicking
+  if (submitButton.disabled) {
+    console.warn(`Submit button is disabled for comment: ${commentId}`);
+    return false;
+  }
+
+  submitButton.click();
+  await delay(2000); // Wait for the reply to be posted
+
+  console.log(`Successfully replied to comment: ${commentId}`);
   return true;
 };
