@@ -34,7 +34,3 @@ chrome.runtime.onMessage.addListener((message: ExtensionMessage) => {
   }
 });
 
-// Expose the store on the window for E2E testing purposes
-if (process.env.NODE_ENV === 'development' || (window as any).E2E_TESTING) {
-  (window as any).useStore = useStore;
-}

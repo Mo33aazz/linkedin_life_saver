@@ -1,28 +1,7 @@
-import { test, expect, Page } from '@playwright/test';
-import { RunState } from '../../src/shared/types';
+import { test, expect } from '@playwright/test';
 
 const LINKEDIN_POST_URL =
   'https://www.linkedin.com/feed/update/urn:li:activity:7123456789012345678/';
-
-/**
- * Simulates a state update message from the service worker by directly calling
- * the UI's Zustand store update function. This is a common pattern for E2E testing
- * modern frontends to isolate UI reactivity from background logic.
- *
- * This function assumes that for testing purposes, the Zustand store instance
- * (`useStore`) is exposed on the `window` object in the browser.
- *
- * @param page - The Playwright Page object.
- * @param status - The new pipeline status to set.
- */
-async function simulateStateUpdate(page: Page, status: RunState) {
-  await page.evaluate((newStatus) => {
-    const messagePayload = { pipelineStatus: newStatus };
-    // Access the globally exposed store and call its update function,
-    // mimicking the behavior of the chrome.runtime.onMessage listener.
-    (window as any).useStore.getState().updateState(messagePayload);
-  }, status);
-}
 
 test.describe('Pipeline Controls E2E Test', () => {
   test('should correctly cycle through Start, Stop, and Resume states', async ({
@@ -45,29 +24,22 @@ test.describe('Pipeline Controls E2E Test', () => {
     await expect(resumeButton).not.toBeVisible();
 
     // 3. ACT & ASSERT: Test the START action.
+    // Click start and wait for the UI to update to the 'running' state,
+    // which is indicated by the 'Stop' button appearing.
+    // This tests the full message loop: UI -> Service Worker -> UI.
     await startButton.click();
-    // Simulate the background script confirming the state change to 'running'.
-    await simulateStateUpdate(page, 'running');
-
-    // The UI should now show the 'Stop' button.
     await expect(stopButton).toBeVisible();
     await expect(startButton).not.toBeVisible();
 
     // 4. ACT & ASSERT: Test the STOP (pause) action.
+    // Click stop and wait for the UI to update to the 'paused' state.
     await stopButton.click();
-    // Simulate the background script confirming the state change to 'paused'.
-    await simulateStateUpdate(page, 'paused');
-
-    // The UI should now show the 'Resume' button.
     await expect(resumeButton).toBeVisible();
     await expect(stopButton).not.toBeVisible();
 
     // 5. ACT & ASSERT: Test the RESUME action.
+    // Click resume and wait for the UI to update back to the 'running' state.
     await resumeButton.click();
-    // Simulate the background script confirming the state change back to 'running'.
-    await simulateStateUpdate(page, 'running');
-
-    // The UI should return to the 'running' state, showing the 'Stop' button again.
     await expect(stopButton).toBeVisible();
     await expect(resumeButton).not.toBeVisible();
   });
