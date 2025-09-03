@@ -57,6 +57,7 @@ const SELECTORS = {
     textContent: 'span.comments-comment-item__main-content',
     timestamp: 'time',
     repliesContainer: 'div.comments-comment-item__replies-container',
+    likeButton: 'button.reactions-react-button[aria-label*="React Like"]',
   },
 };
 
@@ -176,4 +177,43 @@ export const extractComments = (): ParsedComment[] => {
 
   console.log(`Successfully extracted ${comments.length} comments.`);
   return comments;
+};
+
+/**
+ * Finds a specific comment by its ID and clicks the 'Like' button.
+ * @param commentId - The 'data-entity-urn' of the target comment.
+ * @returns A promise that resolves to true if the action was successful, false otherwise.
+ */
+export const likeComment = async (commentId: string): Promise<boolean> => {
+  console.log(`Attempting to like comment: ${commentId}`);
+
+  const commentSelector = `${SELECTORS.comment.container}[data-entity-urn='${commentId}']`;
+  const commentElement =
+    document.querySelector<HTMLElement>(commentSelector);
+
+  if (!commentElement) {
+    console.warn(`Could not find comment element with ID: ${commentId}`);
+    return false;
+  }
+
+  const likeButton = commentElement.querySelector<HTMLButtonElement>(
+    SELECTORS.comment.likeButton
+  );
+
+  if (!likeButton) {
+    console.warn(`Could not find 'Like' button for comment: ${commentId}`);
+    return false;
+  }
+
+  // Idempotency check: if already liked, consider it a success.
+  if (likeButton.getAttribute('aria-pressed') === 'true') {
+    console.log(`Comment ${commentId} is already liked.`);
+    return true;
+  }
+
+  likeButton.click();
+  await delay(500); // Brief delay to simulate human interaction
+
+  console.log(`Successfully liked comment: ${commentId}`);
+  return true;
 };
