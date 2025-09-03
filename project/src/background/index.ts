@@ -7,6 +7,13 @@ import {
   getPostState,
 } from './services/stateManager';
 import {
+  initPipelineManager,
+  startPipeline,
+  stopPipeline,
+  resumePipeline,
+  getPipelineStatus,
+} from './services/pipelineManager';
+import {
   initializeConfig,
   updateConfig,
   getConfig,
@@ -27,6 +34,11 @@ loadAllStates();
 
 // Initialize the configuration on startup.
 initializeConfig();
+
+// Initialize the pipeline manager with a broadcaster function.
+initPipelineManager(() => {
+  broadcastStateUpdate({ pipelineStatus: getPipelineStatus() });
+});
 
 // A curated list of popular and recommended models to show at the top.
 const CURATED_MODELS = [
@@ -198,6 +210,34 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
       }
     })();
     return true; // Indicate async response
+  }
+
+  if (message.type === 'START_PIPELINE') {
+    const { postUrn } = message.payload as { postUrn: string };
+    console.log(`Received START_PIPELINE for ${postUrn}`);
+    startPipeline(postUrn).then(() => {
+      broadcastStateUpdate({ pipelineStatus: getPipelineStatus() });
+      sendResponse({ status: 'success' });
+    });
+    return true;
+  }
+
+  if (message.type === 'STOP_PIPELINE') {
+    console.log('Received STOP_PIPELINE');
+    stopPipeline().then(() => {
+      broadcastStateUpdate({ pipelineStatus: getPipelineStatus() });
+      sendResponse({ status: 'success' });
+    });
+    return true;
+  }
+
+  if (message.type === 'RESUME_PIPELINE') {
+    console.log('Received RESUME_PIPELINE');
+    resumePipeline().then(() => {
+      broadcastStateUpdate({ pipelineStatus: getPipelineStatus() });
+      sendResponse({ status: 'success' });
+    });
+    return true;
   }
 
   return true;

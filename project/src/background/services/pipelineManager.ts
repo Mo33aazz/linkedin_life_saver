@@ -8,57 +8,59 @@ let pipelineStatus: RunState = 'idle';
 let activePostUrn: string | null = null;
 let isProcessing = false; // A lock to prevent concurrent processing loops
 
-// TODO: Placeholder for broadcasting state updates to the UI
-const broadcastUpdate = () => {
-  console.log('Broadcasting state update to UI...');
+// This will be set by the main service worker script to broadcast updates
+let broadcastUpdate: () => void = () => {
+  console.warn('broadcastUpdate not initialized in PipelineManager');
 };
 
-/**
- * Starts the processing pipeline for a given post.
- * @param postUrn - The URN of the post to process.
- */
-export const startPipeline = async (postUrn: string): Promise<void> => {
-  if (pipelineStatus === 'running') {
-    console.warn('Pipeline is already running.');
-    return;
+export const initPipelineManager = (broadcaster: () => void) => {
+  broadcastUpdate = broadcaster;
+};
+
+const findNextComment = (postState: PostState): Comment | null => {
+  for (const comment of postState.comments) {
+    // A comment needs processing if its like or reply status is not 'DONE' or 'FAILED'
+    if (comment.likeStatus === '' || comment.replyStatus === '') {
+      return comment;
+    }
   }
-
-  console.log(`Starting pipeline for post: ${postUrn}`);
-  pipelineStatus = 'running';
-  activePostUrn = postUrn;
-
-  // Kick off the processing loop, but don't block the caller.
-  processQueue();
-
-  broadcastUpdate(); // Notify UI that the state is now 'running'
+  return null; // No more comments to process
 };
 
-/**
- * Stops the processing pipeline gracefully.
- */
-export const stopPipeline = (): void => {
-  if (pipelineStatus !== 'running') {
-    console.warn('Pipeline is not running.');
-    return;
+const processComment = async (
+  comment: Comment,
+  postState: PostState
+): Promise<void> => {
+  try {
+    // STATE: QUEUED -> LIKED
+    if (comment.likeStatus === '') {
+      console.log(`Liking comment: ${comment.commentId}`);
+      // In a real implementation, this would send a message to the content script.
+      // For now, we'll simulate success.
+      comment.likeStatus = 'DONE';
+      comment.pipeline.likedAt = new Date().toISOString();
+      await savePostState(postState._meta.postId, postState);
+      broadcastUpdate(); // Broadcast progress (state of comments changed)
+      return; // IMPORTANT: Return after each atomic action.
+    }
+
+    // STATE: LIKED -> REPLIED
+    if (comment.replyStatus === '') {
+      console.log(`Replying to comment: ${comment.commentId}`);
+      // This will involve calling the OpenRouterClient and then the domInteractor.
+      // For now, we'll simulate success.
+      comment.replyStatus = 'DONE';
+      comment.pipeline.repliedAt = new Date().toISOString();
+      await savePostState(postState._meta.postId, postState);
+      broadcastUpdate(); // Broadcast progress
+      return;
+    }
+  } catch (error) {
+    console.error(`Failed to process comment ${comment.commentId}:`, error);
+    // TODO: Implement error handling (update lastError, attempts, set status to FAILED)
   }
-
-  console.log('Stopping pipeline...');
-  pipelineStatus = 'paused';
-
-  broadcastUpdate(); // Notify UI that the state is now 'paused'
 };
 
-/**
- * Gets the current status of the pipeline.
- */
-export const getPipelineStatus = (): RunState => {
-  return pipelineStatus;
-};
-
-/**
- * The main processing loop. It finds the next comment and action,
- * executes it, and then waits before processing the next.
- */
 const processQueue = async (): Promise<void> => {
   if (isProcessing) {
     console.log('Processing is already in progress.');
@@ -80,82 +82,92 @@ const processQueue = async (): Promise<void> => {
       break;
     }
 
-    // Find the next comment that needs an action
     const nextComment = findNextComment(postState);
 
     if (!nextComment) {
       console.log('All comments have been processed. Pipeline finished.');
       pipelineStatus = 'idle';
+      postState._meta.runState = 'idle';
+      await savePostState(postState._meta.postId, postState);
       break; // Exit the loop
     }
 
-    // Process the next required action for this comment
     await processComment(nextComment, postState);
 
     // TODO: Implement a configurable delay with jitter later
-    await new Promise(resolve => setTimeout(resolve, 2000)); // 2-second delay
+    await new Promise((resolve) => setTimeout(resolve, 2000)); // 2-second delay
   }
 
   isProcessing = false;
   console.log(`Processing loop ended. Final status: ${pipelineStatus}`);
-  broadcastUpdate(); // Notify UI of the final state
+  broadcastUpdate(); // Broadcast final status
 };
 
-/**
- * Finds the first comment in the list that has a pending action.
- * @param postState - The current state of the post.
- * @returns The comment to process, or null if all are done.
- */
-const findNextComment = (postState: PostState): Comment | null => {
-  // For now, we only target top-level comments without replies from the user.
-  // This logic will become more sophisticated later.
-  for (const comment of postState.comments) {
-    // A comment needs processing if its like or reply status is not 'DONE' or 'FAILED'
-    if (comment.likeStatus === '' || comment.replyStatus === '') {
-      // Add more conditions here for DM, etc. in the future
-      return comment;
-    }
+export const startPipeline = async (postUrn: string): Promise<void> => {
+  if (pipelineStatus !== 'idle') {
+    console.warn(`Pipeline cannot be started from state: ${pipelineStatus}`);
+    return;
   }
-  return null; // No more comments to process
+  const postState = getPostState(postUrn);
+  if (!postState) {
+    console.error(`Cannot start pipeline, no state found for post ${postUrn}`);
+    return;
+  }
+
+  console.log(`Starting pipeline for post: ${postUrn}`);
+  pipelineStatus = 'running';
+  activePostUrn = postUrn;
+  postState._meta.runState = 'running';
+  await savePostState(postUrn, postState);
+
+  processQueue();
 };
 
-/**
- * Processes the next required action for a single comment (FSM).
- * @param comment - The comment to process.
- * @param postState - The parent PostState object.
- */
-const processComment = async (
-  comment: Comment,
-  postState: PostState
-): Promise<void> => {
-  try {
-    // STATE: QUEUED -> LIKED
-    if (comment.likeStatus === '') {
-      console.log(`Liking comment: ${comment.commentId}`);
-      // In a real implementation, this would send a message to the content script.
-      // For now, we'll simulate success.
-      comment.likeStatus = 'DONE';
-      comment.pipeline.likedAt = new Date().toISOString();
-      await savePostState(postState._meta.postId, postState);
-      broadcastUpdate();
-      return; // IMPORTANT: Return after each atomic action.
-    }
-
-    // STATE: LIKED -> REPLIED
-    if (comment.replyStatus === '') {
-      console.log(`Replying to comment: ${comment.commentId}`);
-      // This will involve calling the OpenRouterClient and then the domInteractor.
-      // For now, we'll simulate success.
-      comment.replyStatus = 'DONE';
-      comment.pipeline.repliedAt = new Date().toISOString();
-      await savePostState(postState._meta.postId, postState);
-      broadcastUpdate();
-      return;
-    }
-
-    // Future states (like DM_SENT) would be added here as more `if` blocks.
-  } catch (error) {
-    console.error(`Failed to process comment ${comment.commentId}:`, error);
-    // TODO: Implement error handling (update lastError, attempts, set status to FAILED)
+export const stopPipeline = async (): Promise<void> => {
+  if (pipelineStatus !== 'running') {
+    console.warn('Pipeline is not running.');
+    return;
   }
+  if (!activePostUrn) {
+    console.error('Cannot stop pipeline, no active post.');
+    pipelineStatus = 'error'; // Should not happen
+    return;
+  }
+
+  console.log('Stopping pipeline...');
+  pipelineStatus = 'paused';
+
+  const postState = getPostState(activePostUrn);
+  if (postState) {
+    postState._meta.runState = 'paused';
+    await savePostState(activePostUrn, postState);
+  }
+};
+
+export const resumePipeline = async (): Promise<void> => {
+  if (pipelineStatus !== 'paused') {
+    console.warn('Pipeline is not paused.');
+    return;
+  }
+  if (!activePostUrn) {
+    console.error('Cannot resume, no active post was paused.');
+    return;
+  }
+
+  const postState = getPostState(activePostUrn);
+  if (!postState) {
+    console.error(`Cannot resume, no state found for post ${activePostUrn}`);
+    return;
+  }
+
+  console.log(`Resuming pipeline for post: ${activePostUrn}`);
+  pipelineStatus = 'running';
+  postState._meta.runState = 'running';
+  await savePostState(activePostUrn, postState);
+
+  processQueue();
+};
+
+export const getPipelineStatus = (): RunState => {
+  return pipelineStatus;
 };

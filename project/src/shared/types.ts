@@ -152,6 +152,9 @@ export interface ExtensionMessage {
     | 'REQUEST_POST_STATE_FOR_EXPORT'
     | 'UPDATE_AI_CONFIG'
     | 'GET_AI_CONFIG'
-    | 'GET_MODELS';
+    | 'GET_MODELS'
+    | 'START_PIPELINE'
+    | 'STOP_PIPELINE'
+    | 'RESUME_PIPELINE';
   payload?: unknown;
 }
