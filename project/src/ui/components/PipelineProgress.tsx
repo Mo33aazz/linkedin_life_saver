@@ -1,19 +1,17 @@
-import { h } from 'preact';
+
 import { useStore } from '../store';
 import { Comment, ActionStatus } from '../../shared/types';
 import { Skeleton } from './Skeleton';
 
 type StepStatus = 'complete' | 'active' | 'pending' | 'failed';
 
-const Stepper = ({
-  likeStatus,
-  replyStatus,
-  dmStatus,
-}: {
+type StepperProps = {
   likeStatus: ActionStatus;
   replyStatus: ActionStatus;
   dmStatus: ActionStatus;
-}) => {
+};
+
+const Stepper = ({ likeStatus, replyStatus, dmStatus }: StepperProps) => {
   const steps = ['Queued', 'Liked', 'Replied', 'DM Sent'];
 
   // Rule for Step 1: 'Queued'

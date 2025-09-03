@@ -1,11 +1,16 @@
-import { h } from 'preact';
+
 import { useState, useEffect, useRef } from 'preact/hooks';
 import { useStore } from '../store';
 import { LogEntry, LogLevel } from '../../shared/types';
 
 const LOG_LEVELS: LogLevel[] = ['INFO', 'WARN', 'ERROR', 'DEBUG'];
 
-const LogLevelFilter = ({ activeFilters, onToggle }) => {
+type LogLevelFilterProps = {
+  activeFilters: Set<LogLevel>;
+  onToggle: (level: LogLevel) => void;
+};
+
+const LogLevelFilter = ({ activeFilters, onToggle }: LogLevelFilterProps) => {
   return (
     <div className="log-filters">
       {LOG_LEVELS.map(level => (
