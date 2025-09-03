@@ -1,24 +1,18 @@
+~~~edits
+#- file: src/content-scripts/index.ts
+***start_edit
+LITERAL
+***search
 import { init } from '../ui';
-
-console.log('LinkedIn Engagement Assistant Content Script loaded.');
-
-// 1. Create a container element for the UI
-const rootId = 'linkedin-engagement-assistant-root';
-let root = document.getElementById(rootId);
-
-if (!root) {
-  root = document.createElement('div');
-  root.id = rootId;
-  document.body.appendChild(root);
-}
-
-// 2. Attach a shadow root to the container
-const shadowRoot = root.attachShadow({ mode: 'open' });
-
-// 3. Create a mount point for the Preact app inside the shadow root
-const mountPoint = document.createElement('div');
-shadowRoot.appendChild(mountPoint);
-
+***replace
+import { init } from '../ui';
+import sidebarStyles from '../index.css?inline';
+***description
+Import the sidebar CSS as an inline string to be injected into the shadow DOM. This is necessary for styling the Preact components rendered within the shadow root.
+***end_edit
+***start_edit
+LITERAL
+***search
 // 4. Create a style element to style the sidebar within the shadow DOM
 const style = document.createElement('style');
 style.textContent = `
@@ -51,6 +45,11 @@ style.textContent = `
   }
 `;
 shadowRoot.appendChild(style);
-
-// 5. Render the Preact UI into the mount point
-init(mountPoint);
+***replace
+// 4. Inject styles into the shadow DOM
+const styleElement = document.createElement('style');
+styleElement.textContent = sidebarStyles;
+shadowRoot.appendChild(styleElement);
+***description
+Replace the hardcoded styles with the imported CSS file content. This ensures that the Preact components are styled correctly and that all styles are managed in a single, centralized CSS file.
+***end_edit
