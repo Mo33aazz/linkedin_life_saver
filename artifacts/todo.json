@@ -181,12 +181,17 @@
         },
         "output": "I will now generate the System Context Diagram as a PlantUML file. This diagram will illustrate the high-level interactions between the LinkedIn Engagement Assistant, the user, the LinkedIn platform, and the OpenRouter AI service, as specified in the architecture document.\n\nI will create a new file `docs/diagrams/system_context.puml` and populate it with the provided PlantUML code.\n\n~~~puml\n#- file: docs/diagrams/system_context.puml\n@startuml\n!include https://raw.githubusercontent.com/plantuml-stdlib/C4-PlantUML/master/C4_Context.puml\n\ntitle System Context Diagram for LinkedIn Engagement Assistant\n\nPerson(user, \"LinkedIn User\", \"The user who installs and operates the extension.\")\nSystem(linkedin, \"LinkedIn Web App\", \"The platform where the extension operates, providing post and comment data.\")\nSystem_Ext(openrouter, \"OpenRouter AI\", \"External AI service used to generate replies and DMs via its API.\")\n\nSystem_Boundary(ext_boundary, \"LinkedIn Engagement Assistant\") {\n    System(extension, \"Browser Extension\", \"Automates engagement by orchestrating DOM interactions and AI content generation.\")\n}\n\nRel(user, extension, \"Configures, controls, and monitors\", \"GUI / Sidebar\")\nRel(extension, linkedin, \"Reads post/comment data and performs actions (like, reply, DM)\", \"Browser DOM APIs\")\nRel(extension, openrouter, \"Requests AI-generated text for replies and DMs\", \"HTTPS/JSON API\")\n@enduml\n~~~",
         "iteration_id": "I1",
-        "completed": false,
+        "completed": true,
         "target_files": [
             "docs/diagrams/system_context.puml"
         ],
         "input_files": [],
-        "files": []
+        "files": [
+            {
+                "path": "docs/diagrams/system_context.puml",
+                "content": "@startuml\n!include https://raw.githubusercontent.com/plantuml-stdlib/C4-PlantUML/master/C4_Context.puml\n\ntitle System Context Diagram for LinkedIn Engagement Assistant\n\nPerson(user, \"LinkedIn User\", \"The user who installs and operates the extension.\")\nSystem(linkedin, \"LinkedIn Web App\", \"The platform where the extension operates, providing post and comment data.\")\nSystem_Ext(openrouter, \"OpenRouter AI\", \"External AI service used to generate replies and DMs via its API.\")\n\nSystem_Boundary(ext_boundary, \"LinkedIn Engagement Assistant\") {\n    System(extension, \"Browser Extension\", \"Automates engagement by orchestrating DOM interactions and AI content generation.\")\n}\n\nRel(user, extension, \"Configures, controls, and monitors\", \"GUI / Sidebar\")\nRel(extension, linkedin, \"Reads post/comment data and performs actions (like, reply, DM)\", \"Browser DOM APIs\")\nRel(extension, openrouter, \"Requests AI-generated text for replies and DMs\", \"HTTPS/JSON API\")\n@enduml"
+            }
+        ]
     },
     {
         "name": "I1.T4",
@@ -206,7 +211,7 @@
             "dependencies": [],
             "parallelizable": true
         },
-        "output": null,
+        "output": "~~~\n#- file: docs/diagrams/container.puml\n@startuml\n!include https://raw.githubusercontent.com/plantuml-stdlib/C4-PlantUML/master/C4_Container.puml\n\ntitle Container Diagram for LinkedIn Engagement Assistant\n\nPerson(user, \"LinkedIn User\", \"Operates the extension.\")\nSystem(linkedin, \"LinkedIn Web App\", \"The host web application.\")\nSystem_Ext(openrouter, \"OpenRouter AI\", \"External AI service.\")\n\nSystem_Boundary(ext_boundary, \"LinkedIn Engagement Assistant\") {\n    Container(sidebar_ui, \"Sidebar UI\", \"Preact/TS, Shadow DOM\", \"The user-facing interface for control, configuration, and monitoring. Injected into the LinkedIn page.\")\n    Container(dom_interactor, \"DOM Interactor\", \"TypeScript, Web APIs\", \"A content script responsible for all direct DOM manipulation: scrolling, parsing selectors, clicking buttons, and typing text.\")\n    Container(orchestrator, \"Orchestration Service\", \"Service Worker (JS/TS)\", \"The core background process. Manages the state machine, processing pipeline, API calls, and persistence.\")\n    ContainerDb(storage, \"Browser Storage\", \"Chrome Storage API\", \"Stores user configuration (sync) and per-post processing state (local).\")\n}\n\nRel(user, sidebar_ui, \"Uses\")\nRel(sidebar_ui, orchestrator, \"Sends commands (Start/Stop) and receives real-time updates (logs, counts)\", \"chrome.runtime messages\")\n\nRel(orchestrator, dom_interactor, \"Issues commands (e.g., 'scroll', 'get_comment_text', 'click_like')\", \"chrome.tabs messages\")\nRel_Back(orchestrator, dom_interactor, \"Receives results from DOM operations\")\n\nRel(dom_interactor, linkedin, \"Reads from and writes to\", \"DOM API\")\n\nRel(orchestrator, storage, \"Reads/Writes\", \"chrome.storage API\")\nRel(orchestrator, openrouter, \"Fetches models and generates text\", \"HTTPS/JSON API\")\n@enduml\n~~~",
         "iteration_id": "I1",
         "completed": false,
         "target_files": [
