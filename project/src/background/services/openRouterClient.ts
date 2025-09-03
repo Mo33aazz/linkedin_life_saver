@@ -1,3 +1,4 @@
+/* global RequestInit */
 // 1. Import the AttributionConfig type for type safety.
 import {
   AttributionConfig,
