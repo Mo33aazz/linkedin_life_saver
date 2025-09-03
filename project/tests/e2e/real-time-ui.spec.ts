@@ -14,7 +14,7 @@ async function dispatchMessage(page: Page, message: ExtensionMessage) {
 // Helper to create mock comment data
 const createMockComment = (overrides: Partial<Comment>): Comment => ({
   commentId: `urn:li:comment:(activity:123,${Math.random()})`,
-  text: 'This is a mock comment. ' + Math.random(),
+  text: `This is a mock comment. ${Math.random()}`,
   ownerProfileUrl: 'https://www.linkedin.com/in/mockuser/',
   timestamp: new Date().toISOString(),
   type: 'top-level',

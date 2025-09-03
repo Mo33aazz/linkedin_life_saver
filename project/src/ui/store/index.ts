@@ -37,6 +37,7 @@ chrome.runtime.onMessage.addListener((message: ExtensionMessage) => {
 // Expose a helper for E2E tests to simulate messages from the background script.
 // This avoids the complexity of trying to mock chrome.runtime.onMessage events.
 if (process.env.NODE_ENV === 'development') {
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   (window as any).__E2E_TEST_DISPATCH_MESSAGE__ = (message: ExtensionMessage) => {
     if (message.type === 'STATE_UPDATE') {
       useStore.getState().updateState(message.payload as Partial<UIState>);
