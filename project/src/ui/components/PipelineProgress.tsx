@@ -4,8 +4,16 @@ import { Comment, ActionStatus } from '../../shared/types';
 
 type StepStatus = 'complete' | 'active' | 'pending' | 'failed';
 
-const Stepper = ({ likeStatus, replyStatus }: { likeStatus: ActionStatus, replyStatus: ActionStatus }) => {
-  const steps = ['Queued', 'Liked', 'Replied'];
+const Stepper = ({
+  likeStatus,
+  replyStatus,
+  dmStatus,
+}: {
+  likeStatus: ActionStatus;
+  replyStatus: ActionStatus;
+  dmStatus: ActionStatus;
+}) => {
+  const steps = ['Queued', 'Liked', 'Replied', 'DM Sent'];
 
   // Rule for Step 1: 'Queued'
   // A comment in the list is by definition queued and this step is complete.
@@ -17,7 +25,8 @@ const Stepper = ({ likeStatus, replyStatus }: { likeStatus: ActionStatus, replyS
     likedStatus = 'complete';
   } else if (likeStatus === 'FAILED') {
     likedStatus = 'failed';
-  } else { // likeStatus is ''
+  } else {
+    // likeStatus is ''
     // If the 'Queued' step is complete, this one is active.
     likedStatus = 'active';
   }
@@ -36,7 +45,26 @@ const Stepper = ({ likeStatus, replyStatus }: { likeStatus: ActionStatus, replyS
     repliedStatus = 'pending';
   }
 
-  const statuses: StepStatus[] = [queuedStatus, likedStatus, repliedStatus];
+  // Rule for Step 4: 'DM Sent'
+  let dmSentStatus: StepStatus;
+  if (dmStatus === 'DONE') {
+    dmSentStatus = 'complete';
+  } else if (dmStatus === 'FAILED') {
+    dmSentStatus = 'failed';
+  } else if (replyStatus === 'DONE' && dmStatus === '') {
+    // It can only be active if the previous step ('Replied') is complete.
+    dmSentStatus = 'active';
+  } else {
+    // It's pending if the 'Replied' step isn't done yet.
+    dmSentStatus = 'pending';
+  }
+
+  const statuses: StepStatus[] = [
+    queuedStatus,
+    likedStatus,
+    repliedStatus,
+    dmSentStatus,
+  ];
 
   return (
     <div className="stepper-container">
@@ -51,16 +79,26 @@ const Stepper = ({ likeStatus, replyStatus }: { likeStatus: ActionStatus, replyS
 };
 
 const CommentRow = ({ comment }: { comment: Comment }) => {
-  const author = comment.ownerProfileUrl.split('/in/')[1]?.replace('/', '') || 'Unknown';
-  const shortText = comment.text.length > 100 ? `${comment.text.substring(0, 97)}...` : comment.text;
+  const author =
+    comment.ownerProfileUrl.split('/in/')[1]?.replace('/', '') || 'Unknown';
+  const shortText =
+    comment.text.length > 100
+      ? `${comment.text.substring(0, 97)}...`
+      : comment.text;
 
   return (
     <div className="comment-row">
       <div className="comment-info">
         <p className="comment-author">{author}</p>
-        <p className="comment-text" title={comment.text}>{shortText}</p>
+        <p className="comment-text" title={comment.text}>
+          {shortText}
+        </p>
       </div>
-      <Stepper likeStatus={comment.likeStatus} replyStatus={comment.replyStatus} />
+      <Stepper
+        likeStatus={comment.likeStatus}
+        replyStatus={comment.replyStatus}
+        dmStatus={comment.dmStatus}
+      />
     </div>
   );
 };
@@ -73,7 +111,9 @@ export const PipelineProgress = () => {
       <h2>Pipeline Progress</h2>
       <div className="pipeline-list">
         {comments.length === 0 ? (
-          <p className="idle-message">Pipeline is idle. Start processing to see progress.</p>
+          <p className="idle-message">
+            Pipeline is idle. Start processing to see progress.
+          </p>
         ) : (
           comments.map((comment) => (
             <CommentRow key={comment.commentId} comment={comment} />
