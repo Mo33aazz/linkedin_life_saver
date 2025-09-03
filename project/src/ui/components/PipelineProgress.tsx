@@ -6,31 +6,37 @@ type StepStatus = 'complete' | 'active' | 'pending' | 'failed';
 
 const Stepper = ({ likeStatus, replyStatus }: { likeStatus: ActionStatus, replyStatus: ActionStatus }) => {
   const steps = ['Queued', 'Liked', 'Replied'];
-  
-  const statuses: StepStatus[] = steps.map((step, index) => {
-    if (index === 0) { // Queued
-      return 'complete';
-    }
-    if (index === 1) { // Liked
-      if (likeStatus === 'DONE') return 'complete';
-      if (likeStatus === 'FAILED') return 'failed';
-      return 'pending'; // Placeholder, will be converted to active if it's the current step
-    }
-    if (index === 2) { // Replied
-      if (replyStatus === 'DONE') return 'complete';
-      if (replyStatus === 'FAILED') return 'failed';
-      // Can't be active or complete if not liked yet
-      if (likeStatus !== 'DONE') return 'pending'; 
-      return 'pending'; // Placeholder
-    }
-    return 'pending';
-  });
 
-  // Find the first 'pending' step and mark it as 'active'
-  const firstPendingIndex = statuses.findIndex(status => status === 'pending');
-  if (firstPendingIndex !== -1) {
-    statuses[firstPendingIndex] = 'active';
+  // Rule for Step 1: 'Queued'
+  // A comment in the list is by definition queued and this step is complete.
+  const queuedStatus: StepStatus = 'complete';
+
+  // Rule for Step 2: 'Liked'
+  let likedStatus: StepStatus;
+  if (likeStatus === 'DONE') {
+    likedStatus = 'complete';
+  } else if (likeStatus === 'FAILED') {
+    likedStatus = 'failed';
+  } else { // likeStatus is ''
+    // If the 'Queued' step is complete, this one is active.
+    likedStatus = 'active';
   }
+
+  // Rule for Step 3: 'Replied'
+  let repliedStatus: StepStatus;
+  if (replyStatus === 'DONE') {
+    repliedStatus = 'complete';
+  } else if (replyStatus === 'FAILED') {
+    repliedStatus = 'failed';
+  } else if (likeStatus === 'DONE' && replyStatus === '') {
+    // It can only be active if the previous step ('Liked') is complete.
+    repliedStatus = 'active';
+  } else {
+    // It's pending if the 'Liked' step isn't done yet.
+    repliedStatus = 'pending';
+  }
+
+  const statuses: StepStatus[] = [queuedStatus, likedStatus, repliedStatus];
 
   return (
     <div className="stepper-container">
