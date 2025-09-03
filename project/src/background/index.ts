@@ -44,6 +44,18 @@ loadAllStates();
 // Initialize the configuration on startup.
 initializeConfig();
 
+/**
+ * Broadcasts the latest state to all UI components.
+ * @param state The partial state to broadcast.
+ */
+const broadcastStateUpdate = (state: Partial<UIState>) => {
+  logger.info('Broadcasting state update', { state });
+  chrome.runtime.sendMessage({
+    type: 'STATE_UPDATE',
+    payload: state,
+  });
+};
+
 const sendMessageToTab = <T>(
   tabId: number,
   message: { type: string; payload?: unknown }
@@ -82,18 +94,6 @@ const CURATED_MODELS = [
   'mistralai/mistral-large',
   'openai/gpt-4o',
 ];
-
-/**
- * Broadcasts the latest state to all UI components.
- * @param state The partial state to broadcast.
- */
-const broadcastStateUpdate = (state: Partial<UIState>) => {
-  logger.info('Broadcasting state update', { state });
-  chrome.runtime.sendMessage({
-    type: 'STATE_UPDATE',
-    payload: state,
-  });
-};
 
 chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
   if (message.type === 'ping') {
@@ -216,6 +216,10 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
 
         // Filter and sort models before sending to UI
         const filteredModels = models.filter((model) => {
+          // If filters are not defined, include the model by default.
+          if (!config.modelFilters) {
+            return true;
+          }
           const meetsContextRequirement =
             model.context_length >= config.modelFilters.minContext;
           let isTextOnly = true;

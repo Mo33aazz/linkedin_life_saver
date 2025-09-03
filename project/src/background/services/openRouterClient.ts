@@ -42,8 +42,10 @@ async function fetchWithRetry(
         `Fetch attempt ${attempt + 1}/${MAX_RETRIES} failed for ${
           new URL(url).pathname
         }`,
-        error,
-        { attempt: attempt + 1 }
+        {
+          attempt: attempt + 1,
+          error: error instanceof Error ? error.message : String(error),
+        }
       );
 
       if (attempt < MAX_RETRIES - 1) {

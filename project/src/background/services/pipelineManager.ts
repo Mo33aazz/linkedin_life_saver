@@ -322,11 +322,11 @@ const processComment = async (
             maxRetries: MAX_RETRIES,
             initialDelay: INITIAL_DELAY,
             onRetry: (error, attempt) => {
-              logger.warn(
-                `Like attempt ${attempt}/${MAX_RETRIES} failed`,
-                error,
-                { ...stepContext, attempt }
-              );
+              logger.warn(`Like attempt ${attempt}/${MAX_RETRIES} failed`, {
+                ...stepContext,
+                attempt,
+                error: error.message,
+              });
             },
           }
         );
@@ -405,11 +405,11 @@ const processComment = async (
             maxRetries: MAX_RETRIES,
             initialDelay: INITIAL_DELAY,
             onRetry: (error, attempt) => {
-              logger.warn(
-                `Reply attempt ${attempt}/${MAX_RETRIES} failed`,
-                error,
-                { ...stepContext, attempt }
-              );
+              logger.warn(`Reply attempt ${attempt}/${MAX_RETRIES} failed`, {
+                ...stepContext,
+                attempt,
+                error: error.message,
+              });
             },
           }
         );
@@ -510,8 +510,7 @@ const processComment = async (
               onRetry: (error, attempt) => {
                 logger.warn(
                   `Send DM attempt ${attempt}/${MAX_RETRIES} failed`,
-                  error,
-                  { ...stepContext, attempt }
+                  { ...stepContext, attempt, error: error.message }
                 );
               },
             }
