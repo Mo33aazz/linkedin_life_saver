@@ -1,36 +1,44 @@
 #!/bin/bash
 #
-# Installs project dependencies using npm.
-# This script is idempotent and can be run multiple times safely.
-#
+# This script handles the installation and updating of all project dependencies.
+# It detects the project type (Node.js) and uses npm to manage dependencies,
+# ensuring the environment is correctly set up for other scripts.
+# The script is idempotent and can be safely re-run.
 
-# Exit immediately if a command exits with a non-zero status.
-# Treat unset variables as an error.
-# The return value of a pipeline is the status of the last command to exit with a non-zero status.
+# ---
+# Best Practices:
+#   -e: exit immediately if a command exits with a non-zero status.
+#   -u: treat unset variables as an error when substituting.
+#   -o pipefail: the return value of a pipeline is the status of the last
+#                command to exit with a non-zero status, or zero if no
+#                command exited with a non-zero status.
+# ---
 set -euo pipefail
 
-# --- Configuration ---
-# Get the directory of the currently executing script
-SCRIPT_DIR=$(cd "$(dirname "${BASH_SOURCE[0]}")" &>/dev/null && pwd)
-# Navigate to the project root directory (one level up from 'tools')
-PROJECT_ROOT="$SCRIPT_DIR/.."
-cd "$PROJECT_ROOT"
+# ---
+# This function ensures the script is running from the project root.
+# It finds the script's own directory, then navigates up to the parent,
+# which is assumed to be the project root.
+# ---
+setup_paths() {
+    # Get the directory of this script to ensure we can find the project root
+    # and other scripts reliably.
+    local SCRIPT_DIR
+    SCRIPT_DIR=$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" &> /dev/null && pwd)
+    PROJECT_ROOT="$SCRIPT_DIR/.."
+    cd "$PROJECT_ROOT"
+}
 
-# --- Main Logic ---
-echo "--- Setting up Node.js environment ---" >&2
+main() {
+    setup_paths
 
-# Check for npm, the Node.js package manager
-if ! command -v npm &> /dev/null; then
-    echo "Error: npm is not installed. Please install Node.js and npm to continue." >&2
-    exit 1
-fi
+    echo "INFO: Ensuring project dependencies are installed with npm..." >&2
+    # npm install is idempotent. It will only install or update packages if
+    # package.json or package-lock.json have changed, or if node_modules
+    # is missing.
+    npm install
+    echo "SUCCESS: Dependencies are up to date." >&2
+}
 
-echo "Installing/updating dependencies from package.json..." >&2
-# npm install is idempotent. It installs dependencies listed in package.json
-# and ensures the node_modules directory is in the correct state.
-npm install
-
-echo "Dependencies are up to date." >&2
-echo "Environment setup complete. Use 'npm run <script_name>' or 'npx <command>' to run project tools." >&2
-
-exit 0
+# Execute the main function
+main

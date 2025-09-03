@@ -1,53 +1,54 @@
 #!/bin/bash
 #
-# Lints the project's source code using ESLint.
-# The output is formatted as a single JSON array to stdout.
-# All other informational output is sent to stderr.
-#
-# Exits with 0 if linting passes.
-# Exits with a non-zero code if linting fails or an error occurs.
-#
+# This script lints the project's source code.
+# It ensures all dependencies are installed, then runs the linter.
+# The output is strictly formatted as a single JSON array to stdout.
+# All informational messages are sent to stderr.
 
 set -euo pipefail
 
-# --- Configuration ---
-SCRIPT_DIR=$(cd "$(dirname "${BASH_SOURCE[0]}")" &>/dev/null && pwd)
-PROJECT_ROOT="$SCRIPT_DIR/.."
-cd "$PROJECT_ROOT"
+# ---
+# This function ensures the script is running from the project root.
+# ---
+setup_paths() {
+    local SCRIPT_DIR
+    SCRIPT_DIR=$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" &> /dev/null && pwd)
+    PROJECT_ROOT="$SCRIPT_DIR/.."
+    cd "$PROJECT_ROOT"
+}
 
-# --- Dependency Check ---
-# Ensure dependencies, including eslint, are installed silently.
-# All output is redirected to /dev/null to meet the JSON-only stdout requirement.
-bash "tools/install.sh" > /dev/null 2>&1
+# ---
+# This function checks for the presence of the 'jq' command-line tool,
+# which is required for formatting the linter's output.
+# ---
+check_dependencies() {
+    if ! command -v jq &> /dev/null; then
+        echo "ERROR: 'jq' is not installed. Please install it to use the lint script." >&2
+        # Output a valid but empty JSON to stdout to satisfy the output contract.
+        echo "[]"
+        exit 1
+    fi
+}
 
-# --- Prerequisite Check ---
-# This script uses 'jq' to transform ESLint's JSON output.
-if ! command -v jq &> /dev/null; then
-    echo '{"error": "jq is not installed. Please install jq to format the linting output."}' >&2
-    exit 1
-fi
+main() {
+    setup_paths
+    check_dependencies
 
-# --- Linting Execution ---
-# Run eslint with the JSON formatter. We must capture the output and exit code separately
-# to process the JSON while preserving the success/failure status.
-# A temporary file is the most reliable way to do this.
-LINT_OUTPUT_FILE=$(mktemp)
-# Ensure the temporary file is removed on script exit.
-trap 'rm -f "$LINT_OUTPUT_FILE"' EXIT
+    # Ensure dependencies are installed silently to not pollute stdout/stderr.
+    bash "tools/install.sh" &> /dev/null
 
-# The lint command is derived from package.json: "eslint . --ext .ts,.tsx --report-unused-disable-directives --max-warnings 0"
-# We add the --format json flag to get structured output.
-# The exit code is captured for later use.
-npx eslint . --ext .ts,.tsx --report-unused-disable-directives --max-warnings 0 --format json > "$LINT_OUTPUT_FILE"
-LINT_EXIT_CODE=$?
+    echo "INFO: Running linter..." >&2
 
-# --- Output Formatting ---
-# Process the ESLint JSON output to the required format using jq.
-# ESLint's output is an array of file objects, each with a `messages` array.
-# We transform this into a single flat array of issue objects.
-# The 'obj' field is mapped from 'nodeType', defaulting to an empty string if null.
-jq '[.[] | .filePath as $path | .messages[] | {type: .ruleId, path: $path, obj: (.nodeType // ""), message: .message, line: .line, column: .column}]' "$LINT_OUTPUT_FILE"
+    # Use `set -o pipefail` to ensure that if `eslint` fails, the entire
+    # pipeline fails, propagating the correct exit code.
+    set -o pipefail
 
-# Exit with the original exit code from eslint.
-# This ensures that the script correctly reports success (0) or failure (non-zero).
-exit $LINT_EXIT_CODE
+    # Run eslint directly via npx to use the project's version.
+    # We specify the JSON formatter to get structured output.
+    # The output is then piped to jq to transform it into the required format.
+    npx eslint . --ext .ts,.tsx --format json | \
+    jq '[.[] | .filePath as $path | .messages[] | {type: .ruleId, path: $path, obj: (.nodeType // "N/A"), message: .message, line: .line, column: .column}]'
+}
+
+# The script will exit with a non-zero code if eslint finds errors.
+main

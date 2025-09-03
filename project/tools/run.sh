@@ -1,25 +1,34 @@
 #!/bin/bash
 #
-# Runs the main project application in development mode.
-# It ensures all dependencies are installed before running.
-#
+# This script serves as the main entry point for running the project.
+# It first ensures all dependencies are installed by calling install.sh,
+# then executes the primary run command for the project.
 
 set -euo pipefail
 
-# --- Configuration ---
-SCRIPT_DIR=$(cd "$(dirname "${BASH_SOURCE[0]}")" &>/dev/null && pwd)
-PROJECT_ROOT="$SCRIPT_DIR/.."
-cd "$PROJECT_ROOT"
+# ---
+# This function ensures the script is running from the project root.
+# ---
+setup_paths() {
+    local SCRIPT_DIR
+    SCRIPT_DIR=$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" &> /dev/null && pwd)
+    PROJECT_ROOT="$SCRIPT_DIR/.."
+    cd "$PROJECT_ROOT"
+}
 
-# --- Dependency Check ---
-echo "--- Ensuring dependencies are installed ---" >&2
-# Execute the installation script to ensure the environment is ready.
-# All output from install.sh is redirected to stderr to keep stdout clean if needed.
-bash "tools/install.sh" >&2
+main() {
+    setup_paths
 
-# --- Project Execution ---
-echo "--- Running the project in development mode ---" >&2
+    # Ensure the environment and dependencies are set up correctly before running.
+    # All output from the install script is redirected to stderr to keep stdout
+    # clean for the main application.
+    echo "INFO: Checking dependencies before running..." >&2
+    bash "tools/install.sh" >&2
 
-# From package.json, the "dev" script ("vite") is the standard way to run this project.
-# We use 'npm run dev' to execute it.
-npm run dev
+    # Based on package.json, `npm run dev` is the command to start the
+    # development server.
+    echo "INFO: Starting the application..." >&2
+    npm run dev
+}
+
+main
