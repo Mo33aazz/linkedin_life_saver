@@ -52,12 +52,13 @@ const Stepper = ({ likeStatus, replyStatus }: { likeStatus: ActionStatus, replyS
 
 const CommentRow = ({ comment }: { comment: Comment }) => {
   const author = comment.ownerProfileUrl.split('/in/')[1]?.replace('/', '') || 'Unknown';
-  
+  const shortText = comment.text.length > 100 ? `${comment.text.substring(0, 97)}...` : comment.text;
+
   return (
     <div className="comment-row">
       <div className="comment-info">
         <p className="comment-author">{author}</p>
-        <p className="comment-text">{comment.text}</p>
+        <p className="comment-text" title={comment.text}>{shortText}</p>
       </div>
       <Stepper likeStatus={comment.likeStatus} replyStatus={comment.replyStatus} />
     </div>

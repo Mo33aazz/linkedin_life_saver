@@ -11,7 +11,6 @@ import {
   startPipeline,
   stopPipeline,
   resumePipeline,
-  getPipelineStatus,
 } from './services/pipelineManager';
 import {
   initializeConfig,
