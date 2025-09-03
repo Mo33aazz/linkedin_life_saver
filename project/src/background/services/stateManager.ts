@@ -1,4 +1,12 @@
-import { Comment } from '../../shared/types';
+import { CommentType } from '../../shared/types';
+
+// A minimal interface for the data required by the stats calculation.
+// This decouples the function from the full state-managed `Comment` object.
+type CommentLike = {
+  type: CommentType;
+  threadId: string;
+  ownerProfileUrl: string;
+};
 
 /**
  * An object representing the calculated statistics for comments.
@@ -23,7 +31,7 @@ export interface CommentStats {
  * @returns An object containing the calculated statistics.
  */
 export const calculateCommentStats = (
-  comments: Comment[],
+  comments: CommentLike[],
   userProfileUrl: string
 ): CommentStats => {
   // First pass: Identify all thread IDs that have at least one reply.
@@ -40,7 +48,10 @@ export const calculateCommentStats = (
 
   comments.forEach(comment => {
     // Check if it's a top-level comment and its thread has no replies.
-    if (comment.type === 'top-level' && !repliedThreadIds.has(comment.threadId)) {
+    if (
+      comment.type === 'top-level' &&
+      !repliedThreadIds.has(comment.threadId)
+    ) {
       totalTopLevelNoReplies++;
 
       // Additionally, check if this comment belongs to the user.

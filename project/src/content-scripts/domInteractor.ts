@@ -37,7 +37,9 @@ export const autoScrollPage = async (): Promise<void> => {
   }
 
   if (scrolls >= MAX_SCROLLS) {
-    console.warn('Max scroll attempts reached. There might be more content to load.');
+    console.warn(
+      'Max scroll attempts reached. There might be more content to load.'
+    );
   }
 };
 
@@ -54,6 +56,7 @@ const SELECTORS = {
     ownerProfileLink: 'a.comments-comment-meta__image-link',
     textContent: 'span.comments-comment-item__main-content',
     timestamp: 'time',
+    repliesContainer: 'div.comments-comment-item__replies-container',
   },
 };
 
@@ -61,9 +64,12 @@ const SELECTORS = {
  * Represents the structured data extracted for a single comment.
  */
 export interface ParsedComment {
+  commentId: string;
   ownerProfileUrl: string;
   text: string;
   timestamp: string;
+  type: 'top-level' | 'reply';
+  threadId: string;
 }
 
 /**
@@ -117,6 +123,23 @@ export const extractComments = (): ParsedComment[] => {
       SELECTORS.comment.timestamp
     );
 
+    const commentId = commentElement.getAttribute('data-entity-urn') || '';
+
+    const isReplyContainer = commentElement.parentElement?.closest(
+      SELECTORS.comment.repliesContainer
+    );
+    const type = isReplyContainer ? 'reply' : 'top-level';
+
+    let threadId = '';
+    if (type === 'reply' && isReplyContainer) {
+      const topLevelComment = isReplyContainer.closest(
+        SELECTORS.comment.container
+      );
+      threadId = topLevelComment?.getAttribute('data-entity-urn') || '';
+    } else {
+      threadId = commentId;
+    }
+
     const ownerRelativeUrl = ownerLinkElement?.getAttribute('href');
     let ownerProfileUrl = '';
     if (ownerRelativeUrl) {
@@ -130,17 +153,22 @@ export const extractComments = (): ParsedComment[] => {
     const text = textElement?.innerText.trim() ?? '';
     const timestamp = timestampElement?.innerText.trim() ?? '';
 
-    if (ownerProfileUrl && text && timestamp) {
+    if (commentId && ownerProfileUrl && text && timestamp && threadId) {
       comments.push({
+        commentId,
         ownerProfileUrl,
         text,
         timestamp,
+        type,
+        threadId,
       });
     } else {
       console.warn(`Skipping comment #${index + 1} due to missing data.`, {
+        hasCommentId: !!commentId,
         hasOwnerUrl: !!ownerProfileUrl,
         hasText: !!text,
         hasTimestamp: !!timestamp,
+        hasThreadId: !!threadId,
         element: commentElement,
       });
     }
