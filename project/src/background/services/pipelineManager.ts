@@ -5,6 +5,7 @@ import {
   PostState,
   Comment,
   ChatMessage,
+  UIState,
 } from '../../shared/types';
 import { getPostState, savePostState } from './stateManager';
 import { getConfig } from './configManager';
@@ -17,8 +18,8 @@ let activeTabId: number | null = null;
 let isProcessing = false; // A lock to prevent concurrent processing loops
 
 // This will be set by the main service worker script to broadcast updates
-let broadcastUpdate: () => void = () => {
-  console.warn('broadcastUpdate not initialized in PipelineManager');
+let broadcastState: (state: Partial<UIState>) => void = () => {
+  console.warn('broadcastState not initialized in PipelineManager');
 };
 
 // This will be set by the main service worker script to send messages to content scripts
@@ -31,13 +32,13 @@ let sendMessageToTab: <T>(
 };
 
 export const initPipelineManager = (
-  broadcaster: () => void,
+  broadcaster: (state: Partial<UIState>) => void,
   messageSender: <T>(
     tabId: number,
     message: { type: string; payload?: unknown }
   ) => Promise<T>
 ) => {
-  broadcastUpdate = broadcaster;
+  broadcastState = broadcaster;
   sendMessageToTab = messageSender;
 };
 
@@ -120,7 +121,7 @@ const processComment = async (
         comment.likeStatus = 'DONE';
         comment.pipeline.likedAt = new Date().toISOString();
         await savePostState(postState._meta.postId, postState);
-        broadcastUpdate(); // Broadcast progress (state of comments changed)
+        broadcastState({ comments: postState.comments }); // Broadcast progress
       } else {
         throw new Error(`Like action failed for comment ${comment.commentId}`);
       }
@@ -143,7 +144,7 @@ const processComment = async (
         comment.lastError = 'Skipped by AI';
         comment.pipeline.repliedAt = new Date().toISOString();
         await savePostState(postState._meta.postId, postState);
-        broadcastUpdate();
+        broadcastState({ comments: postState.comments });
         return;
       }
 
@@ -164,7 +165,7 @@ const processComment = async (
         comment.replyStatus = 'DONE';
         comment.pipeline.repliedAt = new Date().toISOString();
         await savePostState(postState._meta.postId, postState);
-        broadcastUpdate(); // Broadcast progress
+        broadcastState({ comments: postState.comments }); // Broadcast progress
       } else {
         throw new Error(`Reply action failed for comment ${comment.commentId}`);
       }
@@ -215,7 +216,11 @@ const processQueue = async (): Promise<void> => {
 
   isProcessing = false;
   console.log(`Processing loop ended. Final status: ${pipelineStatus}`);
-  broadcastUpdate(); // Broadcast final status
+  const finalPostState = activePostUrn ? getPostState(activePostUrn) : null;
+  broadcastState({
+    pipelineStatus,
+    comments: finalPostState?.comments,
+  }); // Broadcast final status and comments
 };
 
 export const startPipeline = async (
@@ -239,6 +244,7 @@ export const startPipeline = async (
   postState._meta.runState = 'running';
   await savePostState(postUrn, postState);
 
+  broadcastState({ pipelineStatus: 'running', comments: postState.comments });
   processQueue();
 };
 
@@ -261,6 +267,7 @@ export const stopPipeline = async (): Promise<void> => {
     postState._meta.runState = 'paused';
     await savePostState(activePostUrn, postState);
   }
+  broadcastState({ pipelineStatus: 'paused' });
 };
 
 export const resumePipeline = async (): Promise<void> => {
@@ -284,6 +291,7 @@ export const resumePipeline = async (): Promise<void> => {
   postState._meta.runState = 'running';
   await savePostState(activePostUrn, postState);
 
+  broadcastState({ pipelineStatus: 'running' });
   processQueue();
 };
 

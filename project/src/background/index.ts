@@ -58,9 +58,7 @@ const sendMessageToTab = <T>(
 };
 
 // Initialize the pipeline manager with a broadcaster function.
-initPipelineManager(() => {
-  broadcastStateUpdate({ pipelineStatus: getPipelineStatus() });
-}, sendMessageToTab);
+initPipelineManager(broadcastStateUpdate, sendMessageToTab);
 
 // A curated list of popular and recommended models to show at the top.
 const CURATED_MODELS = [
@@ -245,7 +243,6 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
     }
     console.log(`Received START_PIPELINE for ${postUrn} on tab ${tabId}`);
     startPipeline(postUrn, tabId).then(() => {
-      broadcastStateUpdate({ pipelineStatus: getPipelineStatus() });
       sendResponse({ status: 'success' });
     });
     return true;
@@ -254,7 +251,6 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
   if (message.type === 'STOP_PIPELINE') {
     console.log('Received STOP_PIPELINE');
     stopPipeline().then(() => {
-      broadcastStateUpdate({ pipelineStatus: getPipelineStatus() });
       sendResponse({ status: 'success' });
     });
     return true;
@@ -263,7 +259,6 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
   if (message.type === 'RESUME_PIPELINE') {
     console.log('Received RESUME_PIPELINE');
     resumePipeline().then(() => {
-      broadcastStateUpdate({ pipelineStatus: getPipelineStatus() });
       sendResponse({ status: 'success' });
     });
     return true;

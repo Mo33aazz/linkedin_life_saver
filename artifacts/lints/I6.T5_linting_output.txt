@@ -1,0 +1,18 @@
+[
+  {
+    "type": "@typescript-eslint/no-unused-vars",
+    "path": "/home/moaz/code_machine/projects/linkedin_life_saver/project/src/background/index.ts",
+    "obj": "N/A",
+    "message": "'getPipelineStatus' is defined but never used.",
+    "line": 14,
+    "column": 3
+  },
+  {
+    "type": "no-unused-vars",
+    "path": "/home/moaz/code_machine/projects/linkedin_life_saver/project/src/background/index.ts",
+    "obj": "Identifier",
+    "message": "'getPipelineStatus' is defined but never used.",
+    "line": 14,
+    "column": 3
+  }
+]
