@@ -1,6 +1,5 @@
 export type LogLevel = 'INFO' | 'WARN' | 'ERROR' | 'DEBUG';
 
-// Corrected: timestamp is a string (ISO format) from new Date().toISOString()
 export interface LogEntry {
   timestamp: string;
   level: LogLevel;
@@ -10,26 +9,22 @@ export interface LogEntry {
 
 export type ActionStatus = '' | 'DONE' | 'FAILED';
 
-// New: Exported RunState for reuse in PostState, UIState, etc.
 export type RunState = 'idle' | 'running' | 'paused' | 'error';
 
-// New: Exported CommentType for reuse and clarity.
 export type CommentType = 'top-level' | 'reply';
 
-// New: Exported ChatMessage for AI client interactions.
 export interface ChatMessage {
   role: string;
   content: string;
 }
 
-// Updated: Comment interface with corrected types and additional pipeline properties.
 export interface Comment {
   commentId: string;
   text: string;
   ownerProfileUrl: string;
   timestamp: string;
-  type: CommentType; // Using the new CommentType alias.
-  connected: boolean;
+  type: CommentType;
+  connected?: boolean;
   threadId: string;
   likeStatus: ActionStatus;
   replyStatus: ActionStatus;
@@ -45,13 +40,11 @@ export interface Comment {
     likedAt: string;
     repliedAt: string;
     dmAt: string;
-    // Added optional properties based on pipelineManager usage.
     generatedReply?: string;
     generatedDm?: string;
   };
 }
 
-// Updated: UIState now uses the exported RunState type.
 export interface UIState {
   isInitializing: boolean;
   pipelineStatus: RunState;
@@ -62,7 +55,6 @@ export interface UIState {
   comments: Comment[];
 }
 
-// New: Exported Post interface to represent post metadata.
 export interface Post {
   postId: string;
   postUrl: string;
@@ -70,7 +62,6 @@ export interface Post {
   runState: RunState;
 }
 
-// Refactored: PostState structure is now valid, clear, and uses the Post interface.
 export interface PostState {
   _meta: Post;
   comments: Comment[];
@@ -79,6 +70,7 @@ export interface PostState {
 export interface OpenRouterModel {
   id: string;
   name: string;
+  context_length: number;
 }
 
 export interface AIConfig {
@@ -101,7 +93,7 @@ export interface AIConfig {
   };
   modelFilters?: {
     onlyTextOutput?: boolean;
-    minContext?: number;
+    minContext: number;
   };
 }
 

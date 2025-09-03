@@ -118,7 +118,7 @@ const generateReply = async (
 
     // Note: Some template variables are placeholders for now.
     // In a future task, these would be dynamically populated.
-    const systemPrompt = aiConfig.reply.customPrompt; // Simplified for now
+    const systemPrompt = aiConfig.reply?.customPrompt; // Simplified for now
     const userMessageContent = `
       Post URL: ${postState._meta.postUrl}
       My persona: ${systemPrompt}
@@ -175,7 +175,7 @@ const generateDm = async (
 
     const userMessageContent = `
       Their comment on my post: '${comment.text}'
-      My custom instructions for this DM: ${aiConfig.dm.customPrompt}
+      My custom instructions for this DM: ${aiConfig.dm?.customPrompt}
       My post URL for context: ${postState._meta.postUrl}
       Commenter Profile URL: ${comment.ownerProfileUrl}
       Output: ONLY the direct message text. Be concise, personable, and professional.

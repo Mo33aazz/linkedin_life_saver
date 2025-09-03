@@ -1,17 +1,23 @@
 /* global RequestInit */
-// 1. Import the AttributionConfig type for type safety.
 import {
-  AttributionConfig,
+  AIConfig,
   OpenRouterModel,
-  ChatCompletionRequestPayload,
-  OpenRouterChatCompletionResponse,
+  ChatMessage,
 } from '../../shared/types';
 import { logger } from '../logger';
 
-// 2. Define the base URL for the OpenRouter API as a constant.
+// Define the base URL for the OpenRouter API as a constant.
 const API_BASE_URL = 'https://openrouter.ai/api/v1';
 const MAX_RETRIES = 3;
 const INITIAL_DELAY = 1000; // 1 second
+
+interface OpenRouterChatCompletionResponse {
+  choices: {
+    message: {
+      content: string;
+    };
+  }[];
+}
 
 /**
  * A helper function to perform fetch requests with retry logic.
@@ -69,7 +75,6 @@ async function fetchWithRetry(
  * It handles authentication and attribution headers for all requests.
  */
 export class OpenRouterClient {
-  // 3. Use private fields to store the API key and prepared headers.
   #apiKey: string;
   #headers: Headers;
 
@@ -78,15 +83,19 @@ export class OpenRouterClient {
    * @param apiKey The user's OpenRouter API key.
    * @param attribution The attribution configuration for API requests.
    */
-  constructor(apiKey: string, attribution: AttributionConfig) {
-    // 4. Store the API key.
+  constructor(
+    apiKey: string,
+    attribution?: AIConfig['attribution']
+  ) {
     this.#apiKey = apiKey;
-
-    // 5. Prepare the common headers that will be sent with every request.
     this.#headers = new Headers();
     this.#headers.append('Authorization', `Bearer ${this.#apiKey}`);
-    this.#headers.append('HTTP-Referer', attribution.httpReferer);
-    this.#headers.append('X-Title', attribution.xTitle);
+    if (attribution?.httpReferer) {
+      this.#headers.append('HTTP-Referer', attribution.httpReferer);
+    }
+    if (attribution?.xTitle) {
+      this.#headers.append('X-Title', attribution.xTitle);
+    }
   }
 
   /**
@@ -103,13 +112,12 @@ export class OpenRouterClient {
 
       const jsonResponse = await response.json();
       logger.info('Successfully fetched models from OpenRouter.');
-      // The models are in the 'data' property of the response object
       return jsonResponse.data as OpenRouterModel[];
     } catch (error) {
       logger.error('Failed to fetch models after all retries', error, {
         endpoint: '/models',
       });
-      throw error; // Re-throw the final error
+      throw error;
     }
   }
 
@@ -118,13 +126,16 @@ export class OpenRouterClient {
    * @param payload The request payload containing the model, messages, and other parameters.
    * @returns A promise that resolves to the AI-generated reply string.
    */
-  public async createChatCompletion(
-    payload: ChatCompletionRequestPayload
-  ): Promise<string> {
+  public async createChatCompletion(payload: {
+    model?: string;
+    messages: ChatMessage[];
+    temperature?: number;
+    top_p?: number;
+    max_tokens?: number;
+  }): Promise<string> {
     logger.info('Requesting chat completion from OpenRouter', {
       model: payload.model,
     });
-    // 1. Append the Content-Type header for the POST request.
     this.#headers.append('Content-Type', 'application/json');
 
     try {
@@ -154,7 +165,6 @@ export class OpenRouterClient {
         model: payload.model,
         replyLength: replyText.length,
       });
-      // 3. Return the content of the first message choice.
       return replyText;
     } catch (error) {
       logger.error(
@@ -164,9 +174,8 @@ export class OpenRouterClient {
           endpoint: '/chat/completions',
         }
       );
-      throw error; // Re-throw the final error
+      throw error;
     } finally {
-      // 2. Clean up the header for subsequent requests that might be GET.
       this.#headers.delete('Content-Type');
     }
   }
