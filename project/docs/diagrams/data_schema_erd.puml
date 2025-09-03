@@ -1,0 +1,44 @@
+@startuml
+title Data Schema for Per-Post State JSON
+
+entity Post {
+  *postId (URN) : string <<PK>>
+  --
+  postUrl : string
+  lastUpdated : timestamp
+  runState : enum ('idle', 'running', 'paused', 'error')
+}
+
+entity Comment {
+  *commentId : string <<PK>>
+  --
+  text : string
+  ownerProfileUrl : string
+  timestamp : string
+  type : enum ('top-level', 'reply')
+  connected : boolean
+  threadId : string
+  likeStatus : enum ('', 'DONE', 'FAILED')
+  replyStatus : enum ('', 'DONE', 'FAILED')
+  dmStatus : enum ('', 'DONE', 'FAILED')
+  lastError : string
+}
+
+entity Attempts {
+  like : integer
+  reply : integer
+  dm : integer
+}
+
+entity PipelineTimestamps {
+  queuedAt : timestamp
+  likedAt : timestamp
+  repliedAt : timestamp
+  dmAt : timestamp
+}
+
+Post ||--o{ Comment : contains
+Comment ||--|{ Attempts : has
+Comment ||--|{ PipelineTimestamps : has
+
+@enduml
