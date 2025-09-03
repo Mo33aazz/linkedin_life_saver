@@ -52,13 +52,35 @@ export const getConfig = (): AIConfig => {
 
 /**
  * Updates the AI configuration with new values and persists it to chrome.storage.sync.
+ * This performs a deep merge for nested configuration objects.
  * @param newConfig A partial AIConfig object with the fields to update.
  */
 export const updateConfig = async (
   newConfig: Partial<AIConfig>
 ): Promise<void> => {
   const existingConfig = getConfig(); // Ensures config is initialized
-  const mergedConfig = { ...existingConfig, ...newConfig };
+
+  // Perform a deep merge for nested objects to handle partial updates gracefully.
+  const mergedConfig: AIConfig = {
+    ...existingConfig,
+    ...newConfig,
+    reply: {
+      ...existingConfig.reply,
+      ...newConfig.reply,
+    },
+    dm: {
+      ...existingConfig.dm,
+      ...newConfig.dm,
+    },
+    attribution: {
+      ...existingConfig.attribution,
+      ...newConfig.attribution,
+    },
+    modelFilters: {
+      ...existingConfig.modelFilters,
+      ...newConfig.modelFilters,
+    },
+  };
 
   try {
     await chrome.storage.sync.set({ [AI_CONFIG_KEY]: mergedConfig });
