@@ -1,4 +1,7 @@
-import { CommentType, PostState } from '../../shared/types';
+/// <reference types="chrome" />
+/* global chrome */
+
+import { CommentType, Post, PostState } from '../../shared/types';
 
 // A minimal interface for the data required by the stats calculation.
 // This decouples the function from the full state-managed `Comment` object.
@@ -69,7 +72,8 @@ export const calculateCommentStats = (
 
 /**
  * Saves the entire state for a given post to chrome.storage.local.
- * The post's URN is used as the key.
+ * The post's URN is used as the key. The in-memory PostState is transformed
+ * into the required storage format before saving.
  *
  * @param postUrn - The unique URN of the post, used as the storage key.
  * @param state - The PostState object to save.
@@ -79,7 +83,11 @@ export const savePostState = async (
   state: PostState
 ): Promise<void> => {
   try {
-    await chrome.storage.local.set({ [postUrn]: state });
+    const storableState = {
+      _meta: state._meta,
+      [state._meta.postUrl]: state.comments,
+    };
+    await chrome.storage.local.set({ [postUrn]: storableState });
     console.log(`State saved for post URN: ${postUrn}`);
   } catch (error) {
     console.error(`Error saving state for post URN ${postUrn}:`, error);
@@ -88,6 +96,7 @@ export const savePostState = async (
 
 /**
  * Loads the state for a given post from chrome.storage.local.
+ * Transforms the stored format back into the in-memory PostState representation.
  *
  * @param postUrn - The unique URN of the post to load.
  * @returns A Promise that resolves to the PostState object if found, otherwise null.
@@ -97,9 +106,18 @@ export const loadPostState = async (
 ): Promise<PostState | null> => {
   try {
     const storageResult = await chrome.storage.local.get(postUrn);
-    if (storageResult && storageResult[postUrn]) {
+    const storedData = storageResult?.[postUrn];
+
+    if (storedData && storedData._meta && storedData._meta.postUrl) {
       console.log(`State loaded for post URN: ${postUrn}`);
-      return storageResult[postUrn] as PostState;
+      const meta = storedData._meta as Post;
+      const comments = storedData[meta.postUrl] || [];
+
+      const state: PostState = {
+        _meta: meta,
+        comments,
+      };
+      return state;
     }
     console.log(`No state found for post URN: ${postUrn}`);
     return null;

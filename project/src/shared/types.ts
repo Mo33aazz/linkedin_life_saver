@@ -62,14 +62,13 @@ export interface Post {
 }
 
 /**
- * Represents the entire state object for a single post, as stored in a JSON file.
- * It includes metadata and a list of comments, keyed by the post's URL.
+ * Represents the entire state object for a single post.
+ * This is the in-memory representation, which is then transformed for storage.
  */
-export type PostState = {
+export interface PostState {
   _meta: Post;
-} & {
-  [postUrl: string]: Comment[];
-};
+  comments: Comment[];
+}
 
 /**
  * Configuration for AI-generated replies.
