@@ -155,6 +155,7 @@ export interface ExtensionMessage {
     | 'GET_MODELS'
     | 'START_PIPELINE'
     | 'STOP_PIPELINE'
-    | 'RESUME_PIPELINE';
+    | 'RESUME_PIPELINE'
+    | 'LIKE_COMMENT';
   payload?: unknown;
 }

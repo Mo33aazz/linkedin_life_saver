@@ -6,6 +6,7 @@ import { getPostState, savePostState } from './stateManager';
 // Internal state for the pipeline
 let pipelineStatus: RunState = 'idle';
 let activePostUrn: string | null = null;
+let activeTabId: number | null = null;
 let isProcessing = false; // A lock to prevent concurrent processing loops
 
 // This will be set by the main service worker script to broadcast updates
@@ -13,8 +14,24 @@ let broadcastUpdate: () => void = () => {
   console.warn('broadcastUpdate not initialized in PipelineManager');
 };
 
-export const initPipelineManager = (broadcaster: () => void) => {
+// This will be set by the main service worker script to send messages to content scripts
+let sendMessageToTab: <T>(
+  tabId: number,
+  message: { type: string; payload?: unknown }
+) => Promise<T> = async () => {
+  console.warn('sendMessageToTab not initialized in PipelineManager');
+  return Promise.reject('sendMessageToTab not initialized');
+};
+
+export const initPipelineManager = (
+  broadcaster: () => void,
+  messageSender: <T>(
+    tabId: number,
+    message: { type: string; payload?: unknown }
+  ) => Promise<T>
+) => {
   broadcastUpdate = broadcaster;
+  sendMessageToTab = messageSender;
 };
 
 const findNextComment = (postState: PostState): Comment | null => {
@@ -35,12 +52,23 @@ const processComment = async (
     // STATE: QUEUED -> LIKED
     if (comment.likeStatus === '') {
       console.log(`Liking comment: ${comment.commentId}`);
-      // In a real implementation, this would send a message to the content script.
-      // For now, we'll simulate success.
-      comment.likeStatus = 'DONE';
-      comment.pipeline.likedAt = new Date().toISOString();
-      await savePostState(postState._meta.postId, postState);
-      broadcastUpdate(); // Broadcast progress (state of comments changed)
+      if (!activeTabId) {
+        throw new Error('Cannot like comment, active tab ID is not set.');
+      }
+
+      const likeSuccess = await sendMessageToTab<boolean>(activeTabId, {
+        type: 'LIKE_COMMENT',
+        payload: { commentId: comment.commentId },
+      });
+
+      if (likeSuccess) {
+        comment.likeStatus = 'DONE';
+        comment.pipeline.likedAt = new Date().toISOString();
+        await savePostState(postState._meta.postId, postState);
+        broadcastUpdate(); // Broadcast progress (state of comments changed)
+      } else {
+        throw new Error(`Like action failed for comment ${comment.commentId}`);
+      }
       return; // IMPORTANT: Return after each atomic action.
     }
 
@@ -103,7 +131,10 @@ const processQueue = async (): Promise<void> => {
   broadcastUpdate(); // Broadcast final status
 };
 
-export const startPipeline = async (postUrn: string): Promise<void> => {
+export const startPipeline = async (
+  postUrn: string,
+  tabId: number
+): Promise<void> => {
   if (pipelineStatus !== 'idle') {
     console.warn(`Pipeline cannot be started from state: ${pipelineStatus}`);
     return;
@@ -114,9 +145,10 @@ export const startPipeline = async (postUrn: string): Promise<void> => {
     return;
   }
 
-  console.log(`Starting pipeline for post: ${postUrn}`);
+  console.log(`Starting pipeline for post: ${postUrn} on tab ${tabId}`);
   pipelineStatus = 'running';
   activePostUrn = postUrn;
+  activeTabId = tabId;
   postState._meta.runState = 'running';
   await savePostState(postUrn, postState);
 

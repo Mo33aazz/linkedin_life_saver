@@ -35,10 +35,32 @@ loadAllStates();
 // Initialize the configuration on startup.
 initializeConfig();
 
+const sendMessageToTab = <T>(
+  tabId: number,
+  message: { type: string; payload?: unknown }
+): Promise<T> => {
+  return new Promise<T>((resolve, reject) => {
+    chrome.tabs.sendMessage(tabId, message, (response) => {
+      if (chrome.runtime.lastError) {
+        return reject(new Error(chrome.runtime.lastError.message));
+      }
+      if (response && response.status === 'success') {
+        resolve(response.payload as T);
+      } else {
+        reject(
+          new Error(
+            response?.message || 'Content script action failed or did not respond.'
+          )
+        );
+      }
+    });
+  });
+};
+
 // Initialize the pipeline manager with a broadcaster function.
 initPipelineManager(() => {
   broadcastStateUpdate({ pipelineStatus: getPipelineStatus() });
-});
+}, sendMessageToTab);
 
 // A curated list of popular and recommended models to show at the top.
 const CURATED_MODELS = [
@@ -214,8 +236,15 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
 
   if (message.type === 'START_PIPELINE') {
     const { postUrn } = message.payload as { postUrn: string };
-    console.log(`Received START_PIPELINE for ${postUrn}`);
-    startPipeline(postUrn).then(() => {
+    const tabId = sender.tab?.id;
+    if (!tabId) {
+      const errorMsg = 'Could not get tab ID to start pipeline.';
+      console.error(errorMsg);
+      sendResponse({ status: 'error', message: errorMsg });
+      return true;
+    }
+    console.log(`Received START_PIPELINE for ${postUrn} on tab ${tabId}`);
+    startPipeline(postUrn, tabId).then(() => {
       broadcastStateUpdate({ pipelineStatus: getPipelineStatus() });
       sendResponse({ status: 'success' });
     });
