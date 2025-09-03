@@ -1,5 +1,5 @@
 import { test, expect, Page } from '@playwright/test';
-import { ExtensionMessage, Comment, LogEntry } from '../../src/shared/types';
+import { ExtensionMessage, Comment } from '../../src/shared/types';
 
 /**
  * Helper function to dispatch a message to the UI's store, simulating a
