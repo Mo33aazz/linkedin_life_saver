@@ -1,4 +1,4 @@
-import { likeComment, replyToComment } from './domInteractor';
+import { likeComment, replyToComment, sendDm } from './domInteractor';
 
 // CSS styles as a string (copied from ../index.css)
 const sidebarStyles = `
@@ -87,6 +87,28 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
     }
 
     replyToComment(commentId, replyText)
+      .then((success) => {
+        sendResponse({ status: 'success', payload: success });
+      })
+      .catch((error) => {
+        sendResponse({ status: 'error', message: (error as Error).message });
+      });
+
+    return true; // Indicates async response
+  }
+
+  if (message.type === 'SEND_DM') {
+    console.log('Content script received SEND_DM:', message.payload);
+    const { dmText } = message.payload as { dmText: string };
+    if (dmText === undefined) {
+      sendResponse({
+        status: 'error',
+        message: 'No dmText provided.',
+      });
+      return true;
+    }
+
+    sendDm(dmText)
       .then((success) => {
         sendResponse({ status: 'success', payload: success });
       })
