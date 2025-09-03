@@ -5,12 +5,24 @@ import {
   savePostState,
   loadAllStates,
 } from './services/stateManager';
-import { Post, PostState } from '../shared/types';
+import { Post, PostState, UIState, CommentStats } from '../shared/types';
 
 console.log('LinkedIn Engagement Assistant Service Worker loaded.');
 
 // Load all persisted states into memory on startup
 loadAllStates();
+
+/**
+ * Broadcasts the latest state to all UI components.
+ * @param state The partial state to broadcast.
+ */
+const broadcastStateUpdate = (state: Partial<UIState>) => {
+  console.log('Broadcasting state update:', state);
+  chrome.runtime.sendMessage({
+    type: 'STATE_UPDATE',
+    payload: state,
+  });
+};
 
 chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
   if (message.type === 'ping') {
@@ -49,6 +61,9 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
 
     // Asynchronously save state. No need to await for the response to the content script.
     savePostState(postUrn, postState);
+
+    // NEW: Broadcast the updated stats to the UI
+    broadcastStateUpdate({ stats });
 
     sendResponse({ status: 'success', stats });
     return true; // Keep the message channel open for async response

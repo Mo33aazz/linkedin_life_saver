@@ -116,3 +116,27 @@ export interface AIConfig {
   attribution: AttributionConfig;
   modelFilters: ModelFiltersConfig;
 }
+
+/**
+ * An object representing the calculated statistics for comments.
+ */
+export interface CommentStats {
+  totalTopLevelNoReplies: number;
+  userTopLevelNoReplies: number;
+}
+
+/**
+ * Represents the state of the UI, managed by Zustand.
+ */
+export interface UIState {
+  pipelineStatus: RunState;
+  stats: CommentStats;
+}
+
+/**
+ * Defines the structure for messages sent between extension components.
+ */
+export interface ExtensionMessage {
+  type: 'STATE_UPDATE' | 'GET_LATEST_STATE';
+  payload?: unknown;
+}
