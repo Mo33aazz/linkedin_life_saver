@@ -378,7 +378,7 @@
         },
         "output": "I will now create the component structure for the Sidebar UI. This involves creating a new `App.tsx` component, several placeholder components for each section of the sidebar, and updating the UI entry point to render the new structure. I will also add some basic CSS to visually distinguish the components.\n\nFirst, I'll create the main `App.tsx` file which will serve as the container for all other UI components.\n\n~~~tsx\n#- file: src/ui/App.tsx\nimport { h } from 'preact';\nimport { Header } from './components/Header';\nimport { Counters } from './components/Counters';\nimport { PipelineProgress } from './components/PipelineProgress';\nimport { Controls } from './components/Controls';\nimport { LogsPanel } from './components/LogsPanel';\n\nexport const App = () => {\n  return (\n    <div className=\"sidebar-container\">\n      <h1>LinkedIn Engagement Assistant</h1>\n      <Header />\n      <Counters />\n      <PipelineProgress />\n      <Controls />\n      <LogsPanel />\n    </div>\n  );\n};\n~~~\n\nNext, I'll create the placeholder component for the `Controls` section.\n\n~~~tsx\n#- file: src/ui/components/Controls.tsx\nimport { h } from 'preact';\n\nexport const Controls = () => {\n  return (\n    <div className=\"sidebar-section\">\n      <h2>Controls</h2>\n      <p>Placeholder for settings and actions.</p>\n    </div>\n  );\n};\n~~~\n\nNow, I'll create the placeholder component for the `Counters` section.\n\n~~~tsx\n#- file: src/ui/components/Counters.tsx\nimport { h } from 'preact';\n\nexport const Counters = () => {\n  return (\n    <div className=\"sidebar-section\">\n      <h2>Live Counters</h2>\n      <p>Placeholder for stats.</p>\n    </div>\n  );\n};\n~~~\n\nI'll create the placeholder component for the `Header` section.\n\n~~~tsx\n#- file: src/ui/components/Header.tsx\nimport { h } from 'preact';\n\nexport const Header = () => {\n  return (\n    <div className=\"sidebar-section\">\n      <h2>Header</h2>\n      <p>Placeholder for status, controls.</p>\n    </div>\n  );\n};\n~~~\n\nNext is the placeholder component for the `LogsPanel`.\n\n~~~tsx\n#- file: src/ui/components/LogsPanel.tsx\nimport { h } from 'preact';\n\nexport const LogsPanel = () => {\n  return (\n    <div className=\"sidebar-section\">\n      <h2>Logs</h2>\n      <p>Placeholder for log stream.</p>\n    </div>\n  );\n};\n~~~\n\nAnd the placeholder for the `PipelineProgress` section.\n\n~~~tsx\n#- file: src/ui/components/PipelineProgress.tsx\nimport { h } from 'preact';\n\nexport const PipelineProgress = () => {\n  return (\n    <div className=\"sidebar-section\">\n      <h2>Pipeline Progress</h2>\n      <p>Placeholder for real-time actions list.</p>\n    </div>\n  );\n};\n~~~\n\nTo visually distinguish the new components, I'll add some basic styling to the `src/index.css` file.\n\n~~~css\n#- file: src/index.css\n.sidebar-container {\n  border: 1px solid #ccc;\n  padding: 10px;\n  width: 320px;\n  font-family: sans-serif;\n  background-color: #f9f9f9;\n  color: #333;\n}\n\n.sidebar-section {\n  border: 1px solid #e0e0e0;\n  background-color: #fff;\n  padding: 8px 12px;\n  margin-bottom: 12px;\n  border-radius: 4px;\n  box-shadow: 0 1px 3px rgba(0,0,0,0.05);\n}\n\n.sidebar-section h2 {\n  margin-top: 0;\n  font-size: 1.1em;\n  border-bottom: 1px solid #eee;\n  padding-bottom: 4px;\n}\n~~~\n\nFinally, I'll update the UI entry point, `src/ui/index.tsx`, to render our new `App` component.\n\n~~~tsx\n#- file: src/ui/index.tsx\nimport { h, render } from 'preact';\nimport { App } from './App';\n\nexport function init(element: HTMLElement) {\n  render(<App />, element);\n}\n~~~",
         "iteration_id": "I2",
-        "completed": false,
+        "completed": true,
         "target_files": [
             "src/ui/App.tsx",
             "src/ui/components/Header.tsx",
@@ -395,6 +395,51 @@
                     {
                         "path": "project/src/ui/index.tsx",
                         "content": "import { h, render } from 'preact';\n\nconst App = () => {\n  return (\n    <div>\n      <h1>LinkedIn Engagement Assistant</h1>\n      <p>Sidebar UI Placeholder</p>\n    </div>\n  );\n};\n\nexport function init(element: HTMLElement) {\n  render(<App />, element);\n}"
+                    }
+                ]
+            },
+            {
+                "path": "src/ui/components/Header.tsx",
+                "content": "import { h } from 'preact';\n\nexport const Header = () => {\n  return (\n    <div className=\"sidebar-section\">\n      <h2>Header</h2>\n      <p>Placeholder for status, controls.</p>\n    </div>\n  );\n};"
+            },
+            {
+                "path": "src/ui/components/Counters.tsx",
+                "content": "import { h } from 'preact';\n\nexport const Counters = () => {\n  return (\n    <div className=\"sidebar-section\">\n      <h2>Live Counters</h2>\n      <p>Placeholder for stats.</p>\n    </div>\n  );\n};"
+            },
+            {
+                "path": "src/ui/App.tsx",
+                "content": "import { h } from 'preact';\nimport { Header } from './components/Header';\nimport { Counters } from './components/Counters';\nimport { PipelineProgress } from './components/PipelineProgress';\nimport { Controls } from './components/Controls';\nimport { LogsPanel } from './components/LogsPanel';\n\nexport const App = () => {\n  return (\n    <div className=\"sidebar-container\">\n      <h1>LinkedIn Engagement Assistant</h1>\n      <Header />\n      <Counters />\n      <PipelineProgress />\n      <Controls />\n      <LogsPanel />\n    </div>\n  );\n};"
+            },
+            {
+                "path": "src/ui/",
+                "content": [
+                    {
+                        "path": "project/src/ui/index.tsx",
+                        "content": "import { h, render } from 'preact';\nimport { App } from './App';\n\nexport function init(element: HTMLElement) {\n  render(<App />, element);\n}"
+                    },
+                    {
+                        "path": "project/src/ui/App.tsx",
+                        "content": "import { h } from 'preact';\nimport { Header } from './components/Header';\nimport { Counters } from './components/Counters';\nimport { PipelineProgress } from './components/PipelineProgress';\nimport { Controls } from './components/Controls';\nimport { LogsPanel } from './components/LogsPanel';\n\nexport const App = () => {\n  return (\n    <div className=\"sidebar-container\">\n      <h1>LinkedIn Engagement Assistant</h1>\n      <Header />\n      <Counters />\n      <PipelineProgress />\n      <Controls />\n      <LogsPanel />\n    </div>\n  );\n};"
+                    },
+                    {
+                        "path": "project/src/ui/components/Header.tsx",
+                        "content": "import { h } from 'preact';\n\nexport const Header = () => {\n  return (\n    <div className=\"sidebar-section\">\n      <h2>Header</h2>\n      <p>Placeholder for status, controls.</p>\n    </div>\n  );\n};"
+                    },
+                    {
+                        "path": "project/src/ui/components/LogsPanel.tsx",
+                        "content": "import { h } from 'preact';\n\nexport const LogsPanel = () => {\n  return (\n    <div className=\"sidebar-section\">\n      <h2>Logs</h2>\n      <p>Placeholder for log stream.</p>\n    </div>\n  );\n};"
+                    },
+                    {
+                        "path": "project/src/ui/components/Counters.tsx",
+                        "content": "import { h } from 'preact';\n\nexport const Counters = () => {\n  return (\n    <div className=\"sidebar-section\">\n      <h2>Live Counters</h2>\n      <p>Placeholder for stats.</p>\n    </div>\n  );\n};"
+                    },
+                    {
+                        "path": "project/src/ui/components/PipelineProgress.tsx",
+                        "content": "import { h } from 'preact';\n\nexport const PipelineProgress = () => {\n  return (\n    <div className=\"sidebar-section\">\n      <h2>Pipeline Progress</h2>\n      <p>Placeholder for real-time actions list.</p>\n    </div>\n  );\n};"
+                    },
+                    {
+                        "path": "project/src/ui/components/Controls.tsx",
+                        "content": "import { h } from 'preact';\n\nexport const Controls = () => {\n  return (\n    <div className=\"sidebar-section\">\n      <h2>Controls</h2>\n      <p>Placeholder for settings and actions.</p>\n    </div>\n  );\n};"
                     }
                 ]
             }
@@ -425,7 +470,7 @@
             ],
             "parallelizable": false
         },
-        "output": null,
+        "output": "I will now implement the two-way communication channel between the UI and the service worker as per the task instructions.\n\nFirst, I will modify the service worker (`src/background/index.ts`) to listen for incoming messages. It will specifically handle a message with `type: 'ping'` and reply with `payload: 'pong'`. I will ensure to `return true` from the listener to correctly handle the asynchronous response.\n\nSecond, I will update the main UI component (`src/ui/App.tsx`). I will use a `useEffect` hook to send a `ping` message to the service worker as soon as the component mounts. The callback function for `sendMessage` will log the `pong` response to the console, fulfilling the acceptance criteria.\n\nThis approach uses the standard `chrome.runtime.sendMessage` API, which is the most appropriate method for this type of one-time request/response communication within a Chrome extension.\n\n~~~typescript\n#- file: src/background/index.ts\n// This is the service worker script.\n// It will house the core orchestration logic, state management, and API calls.\nconsole.log('LinkedIn Engagement Assistant Service Worker loaded.');\n\nchrome.runtime.onMessage.addListener((message, sender, sendResponse) => {\n  if (message.type === 'ping') {\n    console.log('Received ping from UI, sending pong back.');\n    sendResponse({ payload: 'pong' });\n    // Return true to indicate you wish to send a response asynchronously.\n    return true;\n  }\n});\n~~~\n~~~typescript\n#- file: src/ui/App.tsx\nimport { h } from 'preact';\nimport { useEffect } from 'preact/hooks';\nimport { Header } from './components/Header';\nimport { Counters } from './components/Counters';\nimport { PipelineProgress } from './components/PipelineProgress';\nimport { Controls } from './components/Controls';\nimport { LogsPanel } from './components/LogsPanel';\n\nexport const App = () => {\n  useEffect(() => {\n    console.log('UI App component mounted. Sending ping to service worker.');\n    chrome.runtime.sendMessage({ type: 'ping' }, (response) => {\n      if (chrome.runtime.lastError) {\n        console.error('Error sending message:', chrome.runtime.lastError);\n      } else {\n        console.log('Received response from service worker:', response);\n      }\n    });\n  }, []); // Empty dependency array ensures this runs only once on mount\n\n  return (\n    <div className=\"sidebar-container\">\n      <h1>LinkedIn Engagement Assistant</h1>\n      <Header />\n      <Counters />\n      <PipelineProgress />\n      <Controls />\n      <LogsPanel />\n    </div>\n  );\n};\n~~~",
         "iteration_id": "I2",
         "completed": false,
         "target_files": [
@@ -436,7 +481,16 @@
             "src/background/index.ts",
             "src/ui/App.tsx"
         ],
-        "files": []
+        "files": [
+            {
+                "path": "src/background/index.ts",
+                "content": "// This is the service worker script.\n// It will house the core orchestration logic, state management, and API calls.\nconsole.log('LinkedIn Engagement Assistant Service Worker loaded.');"
+            },
+            {
+                "path": "src/ui/App.tsx",
+                "content": "import { h } from 'preact';\nimport { Header } from './components/Header';\nimport { Counters } from './components/Counters';\nimport { PipelineProgress } from './components/PipelineProgress';\nimport { Controls } from './components/Controls';\nimport { LogsPanel } from './components/LogsPanel';\n\nexport const App = () => {\n  return (\n    <div className=\"sidebar-container\">\n      <h1>LinkedIn Engagement Assistant</h1>\n      <Header />\n      <Counters />\n      <PipelineProgress />\n      <Controls />\n      <LogsPanel />\n    </div>\n  );\n};"
+            }
+        ]
     },
     {
         "name": "I2.T4",
