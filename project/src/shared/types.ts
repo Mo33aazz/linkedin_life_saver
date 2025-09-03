@@ -76,6 +76,7 @@ export interface PostState {
 export interface OpenRouterModel {
   id: string;
   name: string;
+  context_length: number;
 }
 
 /**
@@ -150,6 +151,7 @@ export interface ExtensionMessage {
     | 'GET_LATEST_STATE'
     | 'REQUEST_POST_STATE_FOR_EXPORT'
     | 'UPDATE_AI_CONFIG'
+    | 'GET_AI_CONFIG'
     | 'GET_MODELS';
   payload?: unknown;
 }

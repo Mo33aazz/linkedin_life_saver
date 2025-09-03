@@ -1,56 +1,94 @@
 import { h } from 'preact';
-import { useState } from 'preact/hooks';
+import { useState, useEffect } from 'preact/hooks';
 import { OpenRouterModel, AIConfig } from '../../shared/types';
 
 export const AiSettings = () => {
   // AI settings state
   const [apiKey, setApiKey] = useState('');
   const [models, setModels] = useState<OpenRouterModel[]>([]);
+  const [selectedModel, setSelectedModel] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [testStatus, setTestStatus] = useState<'idle' | 'success' | 'error'>('idle');
+  const [testStatus, setTestStatus] = useState<'idle' | 'success' | 'error'>(
+    'idle'
+  );
 
-  // Other settings from original component
-  const [temperature, setTemperature] = useState(0.5);
+  // Other settings
+  const [temperature, setTemperature] = useState(0.7);
   const [topP, setTopP] = useState(1.0);
 
-  // TODO: In a future task, load the initial config from storage when the component mounts.
+  // Load config on component mount
+  useEffect(() => {
+    chrome.runtime.sendMessage({ type: 'GET_AI_CONFIG' }, (response) => {
+      if (response.status === 'success') {
+        const config: AIConfig = response.payload;
+        setApiKey(config.apiKey || '');
+        setSelectedModel(config.model || '');
+        setTemperature(config.temperature || 0.7);
+        setTopP(config.top_p || 1.0);
+
+        // If an API key is already present, fetch models automatically.
+        if (config.apiKey) {
+          handleFetchModels(config.apiKey, config.model);
+        }
+      } else {
+        console.error('Failed to load AI config:', response.message);
+        setError(`Failed to load AI config: ${response.message}`);
+      }
+    });
+  }, []);
 
   const handleSaveConfig = async () => {
-    const partialConfig: Partial<AIConfig> = { apiKey };
+    const partialConfig: Partial<AIConfig> = {
+      apiKey,
+      model: selectedModel,
+      temperature,
+      top_p: topP,
+    };
     chrome.runtime.sendMessage(
       { type: 'UPDATE_AI_CONFIG', payload: partialConfig },
       (response) => {
         if (response.status === 'success') {
-          console.log('API Key saved.');
+          console.log('AI Config saved.');
           // Optionally, provide user feedback like a toast message.
         } else {
-          console.error('Failed to save API key:', response.message);
-          setError(`Failed to save API key: ${response.message}`);
+          console.error('Failed to save AI config:', response.message);
+          setError(`Failed to save AI config: ${response.message}`);
         }
       }
     );
   };
 
-  const handleFetchModels = async () => {
+  const handleFetchModels = async (
+    currentApiKey: string,
+    currentModel: string
+  ) => {
     setIsLoading(true);
     setModels([]);
     setError(null);
     setTestStatus('idle');
 
     // 1. Persist the entered API key. The service worker needs the latest key.
-    const partialConfig: Partial<AIConfig> = { apiKey };
+    const partialConfig: Partial<AIConfig> = { apiKey: currentApiKey };
     const saveResponse = await new Promise<{ status: string; message?: string }>(
       (resolve) => {
         chrome.runtime.sendMessage(
           { type: 'UPDATE_AI_CONFIG', payload: partialConfig },
-          (res) => resolve(res || { status: 'error', message: 'No response from background script.' })
+          (res) =>
+            resolve(
+              res || {
+                status: 'error',
+                message: 'No response from background script.',
+              }
+            )
         );
       }
     );
 
     if (saveResponse.status !== 'success') {
-      setError(`Failed to save API key before testing: ${saveResponse.message}`);
+      setError(
+        `Failed to save API key before testing: ${saveResponse.message}`
+      );
       setIsLoading(false);
       setTestStatus('error');
       return;
@@ -59,14 +97,23 @@ export const AiSettings = () => {
     // 2. After the key is saved, request the models.
     chrome.runtime.sendMessage({ type: 'GET_MODELS' }, (response) => {
       if (response.status === 'success') {
-        setModels(response.payload);
+        const fetchedModels: OpenRouterModel[] = response.payload;
+        setModels(fetchedModels);
         setTestStatus('success');
+        // If the previously selected model is not in the new list, reset it.
+        if (!fetchedModels.some((model) => model.id === currentModel)) {
+          setSelectedModel('');
+        }
       } else {
         setError(response.message);
         setTestStatus('error');
       }
       setIsLoading(false);
     });
+  };
+
+  const onTestClick = () => {
+    handleFetchModels(apiKey, selectedModel);
   };
 
   return (
@@ -85,7 +132,7 @@ export const AiSettings = () => {
             onInput={(e) => setApiKey((e.target as HTMLInputElement).value)}
           />
           <button onClick={handleSaveConfig}>Save</button>
-          <button onClick={handleFetchModels} disabled={isLoading}>
+          <button onClick={onTestClick} disabled={isLoading}>
             {isLoading ? 'Testing...' : 'Test'}
           </button>
         </div>
@@ -97,8 +144,16 @@ export const AiSettings = () => {
 
       <div className="form-group">
         <label htmlFor="model">Model</label>
-        <select id="model" name="model" disabled={isLoading || models.length === 0}>
-          <option disabled selected>
+        <select
+          id="model"
+          name="model"
+          value={selectedModel}
+          onChange={(e) =>
+            setSelectedModel((e.target as HTMLSelectElement).value)
+          }
+          disabled={isLoading || models.length === 0}
+        >
+          <option value="" disabled>
             {isLoading
               ? 'Fetching models...'
               : models.length > 0
@@ -125,7 +180,7 @@ export const AiSettings = () => {
 
       <div className="form-group">
         <label htmlFor="temperature">
-          Temperature: <span>{temperature}</span>
+          Temperature: <span>{temperature.toFixed(1)}</span>
         </label>
         <input
           type="range"
@@ -143,7 +198,7 @@ export const AiSettings = () => {
 
       <div className="form-group">
         <label htmlFor="topP">
-          Top P: <span>{topP}</span>
+          Top P: <span>{topP.toFixed(1)}</span>
         </label>
         <input
           type="range"

@@ -11,7 +11,13 @@ import {
   updateConfig,
   getConfig,
 } from './services/configManager';
-import { Post, PostState, UIState, AIConfig } from '../shared/types';
+import {
+  Post,
+  PostState,
+  UIState,
+  AIConfig,
+  OpenRouterModel,
+} from '../shared/types';
 import { OpenRouterClient } from './services/openRouterClient';
 
 console.log('LinkedIn Engagement Assistant Service Worker loaded.');
@@ -21,6 +27,14 @@ loadAllStates();
 
 // Initialize the configuration on startup.
 initializeConfig();
+
+// A curated list of popular and recommended models to show at the top.
+const CURATED_MODELS = [
+  'anthropic/claude-3.5-sonnet',
+  'google/gemini-pro-1.5',
+  'mistralai/mistral-large',
+  'openai/gpt-4o',
+];
 
 /**
  * Broadcasts the latest state to all UI components.
@@ -118,19 +132,14 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
     return true; // Indicate async response
   }
 
-  if (message.type === 'GET_MODELS') {
-    console.log('Received request to get models from OpenRouter.');
+  if (message.type === 'GET_AI_CONFIG') {
+    console.log('Received request for AI config.');
     (async () => {
       try {
         const config = getConfig();
-        if (!config.apiKey) {
-          throw new Error('OpenRouter API key is not set.');
-        }
-        const client = new OpenRouterClient(config.apiKey, config.attribution);
-        const models = await client.getModels();
-        sendResponse({ status: 'success', payload: models });
+        sendResponse({ status: 'success', payload: config });
       } catch (error) {
-        console.error('Failed to fetch models from OpenRouter:', error);
+        console.error('Failed to get AI config:', error);
         sendResponse({ status: 'error', message: (error as Error).message });
       }
     })();
@@ -147,7 +156,42 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
         }
         const client = new OpenRouterClient(config.apiKey, config.attribution);
         const models = await client.getModels();
-        sendResponse({ status: 'success', payload: models });
+
+        // Filter and sort models before sending to UI
+        const filteredModels = models.filter((model) => {
+          const meetsContextRequirement =
+            model.context_length >= config.modelFilters.minContext;
+          let isTextOnly = true;
+          if (config.modelFilters.onlyTextOutput) {
+            // A simple filter to exclude models that are likely not for text generation.
+            isTextOnly = !/vision|image|audio/.test(model.id);
+          }
+          return meetsContextRequirement && isTextOnly;
+        });
+
+        const curated: OpenRouterModel[] = [];
+        const others: OpenRouterModel[] = [];
+
+        // Separate models into curated and others
+        filteredModels.forEach((model) => {
+          if (CURATED_MODELS.includes(model.id)) {
+            curated.push(model);
+          } else {
+            others.push(model);
+          }
+        });
+
+        // Sort curated models to match the defined order
+        curated.sort(
+          (a, b) => CURATED_MODELS.indexOf(a.id) - CURATED_MODELS.indexOf(b.id)
+        );
+
+        // Sort other models alphabetically by name
+        others.sort((a, b) => a.name.localeCompare(b.name));
+
+        const sortedModels = [...curated, ...others];
+
+        sendResponse({ status: 'success', payload: sortedModels });
       } catch (error) {
         console.error('Failed to fetch models from OpenRouter:', error);
         sendResponse({ status: 'error', message: (error as Error).message });
