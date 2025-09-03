@@ -4,7 +4,7 @@ export interface LogEntry {
   timestamp: number;
   level: LogLevel;
   message: string;
-  context?: Record<string, any>;
+  context?: Record<string, unknown>;
 }
 
 export type ActionStatus = '' | 'DONE' | 'FAILED';
