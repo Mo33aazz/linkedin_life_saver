@@ -173,7 +173,8 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
   }
 
   if (message.type === 'UPDATE_AI_CONFIG') {
-    const { apiKey, ...safeConfig } = message.payload as Partial<AIConfig>;
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
+    const { apiKey: _apiKey, ...safeConfig } = message.payload as Partial<AIConfig>;
     logger.info('Received request to update AI config', {
       config: safeConfig,
     });

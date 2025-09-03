@@ -10,6 +10,7 @@ export class Logger {
   private isInitialized = false;
 
   // The constructor is private to enforce the Singleton pattern.
+  // eslint-disable-next-line no-useless-constructor
   private constructor() {}
 
   /**
