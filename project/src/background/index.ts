@@ -23,10 +23,20 @@ import {
   UIState,
   AIConfig,
   OpenRouterModel,
+  LogEntry,
 } from '../shared/types';
 import { OpenRouterClient } from './services/openRouterClient';
+import { logger } from './logger';
 
-console.log('LinkedIn Engagement Assistant Service Worker loaded.');
+// Define the broadcaster function
+const broadcastLog = (logEntry: LogEntry) => {
+  chrome.runtime.sendMessage({ type: 'LOG_ENTRY', payload: logEntry });
+};
+
+// Initialize the logger
+logger.initialize(broadcastLog);
+
+logger.info('LinkedIn Engagement Assistant Service Worker loaded.');
 
 // Load all persisted states into memory on startup
 loadAllStates();
@@ -41,16 +51,22 @@ const sendMessageToTab = <T>(
   return new Promise<T>((resolve, reject) => {
     chrome.tabs.sendMessage(tabId, message, (response) => {
       if (chrome.runtime.lastError) {
-        return reject(new Error(chrome.runtime.lastError.message));
+        const error = new Error(chrome.runtime.lastError.message);
+        logger.error('Error sending message to tab', error, { tabId, message });
+        return reject(error);
       }
       if (response && response.status === 'success') {
         resolve(response.payload as T);
       } else {
-        reject(
-          new Error(
-            response?.message || 'Content script action failed or did not respond.'
-          )
-        );
+        const errorMsg =
+          response?.message ||
+          'Content script action failed or did not respond.';
+        logger.warn('Content script action failed', {
+          tabId,
+          message,
+          response,
+        });
+        reject(new Error(errorMsg));
       }
     });
   });
@@ -72,7 +88,7 @@ const CURATED_MODELS = [
  * @param state The partial state to broadcast.
  */
 const broadcastStateUpdate = (state: Partial<UIState>) => {
-  console.log('Broadcasting state update:', state);
+  logger.info('Broadcasting state update', { state });
   chrome.runtime.sendMessage({
     type: 'STATE_UPDATE',
     payload: state,
@@ -81,7 +97,7 @@ const broadcastStateUpdate = (state: Partial<UIState>) => {
 
 chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
   if (message.type === 'ping') {
-    console.log('Received ping from UI, sending pong back.');
+    logger.info('Received ping from UI, sending pong back.');
     sendResponse({ payload: 'pong' });
     // Return true to indicate you wish to send a response asynchronously.
     return true;
@@ -91,7 +107,9 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
     // Assuming a richer payload that includes post metadata
     const { comments, userProfileUrl, postUrn, postUrl } = message.payload;
     if (!comments || !userProfileUrl || !postUrn || !postUrl) {
-      console.error('Invalid payload received for COMMENTS_PARSED');
+      logger.error('Invalid payload received for COMMENTS_PARSED', undefined, {
+        payload: message.payload,
+      });
       sendResponse({ status: 'error', message: 'Invalid payload' });
       return true;
     }
@@ -99,7 +117,7 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
     const stats = calculateCommentStats(comments, userProfileUrl);
 
     // Log the results to meet acceptance criteria
-    console.log('Calculated Comment Stats:', stats);
+    logger.info('Calculated Comment Stats', { stats });
 
     // Create and save the full post state
     const postMeta: Post = {
@@ -125,7 +143,7 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
   }
 
   if (message.type === 'REQUEST_POST_STATE_FOR_EXPORT') {
-    console.log('Received request for post state export.');
+    logger.info('Received request for post state export.');
     const postUrnRegex = /(urn:li:activity:\d+)/;
     const match = sender.tab?.url?.match(postUrnRegex);
 
@@ -151,26 +169,28 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
   }
 
   if (message.type === 'UPDATE_AI_CONFIG') {
-    console.log('Received request to update AI config:', message.payload);
+    logger.info('Received request to update AI config', {
+      config: message.payload,
+    });
     updateConfig(message.payload as Partial<AIConfig>)
       .then(() => {
         sendResponse({ status: 'success' });
       })
       .catch((error) => {
-        console.error('Failed to update AI config:', error);
-        sendResponse({ status: 'error', message: error.message });
+        logger.error('Failed to update AI config', error);
+        sendResponse({ status: 'error', message: (error as Error).message });
       });
     return true; // Indicate async response
   }
 
   if (message.type === 'GET_AI_CONFIG') {
-    console.log('Received request for AI config.');
+    logger.info('Received request for AI config.');
     (async () => {
       try {
         const config = getConfig();
         sendResponse({ status: 'success', payload: config });
       } catch (error) {
-        console.error('Failed to get AI config:', error);
+        logger.error('Failed to get AI config', error);
         sendResponse({ status: 'error', message: (error as Error).message });
       }
     })();
@@ -178,7 +198,7 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
   }
 
   if (message.type === 'GET_MODELS') {
-    console.log('Received request to get models from OpenRouter.');
+    logger.info('Received request to get models from OpenRouter.');
     (async () => {
       try {
         const config = getConfig();
@@ -224,7 +244,7 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
 
         sendResponse({ status: 'success', payload: sortedModels });
       } catch (error) {
-        console.error('Failed to fetch models from OpenRouter:', error);
+        logger.error('Failed to fetch models from OpenRouter', error);
         sendResponse({ status: 'error', message: (error as Error).message });
       }
     })();
@@ -236,11 +256,11 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
     const tabId = sender.tab?.id;
     if (!tabId) {
       const errorMsg = 'Could not get tab ID to start pipeline.';
-      console.error(errorMsg);
+      logger.error(errorMsg);
       sendResponse({ status: 'error', message: errorMsg });
       return true;
     }
-    console.log(`Received START_PIPELINE for ${postUrn} on tab ${tabId}`);
+    logger.info(`Received START_PIPELINE for ${postUrn} on tab ${tabId}`);
     startPipeline(postUrn, tabId).then(() => {
       sendResponse({ status: 'success' });
     });
@@ -248,7 +268,7 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
   }
 
   if (message.type === 'STOP_PIPELINE') {
-    console.log('Received STOP_PIPELINE');
+    logger.info('Received STOP_PIPELINE');
     stopPipeline().then(() => {
       sendResponse({ status: 'success' });
     });
@@ -256,7 +276,7 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
   }
 
   if (message.type === 'RESUME_PIPELINE') {
-    console.log('Received RESUME_PIPELINE');
+    logger.info('Received RESUME_PIPELINE');
     resumePipeline().then(() => {
       sendResponse({ status: 'success' });
     });

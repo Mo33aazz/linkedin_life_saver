@@ -1,4 +1,29 @@
 /**
+ * Defines the severity level of a log entry.
+ */
+export type LogLevel = 'INFO' | 'WARN' | 'ERROR' | 'DEBUG';
+
+/**
+ * Represents a structured log entry.
+ */
+export interface LogEntry {
+  timestamp: string;
+  level: LogLevel;
+  message: string;
+  context?: {
+    postId?: string;
+    commentId?: string;
+    step?: string;
+    error?: {
+      name: string;
+      message: string;
+      stack?: string;
+    };
+    [key: string]: unknown; // For any other contextual data
+  };
+}
+
+/**
  * Represents the overall processing state of a post.
  */
 export type RunState = 'idle' | 'running' | 'paused' | 'error';
@@ -192,6 +217,7 @@ export interface ExtensionMessage {
     | 'RESUME_PIPELINE'
     | 'LIKE_COMMENT'
     | 'REPLY_TO_COMMENT'
-    | 'SEND_DM';
+    | 'SEND_DM'
+    | 'LOG_ENTRY';
   payload?: unknown;
 }
