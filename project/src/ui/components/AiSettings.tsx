@@ -28,12 +28,12 @@ export const AiSettings = () => {
 
       <div className="form-group">
         <label htmlFor="replyPrompt">Custom Reply Prompt</label>
-        <textarea id="replyPrompt" name="replyPrompt" rows={4}></textarea>
+        <textarea id="replyPrompt" name="replyPrompt" rows={4} />
       </div>
 
       <div className="form-group">
         <label htmlFor="dmPrompt">Custom DM Prompt</label>
-        <textarea id="dmPrompt" name="dmPrompt" rows={4}></textarea>
+        <textarea id="dmPrompt" name="dmPrompt" rows={4} />
       </div>
 
       <div className="form-group">
