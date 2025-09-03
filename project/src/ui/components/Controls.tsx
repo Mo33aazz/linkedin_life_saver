@@ -1,4 +1,5 @@
 import { h } from 'preact';
+import { AiSettings } from './AiSettings';
 
 export const Controls = () => {
   const handleExportJson = async () => {
@@ -37,6 +38,7 @@ export const Controls = () => {
     <div className="sidebar-section">
       <h2>Controls</h2>
       <button onClick={handleExportJson}>Export JSON</button>
+      <AiSettings />
       {/* Other controls will go here */}
     </div>
   );

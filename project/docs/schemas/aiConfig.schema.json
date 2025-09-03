@@ -1,0 +1,108 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "AI Configuration Schema",
+  "description": "Defines the structure for AI settings used by the extension, specifically for the OpenRouter provider.",
+  "type": "object",
+  "properties": {
+    "provider": {
+      "description": "The AI service provider.",
+      "type": "string",
+      "enum": ["openrouter"]
+    },
+    "apiKey": {
+      "description": "The API key for the selected provider. Should be handled securely.",
+      "type": "string"
+    },
+    "model": {
+      "description": "The identifier for the selected AI model.",
+      "type": "string"
+    },
+    "temperature": {
+      "description": "Controls randomness. Lower values make the model more deterministic.",
+      "type": "number",
+      "minimum": 0,
+      "maximum": 1.5
+    },
+    "top_p": {
+      "description": "Controls nucleus sampling. Considers tokens with top_p probability mass.",
+      "type": "number",
+      "minimum": 0,
+      "maximum": 1
+    },
+    "max_tokens": {
+      "description": "The maximum number of tokens to generate in the completion.",
+      "type": "integer",
+      "minimum": 1
+    },
+    "stream": {
+      "description": "Whether to stream the response tokens.",
+      "type": "boolean"
+    },
+    "reply": {
+      "description": "Configuration for AI-generated replies.",
+      "type": "object",
+      "properties": {
+        "customPrompt": {
+          "description": "The user-defined prompt for generating replies.",
+          "type": "string"
+        }
+      },
+      "required": ["customPrompt"]
+    },
+    "dm": {
+      "description": "Configuration for AI-generated direct messages.",
+      "type": "object",
+      "properties": {
+        "customPrompt": {
+          "description": "The user-defined prompt for generating DMs.",
+          "type": "string"
+        }
+      },
+      "required": ["customPrompt"]
+    },
+    "attribution": {
+      "description": "Attribution headers for OpenRouter API calls.",
+      "type": "object",
+      "properties": {
+        "httpReferer": {
+          "description": "The HTTP Referer header to send with API requests.",
+          "type": "string"
+        },
+        "xTitle": {
+          "description": "The X-Title header to send with API requests.",
+          "type": "string"
+        }
+      },
+      "required": ["httpReferer", "xTitle"]
+    },
+    "modelFilters": {
+      "description": "Filters for selecting an AI model from the provider's list.",
+      "type": "object",
+      "properties": {
+        "onlyTextOutput": {
+          "description": "Filter for models that only support text output.",
+          "type": "boolean"
+        },
+        "minContext": {
+          "description": "The minimum context window size required for a model.",
+          "type": "integer",
+          "minimum": 0
+        }
+      },
+      "required": ["onlyTextOutput", "minContext"]
+    }
+  },
+  "required": [
+    "provider",
+    "apiKey",
+    "model",
+    "temperature",
+    "top_p",
+    "max_tokens",
+    "stream",
+    "reply",
+    "dm",
+    "attribution",
+    "modelFilters"
+  ]
+}
