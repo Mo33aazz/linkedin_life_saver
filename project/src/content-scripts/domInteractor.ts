@@ -40,3 +40,106 @@ export const autoScrollPage = async (): Promise<void> => {
     console.warn('Max scroll attempts reached. There might be more content to load.');
   }
 };
+
+/**
+ * A centralized object for all DOM selectors used in the application.
+ * This makes it easier to update selectors if LinkedIn changes its markup.
+ */
+const SELECTORS = {
+  signedInUser: {
+    profileLink: 'a.profile-card-profile-link',
+  },
+  comment: {
+    container: 'article.comments-comment-entity',
+    ownerProfileLink: 'a.comments-comment-meta__image-link',
+    textContent: 'span.comments-comment-item__main-content',
+    timestamp: 'time',
+  },
+};
+
+/**
+ * Represents the structured data extracted for a single comment.
+ */
+export interface ParsedComment {
+  ownerProfileUrl: string;
+  text: string;
+  timestamp: string;
+}
+
+/**
+ * Parses the DOM to find the profile URL of the currently signed-in user.
+ * @returns The full profile URL as a string, or null if not found.
+ */
+export const getSignedInUserProfileUrl = (): string | null => {
+  const profileLinkElement = document.querySelector<HTMLAnchorElement>(
+    SELECTORS.signedInUser.profileLink
+  );
+
+  if (!profileLinkElement) {
+    console.warn('Could not find signed-in user profile link.');
+    return null;
+  }
+
+  const relativeUrl = profileLinkElement.getAttribute('href');
+  if (!relativeUrl) {
+    console.warn('Profile link element found, but it has no href attribute.');
+    return null;
+  }
+
+  // Ensure the URL is absolute
+  if (relativeUrl.startsWith('https://www.linkedin.com')) {
+    return relativeUrl;
+  }
+
+  return `https://www.linkedin.com${relativeUrl}`;
+};
+
+/**
+ * Extracts all comments from the page and parses them into a structured format.
+ * @returns An array of ParsedComment objects.
+ */
+export const extractComments = (): ParsedComment[] => {
+  const commentElements = document.querySelectorAll<HTMLElement>(
+    SELECTORS.comment.container
+  );
+  const comments: ParsedComment[] = [];
+
+  console.log(`Found ${commentElements.length} potential comment elements.`);
+
+  commentElements.forEach((commentElement, index) => {
+    const ownerLinkElement = commentElement.querySelector<HTMLAnchorElement>(
+      SELECTORS.comment.ownerProfileLink
+    );
+    const textElement = commentElement.querySelector<HTMLElement>(
+      SELECTORS.comment.textContent
+    );
+    const timestampElement = commentElement.querySelector<HTMLElement>(
+      SELECTORS.comment.timestamp
+    );
+
+    const ownerRelativeUrl = ownerLinkElement?.getAttribute('href');
+    const ownerProfileUrl = ownerRelativeUrl
+      ? `https://www.linkedin.com${ownerRelativeUrl}`
+      : '';
+    const text = textElement?.innerText.trim() ?? '';
+    const timestamp = timestampElement?.innerText.trim() ?? '';
+
+    if (ownerProfileUrl && text && timestamp) {
+      comments.push({
+        ownerProfileUrl,
+        text,
+        timestamp,
+      });
+    } else {
+      console.warn(`Skipping comment #${index + 1} due to missing data.`, {
+        hasOwnerUrl: !!ownerProfileUrl,
+        hasText: !!text,
+        hasTimestamp: !!timestamp,
+        element: commentElement,
+      });
+    }
+  });
+
+  console.log(`Successfully extracted ${comments.length} comments.`);
+  return comments;
+};
