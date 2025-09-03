@@ -172,6 +172,7 @@ export interface CommentStats {
 export interface UIState {
   pipelineStatus: RunState;
   stats: CommentStats;
+  comments: Comment[];
 }
 
 /**

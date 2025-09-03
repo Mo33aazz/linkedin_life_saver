@@ -13,6 +13,7 @@ export const useStore = create<Store>((set) => ({
     totalTopLevelNoReplies: 0,
     userTopLevelNoReplies: 0,
   },
+  comments: [],
   updateState: (newState) => set((state) => ({ ...state, ...newState })),
 }));
 
