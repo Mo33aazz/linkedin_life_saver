@@ -1,8 +1,9 @@
 import { create } from 'zustand';
-import { UIState, ExtensionMessage } from '../../shared/types';
+import { UIState, ExtensionMessage, LogEntry } from '../../shared/types';
 
 // 1. Define the store's interface, including actions.
 interface Store extends UIState {
+  logs: LogEntry[];
   updateState: (newState: Partial<UIState>) => void;
 }
 
@@ -14,6 +15,7 @@ export const useStore = create<Store>((set) => ({
     userTopLevelNoReplies: 0,
   },
   comments: [],
+  logs: [],
   updateState: (newState) => set((state) => ({ ...state, ...newState })),
 }));
 
@@ -23,5 +25,10 @@ chrome.runtime.onMessage.addListener((message: ExtensionMessage) => {
   if (message.type === 'STATE_UPDATE') {
     // When a state update is received, call the store's action.
     useStore.getState().updateState(message.payload as Partial<UIState>);
+  } else if (message.type === 'LOG_ENTRY') {
+    const newLog = message.payload as LogEntry;
+    useStore.setState(state => ({
+      logs: [...state.logs, newLog].slice(-500) // Cap at 500 logs for performance
+    }));
   }
 });
