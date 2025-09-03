@@ -1,12 +1,6 @@
 import { render } from 'preact';
 import './index.css';
+import { App } from './ui/App';
 
-function App() {
-  return (
-    <>
-      <h1>Hello World</h1>
-    </>
-  );
-}
 
 render(<App />, document.getElementById('app')!);

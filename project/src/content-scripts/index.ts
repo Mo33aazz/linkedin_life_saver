@@ -31,26 +31,53 @@ const sidebarStyles = `
   }
 `;
 
-// Create a host element for the shadow DOM
-const host = document.createElement('div');
-host.className = 'sidebar';
-document.body.appendChild(host);
+// Check if document is ready
+console.log('Content script starting...');
 
-// Create shadow DOM root
-const shadowRoot = host.attachShadow({ mode: 'open' });
+// Function to initialize the content script
+const initializeContentScript = () => {
+  try {
+    console.log('Initializing content script...');
+    
+    // Create a host element for the shadow DOM
+    console.log('Attempting to create host element...');
+    const host = document.createElement('div');
+    host.className = 'sidebar';
+    
+    console.log('Attempting to append to document.body...');
+    document.body.appendChild(host);
+    console.log('Successfully appended host element');
+    
+    // Create shadow DOM root
+    console.log('Attempting to create shadow DOM...');
+    const shadowRoot = host.attachShadow({ mode: 'open' });
+    console.log('Successfully created shadow DOM');
 
-// Create a style element to style the sidebar within the shadow DOM
-const style = document.createElement('style');
-style.textContent = `
-  :host {
-    display: block;
+  // Create a style element to style the sidebar within the shadow DOM
+  const style = document.createElement('style');
+  style.textContent = `
+    :host {
+      display: block;
+    }
+  `;
+
+  // Inject styles into the shadow DOM
+  const styleElement = document.createElement('style');
+  styleElement.textContent = sidebarStyles;
+  shadowRoot.appendChild(styleElement);
+  } catch (error) {
+    console.error('Error setting up content script:', error);
   }
-`;
+};
 
-// Inject styles into the shadow DOM
-const styleElement = document.createElement('style');
-styleElement.textContent = sidebarStyles;
-shadowRoot.appendChild(styleElement);
+// Check if document is ready or wait for it to be ready
+if (document.readyState === 'loading') {
+  console.log('Document is still loading, waiting for DOMContentLoaded...');
+  document.addEventListener('DOMContentLoaded', initializeContentScript);
+} else {
+  console.log('Document is already loaded, initializing immediately...');
+  initializeContentScript();
+}
 
 chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
   if (message.type === 'LIKE_COMMENT') {
@@ -62,10 +89,10 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
     }
 
     likeComment(commentId)
-      .then((success) => {
+      .then((success: boolean) => {
         sendResponse({ status: 'success', payload: success });
       })
-      .catch((error) => {
+      .catch((error: unknown) => {
         sendResponse({ status: 'error', message: (error as Error).message });
       });
 
@@ -87,10 +114,10 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
     }
 
     replyToComment(commentId, replyText)
-      .then((success) => {
+      .then((success: boolean) => {
         sendResponse({ status: 'success', payload: success });
       })
-      .catch((error) => {
+      .catch((error: unknown) => {
         sendResponse({ status: 'error', message: (error as Error).message });
       });
 
@@ -109,10 +136,10 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
     }
 
     sendDm(dmText)
-      .then((success) => {
+      .then((success: boolean) => {
         sendResponse({ status: 'success', payload: success });
       })
-      .catch((error) => {
+      .catch((error: unknown) => {
         sendResponse({ status: 'error', message: (error as Error).message });
       });
 

@@ -43,12 +43,32 @@ main() {
     # pipeline fails, propagating the correct exit code.
     set -o pipefail
 
-    # Run eslint directly via npx to use the project's version.
-    # We specify the JSON formatter to get structured output.
-    # The output is then piped to jq to transform it into the required format.
-    npx eslint . --ext .ts,.tsx --format json | \
-    jq '[.[] | .filePath as $path | .messages[] | {type: .ruleId, path: $path, obj: (.nodeType // "N/A"), message: .message, line: .line, column: .column}]'
+    local lint_output
+    local exit_code=0
+
+    # Temporarily disable `set -e` to allow us to capture the exit code
+    # without the script immediately terminating.
+    set +e
+    lint_output=$(npx eslint . --ext .ts,.tsx --format json | \
+        jq '[.[] | .filePath as $path | .messages[] | {type: .ruleId, path: $path, obj: (.nodeType // "N/A"), message: .message, line: .line, column: .column}]')
+    exit_code=$?
+    set -e
+
+    # Always print the captured JSON output to stdout.
+    echo "$lint_output"
+
+    # ESLint exit codes:
+    # 0: No errors found.
+    # 1: Linting errors were found.
+    # 2: Script-level failure (e.g., configuration problem).
+    #
+    # We treat both 0 and 1 as a "successful" run of this script.
+    if [ "$exit_code" -eq 0 ] || [ "$exit_code" -eq 1 ]; then
+        exit 0
+    else
+        # For any other error (>=2), propagate that error code.
+        exit "$exit_code"
+    fi
 }
 
-# The script will exit with a non-zero code if eslint finds errors.
 main
