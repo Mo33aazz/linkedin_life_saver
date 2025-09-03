@@ -1,4 +1,3 @@
-
 import { useStore } from '../store';
 import { Comment, ActionStatus } from '../../shared/types';
 import { Skeleton } from './Skeleton';

@@ -1,5 +1,3 @@
-
-
 export const Header = () => {
   return (
     <div className="sidebar-section">

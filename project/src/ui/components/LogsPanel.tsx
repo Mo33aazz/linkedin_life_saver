@@ -1,4 +1,3 @@
-
 import { useState, useEffect, useRef } from 'preact/hooks';
 import { useStore } from '../store';
 import { LogEntry, LogLevel } from '../../shared/types';

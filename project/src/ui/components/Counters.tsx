@@ -1,4 +1,3 @@
-
 import { useStore } from '../store';
 import { Skeleton } from './Skeleton';
 import { useAnimatedCounter } from '../hooks/useAnimatedCounter';

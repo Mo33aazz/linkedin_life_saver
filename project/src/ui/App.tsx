@@ -1,4 +1,3 @@
-
 import { useEffect } from 'preact/hooks';
 import { Header } from './components/Header';
 import { Counters } from './components/Counters';
