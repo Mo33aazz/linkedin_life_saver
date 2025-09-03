@@ -1,4 +1,4 @@
-import { CommentType } from '../../shared/types';
+import { CommentType, PostState } from '../../shared/types';
 
 // A minimal interface for the data required by the stats calculation.
 // This decouples the function from the full state-managed `Comment` object.
@@ -65,4 +65,46 @@ export const calculateCommentStats = (
     totalTopLevelNoReplies,
     userTopLevelNoReplies,
   };
+};
+
+/**
+ * Saves the entire state for a given post to chrome.storage.local.
+ * The post's URN is used as the key.
+ *
+ * @param postUrn - The unique URN of the post, used as the storage key.
+ * @param state - The PostState object to save.
+ */
+export const savePostState = async (
+  postUrn: string,
+  state: PostState
+): Promise<void> => {
+  try {
+    await chrome.storage.local.set({ [postUrn]: state });
+    console.log(`State saved for post URN: ${postUrn}`);
+  } catch (error) {
+    console.error(`Error saving state for post URN ${postUrn}:`, error);
+  }
+};
+
+/**
+ * Loads the state for a given post from chrome.storage.local.
+ *
+ * @param postUrn - The unique URN of the post to load.
+ * @returns A Promise that resolves to the PostState object if found, otherwise null.
+ */
+export const loadPostState = async (
+  postUrn: string
+): Promise<PostState | null> => {
+  try {
+    const storageResult = await chrome.storage.local.get(postUrn);
+    if (storageResult && storageResult[postUrn]) {
+      console.log(`State loaded for post URN: ${postUrn}`);
+      return storageResult[postUrn] as PostState;
+    }
+    console.log(`No state found for post URN: ${postUrn}`);
+    return null;
+  } catch (error) {
+    console.error(`Error loading state for post URN ${postUrn}:`, error);
+    return null;
+  }
 };
