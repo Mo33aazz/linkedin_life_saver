@@ -137,5 +137,24 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
     return true; // Indicate async response
   }
 
+  if (message.type === 'GET_MODELS') {
+    console.log('Received request to get models from OpenRouter.');
+    (async () => {
+      try {
+        const config = getConfig();
+        if (!config.apiKey) {
+          throw new Error('OpenRouter API key is not set.');
+        }
+        const client = new OpenRouterClient(config.apiKey, config.attribution);
+        const models = await client.getModels();
+        sendResponse({ status: 'success', payload: models });
+      } catch (error) {
+        console.error('Failed to fetch models from OpenRouter:', error);
+        sendResponse({ status: 'error', message: (error as Error).message });
+      }
+    })();
+    return true; // Indicate async response
+  }
+
   return true;
 });
