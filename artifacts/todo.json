@@ -245,12 +245,17 @@
         },
         "output": "I will now generate the Data Schema ERD in PlantUML format. The task is to create the file `docs/diagrams/data_schema_erd.puml`. I will synthesize the information from the requirements document (Section 5) and the architecture document (Section 3.6) to create the diagram. The architecture document provides a clear, abstracted ERD structure, which I will follow as it represents the conceptual model of the JSON data.\n\n~~~\n#- file: docs/diagrams/data_schema_erd.puml\n@startuml\ntitle Data Schema for Per-Post State JSON\n\nentity Post {\n  *postId (URN) : string <<PK>>\n  --\n  postUrl : string\n  lastUpdated : timestamp\n  runState : enum ('idle', 'running', 'paused', 'error')\n}\n\nentity Comment {\n  *commentId : string <<PK>>\n  --\n  text : string\n  ownerProfileUrl : string\n  timestamp : string\n  type : enum ('top-level', 'reply')\n  connected : boolean\n  threadId : string\n  likeStatus : enum ('', 'DONE', 'FAILED')\n  replyStatus : enum ('', 'DONE', 'FAILED')\n  dmStatus : enum ('', 'DONE', 'FAILED')\n  lastError : string\n}\n\nentity Attempts {\n  like : integer\n  reply : integer\n  dm : integer\n}\n\nentity PipelineTimestamps {\n  queuedAt : timestamp\n  likedAt : timestamp\n  repliedAt : timestamp\n  dmAt : timestamp\n}\n\nPost ||--o{ Comment : contains\nComment ||--|{ Attempts : has\nComment ||--|{ PipelineTimestamps : has\n\n@enduml\n~~~",
         "iteration_id": "I1",
-        "completed": false,
+        "completed": true,
         "target_files": [
             "docs/diagrams/data_schema_erd.puml"
         ],
         "input_files": [],
-        "files": []
+        "files": [
+            {
+                "path": "docs/diagrams/data_schema_erd.puml",
+                "content": "@startuml\ntitle Data Schema for Per-Post State JSON\n\nentity Post {\n  *postId (URN) : string <<PK>>\n  --\n  postUrl : string\n  lastUpdated : timestamp\n  runState : enum ('idle', 'running', 'paused', 'error')\n}\n\nentity Comment {\n  *commentId : string <<PK>>\n  --\n  text : string\n  ownerProfileUrl : string\n  timestamp : string\n  type : enum ('top-level', 'reply')\n  connected : boolean\n  threadId : string\n  likeStatus : enum ('', 'DONE', 'FAILED')\n  replyStatus : enum ('', 'DONE', 'FAILED')\n  dmStatus : enum ('', 'DONE', 'FAILED')\n  lastError : string\n}\n\nentity Attempts {\n  like : integer\n  reply : integer\n  dm : integer\n}\n\nentity PipelineTimestamps {\n  queuedAt : timestamp\n  likedAt : timestamp\n  repliedAt : timestamp\n  dmAt : timestamp\n}\n\nPost ||--o{ Comment : contains\nComment ||--|{ Attempts : has\nComment ||--|{ PipelineTimestamps : has\n\n@enduml"
+            }
+        ]
     },
     {
         "name": "I1.T6",
@@ -274,7 +279,7 @@
             ],
             "parallelizable": false
         },
-        "output": null,
+        "output": "I will now create the `src/shared/types.ts` file as per the instructions. This involves defining the core TypeScript interfaces and types for the application's data models, based on the provided ERD and requirements.\n\n~~~typescript\n#- file: src/shared/types.ts\n/**\n * Represents the overall processing state of a post.\n */\nexport type RunState = 'idle' | 'running' | 'paused' | 'error';\n\n/**\n * Represents the type of a comment.\n */\nexport type CommentType = 'top-level' | 'reply';\n\n/**\n * Represents the status of a pipeline action (Like, Reply, DM).\n */\nexport type ActionStatus = '' | 'DONE' | 'FAILED';\n\n/**\n * Tracks the number of attempts for each action.\n */\nexport interface Attempts {\n  like: number;\n  reply: number;\n  dm: number;\n}\n\n/**\n * Timestamps for key events in the processing pipeline for a comment.\n */\nexport interface PipelineTimestamps {\n  queuedAt: string;\n  likedAt: string;\n  repliedAt: string;\n  dmAt: string;\n}\n\n/**\n * Represents a single comment and its processing state.\n */\nexport interface Comment {\n  commentId: string;\n  text: string;\n  ownerProfileUrl: string;\n  timestamp: string;\n  type: CommentType;\n  connected: boolean;\n  threadId: string;\n  likeStatus: ActionStatus;\n  replyStatus: ActionStatus;\n  dmStatus: ActionStatus;\n  lastError: string;\n  attempts: Attempts;\n  pipeline: PipelineTimestamps;\n}\n\n/**\n * Represents the metadata for a post being processed.\n */\nexport interface Post {\n  postId: string; // The URN\n  postUrl: string;\n  lastUpdated: string;\n  runState: RunState;\n}\n\n/**\n * Represents the entire state object for a single post, as stored in a JSON file.\n * It includes metadata and a list of comments, keyed by the post's URL.\n */\nexport type PostState = {\n  _meta: Post;\n} & {\n  [postUrl: string]: Comment[];\n};\n\n/**\n * Configuration for AI-generated replies.\n */\nexport interface ReplyConfig {\n  customPrompt: string;\n}\n\n/**\n * Configuration for AI-generated direct messages.\n */\nexport interface DmConfig {\n  customPrompt: string;\n}\n\n/**\n * Attribution headers for OpenRouter API calls.\n */\nexport interface AttributionConfig {\n  httpReferer: string;\n  xTitle: string;\n}\n\n/**\n * Filters for selecting an AI model.\n */\nexport interface ModelFiltersConfig {\n  onlyTextOutput: boolean;\n  minContext: number;\n}\n\n/**\n * Represents the complete AI configuration stored in chrome.storage.sync.\n */\nexport interface AIConfig {\n  provider: 'openrouter';\n  apiKey: string;\n  model: string;\n  temperature: number;\n  top_p: number;\n  max_tokens: number;\n  stream: boolean;\n  reply: ReplyConfig;\n  dm: DmConfig;\n  attribution: AttributionConfig;\n  modelFilters: ModelFiltersConfig;\n}\n~~~",
         "iteration_id": "I1",
         "completed": false,
         "target_files": [
@@ -283,7 +288,12 @@
         "input_files": [
             "docs/diagrams/data_schema_erd.puml"
         ],
-        "files": []
+        "files": [
+            {
+                "path": "docs/diagrams/data_schema_erd.puml",
+                "content": "@startuml\ntitle Data Schema for Per-Post State JSON\n\nentity Post {\n  *postId (URN) : string <<PK>>\n  --\n  postUrl : string\n  lastUpdated : timestamp\n  runState : enum ('idle', 'running', 'paused', 'error')\n}\n\nentity Comment {\n  *commentId : string <<PK>>\n  --\n  text : string\n  ownerProfileUrl : string\n  timestamp : string\n  type : enum ('top-level', 'reply')\n  connected : boolean\n  threadId : string\n  likeStatus : enum ('', 'DONE', 'FAILED')\n  replyStatus : enum ('', 'DONE', 'FAILED')\n  dmStatus : enum ('', 'DONE', 'FAILED')\n  lastError : string\n}\n\nentity Attempts {\n  like : integer\n  reply : integer\n  dm : integer\n}\n\nentity PipelineTimestamps {\n  queuedAt : timestamp\n  likedAt : timestamp\n  repliedAt : timestamp\n  dmAt : timestamp\n}\n\nPost ||--o{ Comment : contains\nComment ||--|{ Attempts : has\nComment ||--|{ PipelineTimestamps : has\n\n@enduml"
+            }
+        ]
     },
     {
         "name": "I2.T1",
