@@ -6,12 +6,16 @@ import {
   loadAllStates,
   getPostState,
 } from './services/stateManager';
-import { Post, PostState, UIState } from '../shared/types';
+import { initializeConfig, updateConfig } from './services/configManager';
+import { Post, PostState, UIState, AIConfig } from '../shared/types';
 
 console.log('LinkedIn Engagement Assistant Service Worker loaded.');
 
 // Load all persisted states into memory on startup
 loadAllStates();
+
+// Initialize the configuration on startup.
+initializeConfig();
 
 /**
  * Broadcasts the latest state to all UI components.
@@ -95,4 +99,19 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
 
     return true; // Important for async response
   }
+
+  if (message.type === 'UPDATE_AI_CONFIG') {
+    console.log('Received request to update AI config:', message.payload);
+    updateConfig(message.payload as Partial<AIConfig>)
+      .then(() => {
+        sendResponse({ status: 'success' });
+      })
+      .catch((error) => {
+        console.error('Failed to update AI config:', error);
+        sendResponse({ status: 'error', message: error.message });
+      });
+    return true; // Indicate async response
+  }
+
+  return true;
 });
