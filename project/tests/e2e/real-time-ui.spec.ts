@@ -1,126 +1,175 @@
 import { test, expect, Page } from '@playwright/test';
-import { ExtensionMessage, Comment, LogEntry, UIState } from '../../src/shared/types';
+import { ExtensionMessage, Comment } from '../../src/shared/types';
 
-const LINKEDIN_POST_URL = 'https://www.linkedin.com/feed/update/urn:li:activity:7123456789012345678/';
-
-// Helper to dispatch messages to the UI's test hook
+/**
+ * Helper function to dispatch a message to the UI's store, simulating a
+ * message from the background service worker. This relies on a test hook
+ * exposed on the window object in development builds.
+ * @param page The Playwright page object.
+ * @param message The message payload to dispatch.
+ */
 async function dispatchMessage(page: Page, message: ExtensionMessage) {
   await page.evaluate((msg) => {
+    // This function is exposed on the window object in development mode for E2E testing.
+    // See: src/ui/store/index.ts
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     (window as any).__E2E_TEST_DISPATCH_MESSAGE__(msg);
   }, message);
 }
 
-// Helper to create mock comment data
-const createMockComment = (overrides: Partial<Comment>): Comment => ({
-  commentId: `urn:li:comment:(activity:123,${Math.random()})`,
-  text: `This is a mock comment. ${Math.random()}`,
-  ownerProfileUrl: 'https://www.linkedin.com/in/mockuser/',
+// --- Mock Data ---
+
+const mockComment1: Comment = {
+  commentId: 'c1',
+  text: 'This is the first test comment, which was successfully liked.',
+  ownerProfileUrl: '/in/test-author-1/',
   timestamp: new Date().toISOString(),
   type: 'top-level',
   connected: false,
   threadId: '',
-  likeStatus: '',
+  likeStatus: 'DONE',
   replyStatus: '',
   dmStatus: '',
-  attempts: { like: 0, reply: 0, dm: 0 },
+  attempts: { like: 1, reply: 0, dm: 0 },
   lastError: '',
-  pipeline: { queuedAt: new Date().toISOString(), likedAt: '', repliedAt: '', dmAt: '' },
-  ...overrides,
-});
+  pipeline: {
+    queuedAt: new Date().toISOString(),
+    likedAt: new Date().toISOString(),
+    repliedAt: '',
+    dmAt: '',
+  },
+};
 
-test.describe('Real-time UI Updates E2E Test', () => {
-  test('should update UI components when background events are simulated', async ({
+const mockComment2: Comment = {
+  commentId: 'c2',
+  text: 'This is the second test comment, where the like action failed.',
+  ownerProfileUrl: '/in/test-author-2/',
+  timestamp: new Date().toISOString(),
+  type: 'top-level',
+  connected: true,
+  threadId: 't2',
+  likeStatus: 'FAILED',
+  replyStatus: '',
+  dmStatus: '',
+  attempts: { like: 3, reply: 0, dm: 0 },
+  lastError: 'Could not find like button',
+  pipeline: { queuedAt: new Date().toISOString(), likedAt: '', repliedAt: '', dmAt: '' },
+};
+
+// --- Test Suite ---
+
+test.describe('Real-time UI Updates', () => {
+  test.beforeEach(async ({ page }) => {
+    // A real LinkedIn post URL is needed for the content script to activate.
+    await page.goto(
+      'https://www.linkedin.com/feed/update/urn:li:activity:7197578443311341568/',
+      { waitUntil: 'domcontentloaded' }
+    );
+
+    // Wait for the UI to be injected and the main header to be visible.
+    await expect(
+      page.locator('h1:has-text("LinkedIn Engagement Assistant")')
+    ).toBeVisible({ timeout: 10000 });
+  });
+
+  test('should update live counters on STATE_UPDATE', async ({ page }) => {
+    const mockStateUpdate: ExtensionMessage = {
+      type: 'STATE_UPDATE',
+      payload: {
+        isInitializing: false,
+        stats: {
+          totalTopLevelNoReplies: 123,
+          userTopLevelNoReplies: 45,
+        },
+      },
+    };
+
+    await dispatchMessage(page, mockStateUpdate);
+
+    const totalCounter = page.locator(
+      '.counter-item:has-text("Total Top-Level") .counter-value'
+    );
+    const userCounter = page.locator(
+      '.counter-item:has-text("Your Top-Level") .counter-value'
+    );
+
+    // Playwright's web-first assertions automatically wait for the animated counter.
+    await expect(totalCounter).toHaveText('123');
+    await expect(userCounter).toHaveText('45');
+  });
+
+  test('should update pipeline progress view on STATE_UPDATE', async ({
     page,
   }) => {
-    // 1. ARRANGE: Navigate to the target page and wait for the UI to be injected.
-    await page.goto(LINKEDIN_POST_URL);
-    const sidebar = page.locator('div.sidebar');
-    await expect(sidebar).toBeVisible({ timeout: 10000 });
+    const mockStateUpdate: ExtensionMessage = {
+      type: 'STATE_UPDATE',
+      payload: {
+        isInitializing: false,
+        comments: [mockComment1, mockComment2],
+      },
+    };
 
-    // --- TEST 1: Live Counters Update ---
-    await test.step('should update live counters', async () => {
-      const stateUpdate: Partial<UIState> = {
-        isInitializing: false, // Ensure skeleton loaders are gone
-        stats: { totalTopLevelNoReplies: 99, userTopLevelNoReplies: 15 },
-      };
-      await dispatchMessage(page, { type: 'STATE_UPDATE', payload: stateUpdate });
+    await dispatchMessage(page, mockStateUpdate);
 
-      const counters = sidebar.locator('.counter-value');
-      await expect(counters.first()).toHaveText('99');
-      await expect(counters.last()).toHaveText('15');
-    });
+    // --- Verify Comment 1 (Liked successfully) ---
+    const commentRow1 = page.locator('.comment-row:has-text("test-author-1")');
+    await expect(commentRow1).toBeVisible();
+    const stepperItems1 = commentRow1.locator('.step-item');
 
-    // --- TEST 2: Pipeline Progress Update ---
-    await test.step('should update pipeline progress view', async () => {
-      const mockComments: Comment[] = [
-        createMockComment({
-          ownerProfileUrl: 'https://www.linkedin.com/in/user-one/',
-          text: 'First comment, liked, now replying.',
-          likeStatus: 'DONE',
-          replyStatus: '', // This makes 'Replied' the active step
-        }),
-        createMockComment({
-          ownerProfileUrl: 'https://www.linkedin.com/in/user-two/',
-          text: 'Second comment, reply failed.',
-          likeStatus: 'DONE',
-          replyStatus: 'FAILED',
-        }),
-        createMockComment({
-            ownerProfileUrl: 'https://www.linkedin.com/in/user-three/',
-            text: 'Third comment, fully processed.',
-            likeStatus: 'DONE',
-            replyStatus: 'DONE',
-            dmStatus: 'DONE',
-        }),
-      ];
+    // Expected states: Queued -> complete, Liked -> complete, Replied -> active, DM Sent -> pending
+    await expect(stepperItems1.nth(0)).toHaveClass(/step-complete/); // Queued
+    await expect(stepperItems1.nth(1)).toHaveClass(/step-complete/); // Liked
+    await expect(stepperItems1.nth(2)).toHaveClass(/step-active/); // Replied
+    await expect(stepperItems1.nth(3)).toHaveClass(/step-pending/); // DM Sent
 
-      const stateUpdate: Partial<UIState> = { comments: mockComments };
-      await dispatchMessage(page, { type: 'STATE_UPDATE', payload: stateUpdate });
+    // --- Verify Comment 2 (Like failed) ---
+    const commentRow2 = page.locator('.comment-row:has-text("test-author-2")');
+    await expect(commentRow2).toBeVisible();
+    const stepperItems2 = commentRow2.locator('.step-item');
 
-      const commentRows = sidebar.locator('.comment-row');
-      await expect(commentRows).toHaveCount(3);
+    // Expected states: Queued -> complete, Liked -> failed, Replied -> pending, DM Sent -> pending
+    await expect(stepperItems2.nth(0)).toHaveClass(/step-complete/); // Queued
+    await expect(stepperItems2.nth(1)).toHaveClass(/step-failed/); // Liked
+    await expect(stepperItems2.nth(2)).toHaveClass(/step-pending/); // Replied
+    await expect(stepperItems2.nth(3)).toHaveClass(/step-pending/); // DM Sent
+  });
 
-      // Assert state of the first comment's stepper
-      const firstRowSteps = commentRows.first().locator('.step-item');
-      await expect(firstRowSteps.nth(0)).toHaveClass(/step-complete/); // Queued
-      await expect(firstRowSteps.nth(1)).toHaveClass(/step-complete/); // Liked
-      await expect(firstRowSteps.nth(2)).toHaveClass(/step-active/);   // Replied
-      await expect(firstRowSteps.nth(3)).toHaveClass(/step-pending/);  // DM Sent
-
-      // Assert state of the second comment's stepper
-      const secondRowSteps = commentRows.nth(1).locator('.step-item');
-      await expect(secondRowSteps.nth(1)).toHaveClass(/step-complete/); // Liked
-      await expect(secondRowSteps.nth(2)).toHaveClass(/step-failed/);   // Replied
-
-      // Assert state of the third comment's stepper
-      const thirdRowSteps = commentRows.nth(2).locator('.step-item');
-      await expect(thirdRowSteps.nth(3)).toHaveClass(/step-complete/); // DM Sent
-    });
-
-    // --- TEST 3: Logs Panel Update ---
-    await test.step('should update logs panel', async () => {
-      const logEntry: LogEntry = {
-        timestamp: Date.now(),
-        level: 'ERROR',
-        message: 'Simulated critical failure from background.',
-      };
-      await dispatchMessage(page, { type: 'LOG_ENTRY', payload: logEntry });
-
-      const lastLog = sidebar.locator('.log-entry').last();
-      await expect(lastLog).toBeVisible();
-      await expect(lastLog).toHaveClass(/log-entry--error/);
-      await expect(lastLog.locator('.log-message')).toHaveText(logEntry.message);
-
-      const infoLogEntry: LogEntry = {
+  test('should add new entries to the logs panel on LOG_ENTRY', async ({
+    page,
+  }) => {
+    const infoLog: ExtensionMessage = {
+      type: 'LOG_ENTRY',
+      payload: {
         timestamp: Date.now(),
         level: 'INFO',
-        message: 'This is an informational message.',
-      };
-      await dispatchMessage(page, { type: 'LOG_ENTRY', payload: infoLogEntry });
-      const newLastLog = sidebar.locator('.log-entry').last();
-      await expect(newLastLog).toHaveClass(/log-entry--info/);
-      await expect(newLastLog.locator('.log-message')).toHaveText(infoLogEntry.message);
-    });
+        message: 'Pipeline processing started.',
+      },
+    };
+    const errorLog: ExtensionMessage = {
+      type: 'LOG_ENTRY',
+      payload: {
+        timestamp: Date.now() + 1, // ensure different timestamp
+        level: 'ERROR',
+        message: 'Failed to generate AI reply: API key invalid.',
+      },
+    };
+
+    // Dispatch logs one by one
+    await dispatchMessage(page, infoLog);
+    await dispatchMessage(page, errorLog);
+
+    // Verify info log
+    const infoLogLocator = page.locator(
+      '.log-entry:has-text("Pipeline processing started.")'
+    );
+    await expect(infoLogLocator).toBeVisible();
+    await expect(infoLogLocator).toHaveClass(/log-entry--info/);
+
+    // Verify error log
+    const errorLogLocator = page.locator(
+      '.log-entry:has-text("Failed to generate AI reply: API key invalid.")'
+    );
+    await expect(errorLogLocator).toBeVisible();
+    await expect(errorLogLocator).toHaveClass(/log-entry--error/);
   });
 });
