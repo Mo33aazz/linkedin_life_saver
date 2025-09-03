@@ -1,0 +1,10 @@
+[
+  {
+    "type": "no-useless-constructor",
+    "path": "/home/moaz/code_machine/projects/linkedin_life_saver/project/src/background/logger.ts",
+    "obj": "MethodDefinition",
+    "message": "Useless constructor.",
+    "line": 13,
+    "column": 3
+  }
+]
