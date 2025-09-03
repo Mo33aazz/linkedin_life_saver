@@ -44,6 +44,10 @@ export const initPipelineManager = (
 
 const findNextComment = (postState: PostState): Comment | null => {
   for (const comment of postState.comments) {
+    // First priority: check connection status if unknown
+    if (typeof comment.connected === 'undefined') {
+      return comment;
+    }
     // A comment needs processing if its like or reply status is not 'DONE' or 'FAILED'
     if (comment.likeStatus === '' || comment.replyStatus === '') {
       return comment;
@@ -105,6 +109,79 @@ const processComment = async (
   postState: PostState
 ): Promise<void> => {
   try {
+    // STEP 1: Check connection status if it's unknown
+    if (typeof comment.connected === 'undefined') {
+      console.log(`Checking connection status for ${comment.ownerProfileUrl}`);
+      let connectionTabId: number | undefined;
+      try {
+        const tab = await chrome.tabs.create({
+          url: comment.ownerProfileUrl,
+          active: false,
+        });
+        connectionTabId = tab.id;
+        if (!connectionTabId) {
+          throw new Error('Failed to create a new tab for connection check.');
+        }
+
+        // Wait for the tab to complete loading with a timeout
+        await new Promise<void>((resolve, reject) => {
+          const timeout = setTimeout(() => {
+            chrome.tabs.onUpdated.removeListener(listener);
+            reject(new Error('Tab loading timed out after 30 seconds.'));
+          }, 30000);
+
+          const listener = (
+            tabId: number,
+            changeInfo: chrome.tabs.TabChangeInfo
+          ) => {
+            if (tabId === connectionTabId && changeInfo.status === 'complete') {
+              clearTimeout(timeout);
+              chrome.tabs.onUpdated.removeListener(listener);
+              resolve();
+            }
+          };
+          chrome.tabs.onUpdated.addListener(listener);
+        });
+
+        const injectionResults = await chrome.scripting.executeScript({
+          target: { tabId: connectionTabId },
+          func: () => {
+            // This function is executed in the context of the new tab
+            const distanceBadge = document.querySelector(
+              'span.distance-badge .dist-value'
+            );
+            return !!(
+              distanceBadge && distanceBadge.textContent?.trim() === '1st'
+            );
+          },
+        });
+
+        if (injectionResults && injectionResults.length > 0) {
+          comment.connected = injectionResults[0].result as boolean;
+          console.log(
+            `Connection status for ${comment.ownerProfileUrl}: ${comment.connected}`
+          );
+        } else {
+          throw new Error('Script injection failed or returned no result.');
+        }
+      } catch (error) {
+        console.error(
+          `Failed to check connection status for ${comment.ownerProfileUrl}:`,
+          error
+        );
+        comment.connected = false; // Default to false on error
+        comment.lastError = (error as Error).message;
+      } finally {
+        if (connectionTabId) {
+          await chrome.tabs.remove(connectionTabId);
+        }
+      }
+
+      await savePostState(postState._meta.postId, postState);
+      broadcastState({ comments: postState.comments });
+      return; // Atomic step complete
+    }
+
     // STATE: QUEUED -> LIKED
     if (comment.likeStatus === '') {
       console.log(`Liking comment: ${comment.commentId}`);

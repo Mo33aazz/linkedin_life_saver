@@ -42,7 +42,7 @@ export interface Comment {
   ownerProfileUrl: string;
   timestamp: string;
   type: CommentType;
-  connected: boolean;
+  connected?: boolean;
   threadId: string;
   likeStatus: ActionStatus;
   replyStatus: ActionStatus;
