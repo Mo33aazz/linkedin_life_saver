@@ -1590,7 +1590,7 @@
         },
         "output": "I will now proceed with the task of adding UI polish, skeleton loaders, and smooth transitions to the application.\n\nFirst, I'll update the shared types to include a state for initialization. Then, I'll adjust the central state store to manage this new state.\n\nNext, I'll create the necessary new components and hooks: a reusable `Skeleton` component for loading placeholders and a `useAnimatedCounter` custom hook to make number changes feel more dynamic.\n\nWith these building blocks, I'll update the `Counters` and `PipelineProgress` components to display skeletons during initial data loading. The `Counters` component will also be enhanced to use the new animation hook.\n\nFinally, I'll refine the application's stylesheet (`index.css`) to add smooth transitions to UI elements like the progress stepper and buttons, and to include the styles for the new skeleton loaders, ensuring a polished and professional user experience.\n\n~~~typescript\n#- file: src/shared/types.ts\nexport type LogLevel = 'INFO' | 'WARN' | 'ERROR' | 'DEBUG';\n\nexport interface LogEntry {\n  timestamp: number;\n  level: LogLevel;\n  message: string;\n  context?: Record<string, any>;\n}\n\nexport type ActionStatus = '' | 'DONE' | 'FAILED';\n\nexport interface Comment {\n  commentId: string;\n  text: string;\n  ownerProfileUrl: string;\n  timestamp: string;\n  type: 'top-level' | 'reply';\n  connected: boolean;\n  threadId: string;\n  likeStatus: ActionStatus;\n  replyStatus: ActionStatus;\n  dmStatus: ActionStatus;\n  attempts: {\n    like: number;\n    reply: number;\n    dm: number;\n  };\n  lastError: string;\n  pipeline: {\n    queuedAt: string;\n    likedAt: string;\n    repliedAt: string;\n    dmAt: string;\n  };\n}\n\nexport interface UIState {\n  isInitializing: boolean;\n  pipelineStatus: 'idle' | 'running' | 'paused' | 'error';\n  stats: {\n    totalTopLevelNoReplies: number;\n    userTopLevelNoReplies: number;\n  };\n  comments: Comment[];\n}\n\nexport interface PostState {\n  [postUrl: string]: Comment[];\n  _meta: {\n    postId: string;\n    lastUpdated: string;\n    runState: 'idle' | 'running' | 'paused' | 'error';\n  };\n}\n\nexport interface OpenRouterModel {\n    id: string;\n    name: string;\n}\n\nexport interface AIConfig {\n    provider?: string;\n    apiKey?: string;\n    model?: string;\n    temperature?: number;\n    top_p?: number;\n    max_tokens?: number;\n    stream?: boolean;\n    reply?: {\n      customPrompt?: string;\n    };\n    dm?: {\n      customPrompt?: string;\n    };\n    attribution?: {\n      httpReferer?: string;\n      xTitle?: string;\n    };\n    modelFilters?: {\n      onlyTextOutput?: boolean;\n      minContext?: number;\n    };\n}\n\nexport type ExtensionMessage =\n  | { type: 'STATE_UPDATE'; payload: Partial<UIState> }\n  | { type: 'LOG_ENTRY'; payload: LogEntry }\n  | { type: 'ping' }\n  | { type: 'START_PIPELINE', payload: { postUrn: string } }\n  | { type: 'STOP_PIPELINE' }\n  | { type: 'RESUME_PIPELINE' }\n  | { type: 'GET_AI_CONFIG', payload?: never }\n  | { type: 'UPDATE_AI_CONFIG', payload: Partial<AIConfig> }\n  | { type: 'GET_MODELS', payload?: never }\n  | { type: 'REQUEST_POST_STATE_FOR_EXPORT', payload?: never };\n~~~\n~~~edits\n#- file: src/ui/store/index.ts\n***start_edit\nLITERAL\n***search\nexport const useStore = create<Store>((set) => ({\n  pipelineStatus: 'idle',\n***replace\nexport const useStore = create<Store>((set) => ({\n  isInitializing: true,\n  pipelineStatus: 'idle',\n***description\nAdd isInitializing to the initial state of the Zustand store and set it to true.\n***end_edit\n~~~\n~~~typescript\n#- file: src/ui/components/Skeleton.tsx\nimport { h } from 'preact';\n\nexport const Skeleton = ({ className, style }: { className?: string, style?: h.JSX.CSSProperties }) => {\n  return <div className={`skeleton-loader ${className || ''}`} style={style} />;\n};\n~~~\n~~~typescript\n#- file: src/ui/hooks/useAnimatedCounter.ts\nimport { useState, useEffect, useRef } from 'preact/hooks';\n\nconst easeOutQuad = (t: number) => t * (2 - t);\n\nexport const useAnimatedCounter = (endValue: number, duration = 500) => {\n  const [count, setCount] = useState(0);\n  const startValueRef = useRef(0);\n  const startTimeRef = useRef(0);\n  const frameRef = useRef(0);\n\n  useEffect(() => {\n    startValueRef.current = count;\n    startTimeRef.current = performance.now();\n\n    const animate = (currentTime: number) => {\n      const elapsedTime = currentTime - startTimeRef.current;\n      if (elapsedTime < duration) {\n        const progress = elapsedTime / duration;\n        const easedProgress = easeOutQuad(progress);\n        const currentValue = startValueRef.current + (endValue - startValueRef.current) * easedProgress;\n        setCount(Math.round(currentValue));\n        frameRef.current = requestAnimationFrame(animate);\n      } else {\n        setCount(endValue);\n      }\n    };\n\n    frameRef.current = requestAnimationFrame(animate);\n\n    return () => cancelAnimationFrame(frameRef.current);\n  }, [endValue, duration]);\n\n  return count;\n};\n~~~\n~~~css\n#- file: src/index.css\n/* Global styles and variables.\n   Assuming a setup with CSS variables for theming.\n*/\n:root {\n  --color-text-primary: #1a1a1a;\n  --color-text-secondary: #555;\n  --color-bg-primary: #ffffff;\n  --color-bg-secondary: #f9f9f9;\n  --color-bg-tertiary: #e9e9e9;\n  --color-border: #ddd;\n  --color-accent: #1877f2; /* LinkedIn blue */\n  --color-success: #34a853;\n  --color-error: #ea4335;\n  --border-radius: 6px;\n}\n\n/* For dark mode */\n@media (prefers-color-scheme: dark) {\n  :root {\n    --color-text-primary: #e1e1e1;\n    --color-text-secondary: #aaa;\n    --color-bg-primary: #1c1c1e;\n    --color-bg-secondary: #2c2c2e;\n    --color-bg-tertiary: #3a3a3c;\n    --color-border: #444;\n    --color-accent: #1877f2;\n  }\n}\n\nbody {\n  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;\n  background-color: var(--color-bg-primary);\n  color: var(--color-text-primary);\n}\n\n.sidebar-container {\n  min-width: 320px;\n  padding: 1rem;\n  display: flex;\n  flex-direction: column;\n  gap: 1.5rem;\n}\n\n.sidebar-section {\n  background-color: var(--color-bg-primary);\n  padding: 1rem;\n  border-radius: var(--border-radius);\n  border: 1px solid var(--color-border);\n  box-shadow: 0 1px 3px rgba(0,0,0,0.05);\n}\n\n.sidebar-section h2 {\n  margin-top: 0;\n  margin-bottom: 1rem;\n  font-size: 1.125rem;\n  color: var(--color-text-primary);\n  border-bottom: 1px solid var(--color-border);\n  padding-bottom: 0.5rem;\n}\n\n/* Generic Button Styles */\nbutton {\n  background-color: var(--color-accent);\n  color: var(--color-bg-primary);\n  border: none;\n  padding: 0.5rem 1rem;\n  border-radius: var(--border-radius);\n  font-weight: 600;\n  cursor: pointer;\n  transition: background-color 0.2s ease-out, transform 0.1s ease-out, filter 0.2s ease-out;\n}\n\nbutton:hover {\n  filter: brightness(1.1);\n}\n\nbutton:active {\n  transform: scale(0.98);\n  filter: brightness(0.95);\n}\n\nbutton:disabled {\n  background-color: var(--color-bg-tertiary);\n  color: var(--color-text-secondary);\n  cursor: not-allowed;\n  filter: none;\n  transform: none;\n}\n\n\n/* Counters Section */\n.counter-grid {\n  display: grid;\n  grid-template-columns: 1fr 1fr;\n  gap: 1rem;\n}\n\n.counter-item {\n  display: flex;\n  flex-direction: column;\n  align-items: center;\n  justify-content: center;\n  padding: 1rem;\n  background-color: var(--color-bg-secondary);\n  border-radius: var(--border-radius);\n  text-align: center;\n}\n\n.counter-value {\n  font-size: 1.75rem;\n  font-weight: 600;\n  color: var(--color-accent);\n}\n\n.counter-label {\n  font-size: 0.875rem;\n  color: var(--color-text-secondary);\n  margin-top: 0.25rem;\n}\n\n\n/* Pipeline Progress Section */\n.pipeline-list {\n  max-height: 300px;\n  overflow-y: auto;\n  display: flex;\n  flex-direction: column;\n  gap: 1rem;\n  padding-right: 8px; /* For scrollbar */\n}\n\n.idle-message {\n  color: var(--color-text-secondary);\n  font-style: italic;\n  text-align: center;\n  padding: 1rem 0;\n}\n\n.comment-row {\n  display: flex;\n  justify-content: space-between;\n  align-items: center;\n  gap: 1rem;\n  padding: 0.75rem;\n  background-color: var(--color-bg-secondary);\n  border-radius: var(--border-radius);\n  border: 1px solid var(--color-border);\n}\n\n.comment-info {\n  flex: 1;\n  min-width: 0; /* Important for text truncation */\n}\n\n.comment-author {\n  font-weight: 600;\n  color: var(--color-text-primary);\n  white-space: nowrap;\n  overflow: hidden;\n  text-overflow: ellipsis;\n}\n\n.comment-text {\n  font-size: 0.875rem;\n  color: var(--color-text-secondary);\n  white-space: nowrap;\n  overflow: hidden;\n  text-overflow: ellipsis;\n  margin-top: 0.25rem;\n}\n\n/* Stepper Component */\n.stepper-container {\n  display: flex;\n  align-items: flex-start;\n  justify-content: center;\n}\n\n.step-item {\n  display: flex;\n  flex-direction: column;\n  align-items: center;\n  position: relative;\n  width: 60px; /* Fixed width for each step */\n}\n\n.step-item:not(:last-child)::after {\n  content: '';\n  position: absolute;\n  top: 8px; /* Vertically center with indicator */\n  left: 50%;\n  width: 100%;\n  height: 2px;\n  background-color: var(--color-border);\n  transform: translateX(calc(60px / 2));\n  transition: background-color 0.4s ease;\n  z-index: 0;\n}\n\n.step-indicator {\n  width: 16px;\n  height: 16px;\n  border-radius: 50%;\n  background-color: var(--color-bg-tertiary);\n  border: 2px solid var(--color-border);\n  transition: all 0.4s ease;\n  z-index: 1;\n  position: relative;\n}\n\n.step-label {\n  font-size: 0.75rem;\n  margin-top: 0.5rem;\n  color: var(--color-text-secondary);\n  text-align: center;\n  transition: color 0.4s ease;\n  height: 2.5em; /* Reserve space to prevent layout shift */\n}\n\n/* Stepper Statuses */\n.step-pending .step-indicator {\n  background-color: var(--color-bg-tertiary);\n  border-color: var(--color-border);\n}\n.step-pending .step-label {\n  color: var(--color-text-secondary);\n}\n\n.step-active .step-indicator {\n  border-color: var(--color-accent);\n  background-color: var(--color-bg-primary);\n  animation: pulse 2s infinite;\n}\n.step-active .step-label {\n  color: var(--color-accent);\n  font-weight: 600;\n}\n\n.step-item.step-complete:not(:last-child)::after {\n  background-color: var(--color-success);\n}\n\n.step-complete .step-indicator {\n  background-color: var(--color-success);\n  border-color: var(--color-success);\n}\n.step-complete .step-label {\n  color: var(--color-text-primary);\n}\n\n.step-failed .step-indicator {\n  background-color: var(--color-error);\n  border-color: var(--color-error);\n}\n.step-failed .step-label {\n  color: var(--color-error);\n  font-weight: 600;\n}\n\n@keyframes pulse {\n  0% {\n    box-shadow: 0 0 0 0 rgba(24, 119, 242, 0.4);\n  }\n  70% {\n    box-shadow: 0 0 0 8px rgba(24, 119, 242, 0);\n  }\n  100% {\n    box-shadow: 0 0 0 0 rgba(24, 119, 242, 0);\n  }\n}\n\n/* Skeleton Loader */\n.skeleton-loader {\n  background-color: var(--color-bg-tertiary);\n  border-radius: var(--border-radius);\n  position: relative;\n  overflow: hidden;\n}\n\n.skeleton-loader::after {\n  content: '';\n  position: absolute;\n  top: 0;\n  left: -150%;\n  width: 150%;\n  height: 100%;\n  background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.2), transparent);\n  animation: shimmer 1.5s infinite;\n}\n\n@keyframes shimmer {\n  0% {\n    left: -150%;\n  }\n  100% {\n    left: 150%;\n  }\n}\n\n/* Helper classes for skeletons */\n.skeleton-value {\n  height: 1.75em;\n  width: 40px;\n  margin-bottom: 0.5rem;\n}\n\n.skeleton-label {\n  height: 0.875em;\n  width: 120px;\n}\n\n.skeleton-author {\n    width: 80px;\n    height: 1em;\n    margin-bottom: 0.5rem;\n}\n.skeleton-text {\n    width: 120px;\n    height: 0.875em;\n}\n.skeleton-stepper {\n    width: 240px;\n    height: 30px;\n}\n~~~\n~~~typescript\n#- file: src/ui/components/Counters.tsx\nimport { h } from 'preact';\nimport { useStore } from '../store';\nimport { Skeleton } from './Skeleton';\nimport { useAnimatedCounter } from '../hooks/useAnimatedCounter';\n\nconst CountersSkeleton = () => (\n  <div className=\"sidebar-section\">\n    <h2>Live Counters</h2>\n    <div className=\"counter-grid\">\n      <div className=\"counter-item\">\n        <Skeleton className=\"skeleton-value\" />\n        <Skeleton className=\"skeleton-label\" />\n      </div>\n      <div className=\"counter-item\">\n        <Skeleton className=\"skeleton-value\" />\n        <Skeleton className=\"skeleton-label\" />\n      </div>\n    </div>\n  </div>\n);\n\nexport const Counters = () => {\n  const stats = useStore((state) => state.stats);\n  const isInitializing = useStore((state) => state.isInitializing);\n\n  // Use the hook for each value\n  const totalAnimated = useAnimatedCounter(stats.totalTopLevelNoReplies);\n  const userAnimated = useAnimatedCounter(stats.userTopLevelNoReplies);\n\n  if (isInitializing) {\n    return <CountersSkeleton />;\n  }\n\n  return (\n    <div className=\"sidebar-section\">\n      <h2>Live Counters</h2>\n      <div className=\"counter-grid\">\n        <div className=\"counter-item\">\n          <span className=\"counter-value\">{totalAnimated}</span>\n          <span className=\"counter-label\">Total Top-Level (No Replies)</span>\n        </div>\n        <div className=\"counter-item\">\n          <span className=\"counter-value\">{userAnimated}</span>\n          <span className=\"counter-label\">Your Top-Level (No Replies)</span>\n        </div>\n      </div>\n    </div>\n  );\n};\n~~~\n~~~typescript\n#- file: src/ui/components/PipelineProgress.tsx\nimport { h } from 'preact';\nimport { useStore } from '../store';\nimport { Comment, ActionStatus } from '../../shared/types';\nimport { Skeleton } from './Skeleton';\n\ntype StepStatus = 'complete' | 'active' | 'pending' | 'failed';\n\nconst Stepper = ({\n  likeStatus,\n  replyStatus,\n  dmStatus,\n}: {\n  likeStatus: ActionStatus;\n  replyStatus: ActionStatus;\n  dmStatus: ActionStatus;\n}) => {\n  const steps = ['Queued', 'Liked', 'Replied', 'DM Sent'];\n\n  // Rule for Step 1: 'Queued'\n  // A comment in the list is by definition queued and this step is complete.\n  const queuedStatus: StepStatus = 'complete';\n\n  // Rule for Step 2: 'Liked'\n  let likedStatus: StepStatus;\n  if (likeStatus === 'DONE') {\n    likedStatus = 'complete';\n  } else if (likeStatus === 'FAILED') {\n    likedStatus = 'failed';\n  } else {\n    // likeStatus is ''\n    // If the 'Queued' step is complete, this one is active.\n    likedStatus = 'active';\n  }\n\n  // Rule for Step 3: 'Replied'\n  let repliedStatus: StepStatus;\n  if (replyStatus === 'DONE') {\n    repliedStatus = 'complete';\n  } else if (replyStatus === 'FAILED') {\n    repliedStatus = 'failed';\n  } else if (likeStatus === 'DONE' && replyStatus === '') {\n    // It can only be active if the previous step ('Liked') is complete.\n    repliedStatus = 'active';\n  } else {\n    // It's pending if the 'Liked' step isn't done yet.\n    repliedStatus = 'pending';\n  }\n\n  // Rule for Step 4: 'DM Sent'\n  let dmSentStatus: StepStatus;\n  if (dmStatus === 'DONE') {\n    dmSentStatus = 'complete';\n  } else if (dmStatus === 'FAILED') {\n    dmSentStatus = 'failed';\n  } else if (replyStatus === 'DONE' && dmStatus === '') {\n    // It can only be active if the previous step ('Replied') is complete.\n    dmSentStatus = 'active';\n  } else {\n    // It's pending if the 'Replied' step isn't done yet.\n    dmSentStatus = 'pending';\n  }\n\n  const statuses: StepStatus[] = [\n    queuedStatus,\n    likedStatus,\n    repliedStatus,\n    dmSentStatus,\n  ];\n\n  return (\n    <div className=\"stepper-container\">\n      {steps.map((step, index) => (\n        <div key={step} className={`step-item step-${statuses[index]}`}>\n          <div className=\"step-indicator\" />\n          <p className=\"step-label\">{step}</p>\n        </div>\n      ))}\n    </div>\n  );\n};\n\nconst CommentRow = ({ comment }: { comment: Comment }) => {\n  const author =\n    comment.ownerProfileUrl.split('/in/')[1]?.replace('/', '') || 'Unknown';\n  const shortText =\n    comment.text.length > 100\n      ? `${comment.text.substring(0, 97)}...`\n      : comment.text;\n\n  return (\n    <div className=\"comment-row\">\n      <div className=\"comment-info\">\n        <p className=\"comment-author\">{author}</p>\n        <p className=\"comment-text\" title={comment.text}>\n          {shortText}\n        </p>\n      </div>\n      <Stepper\n        likeStatus={comment.likeStatus}\n        replyStatus={comment.replyStatus}\n        dmStatus={comment.dmStatus}\n      />\n    </div>\n  );\n};\n\nconst PipelineProgressSkeleton = () => (\n    <div className=\"pipeline-list\">\n      {Array.from({ length: 3 }).map((_, i) => (\n        <div className=\"comment-row\" key={i}>\n          <div className=\"comment-info\">\n            <Skeleton className=\"skeleton-author\" />\n            <Skeleton className=\"skeleton-text\" />\n          </div>\n          <div className=\"stepper-container\">\n             <Skeleton className=\"skeleton-stepper\" />\n          </div>\n        </div>\n      ))}\n    </div>\n  );\n\nexport const PipelineProgress = () => {\n  const comments = useStore((state) => state.comments);\n  const isInitializing = useStore((state) => state.isInitializing);\n\n  return (\n    <div className=\"sidebar-section\">\n      <h2>Pipeline Progress</h2>\n      {isInitializing && comments.length === 0 ? (\n        <PipelineProgressSkeleton />\n      ) : (\n        <div className=\"pipeline-list\">\n          {comments.length === 0 ? (\n            <p className=\"idle-message\">\n              Pipeline is idle. Start processing to see progress.\n            </p>\n          ) : (\n            comments.map((comment) => (\n              <CommentRow key={comment.commentId} comment={comment} />\n            ))\n          )}\n        </div>\n      )}\n    </div>\n  );\n};\n~~~",
         "iteration_id": "I8",
-        "completed": false,
+        "completed": true,
         "target_files": [
             "src/ui/App.tsx",
             "and various components"
@@ -1645,5 +1645,191 @@
                 ]
             }
         ]
+    },
+    {
+        "name": "CR1.T1",
+        "context": {
+            "task_id": "CR1.T1",
+            "iteration_id": "CR1",
+            "iteration_goal": "Implement a comprehensive end-to-end testing suite using Playwright.",
+            "description": "Set up the Playwright testing framework to work with a loaded Chromium extension. This includes configuring `playwright.config.ts` to launch a persistent browser context with the extension's build output (`dist` folder), and creating a basic test that verifies the browser and extension can be launched successfully.",
+            "agent_type_hint": "QualityAssuranceSpecialist",
+            "inputs": "Final project structure and the build output directory.",
+            "target_files": [
+                "tests/e2e/playwright.config.ts",
+                "tests/e2e/setup.spec.ts"
+            ],
+            "input_files": [
+                "vite.config.ts"
+            ],
+            "deliverables": "A configured Playwright setup that can launch a browser with the LinkedIn Engagement Assistant extension loaded and ready for testing.",
+            "acceptance_criteria": "Running `npx playwright test` successfully opens a browser with the extension installed. A basic test case that navigates to `linkedin.com` and confirms the content script is active passes.",
+            "dependencies": [
+                "I8.T4"
+            ],
+            "parallelizable": false
+        },
+        "output": "Okay, I'm ready to set up the Playwright end-to-end testing suite. Here is my plan:\n\n1.  **Modify `package.json`**: I'll add the `@playwright/test` development dependency and a new script, `test:e2e`, to run the tests.\n2.  **Update `tsconfig.json`**: I'll include the new `tests` directory in the TypeScript compiler's scope to ensure the test files are correctly type-checked.\n3.  **Create `tests/e2e/playwright.config.ts`**: This file will contain the basic Playwright configuration, specifying the test directory and project settings for Chromium.\n4.  **Create `tests/e2e/setup.spec.ts`**: This is the core of the task. This test file will:\n    *   Use Playwright's `chromium.launchPersistentContext` to start a browser with the extension loaded from the `dist` directory.\n    *   Include a test case that navigates to `linkedin.com`.\n    *   Verify that the extension's content script has successfully injected its UI by checking for the visibility of the `.sidebar` element.\n\nThis setup will meet all the acceptance criteria. Let's get started.\n\n~~~edits\n#- file: package.json\n***start_edit\nLITERAL\n***search\n    \"format\": \"prettier --write .\"\n***replace\n    \"format\": \"prettier --write .\",\n    \"test:e2e\": \"playwright test\"\n***description\nAdd a new script `test:e2e` to execute Playwright tests.\n***end_edit\n***start_edit\nLITERAL\n***search\n  \"devDependencies\": {\n    \"@preact/preset-vite\": \"^2.9.0\",\n***replace\n  \"devDependencies\": {\n    \"@playwright/test\": \"^1.45.1\",\n    \"@preact/preset-vite\": \"^2.9.0\",\n***description\nAdd the `@playwright/test` package as a development dependency for end-to-end testing.\n***end_edit\n~~~\n~~~edits\n#- file: tsconfig.json\n***start_edit\nLITERAL\n***search\n  \"include\": [\"src\"],\n***replace\n  \"include\": [\"src\", \"tests\"],\n***description\nInclude the 'tests' directory in the TypeScript compilation context so that Playwright test files are correctly processed.\n***end_edit\n~~~\n~~~typescript\n#- file: tests/e2e/playwright.config.ts\nimport { defineConfig, devices } from '@playwright/test';\n\n/**\n * See https://playwright.dev/docs/test-configuration.\n */\nexport default defineConfig({\n  testDir: './',\n  /* Run tests in files in parallel */\n  fullyParallel: true,\n  /* Fail the build on CI if you accidentally left test.only in the source code. */\n  forbidOnly: !!process.env.CI,\n  /* Retry on CI only */\n  retries: process.env.CI ? 2 : 0,\n  /* Opt out of parallel tests on CI. */\n  workers: process.env.CI ? 1 : undefined,\n  /* Reporter to use. See https://playwright.dev/docs/test-reporters */\n  reporter: 'html',\n  /* Shared settings for all the projects below. See https://playwright.dev/docs/api/class-testoptions. */\n  use: {\n    /* Collect trace when retrying the failed test. See https://playwright.dev/docs/trace-viewer */\n    trace: 'on-first-retry',\n  },\n\n  /* Configure projects for major browsers */\n  projects: [\n    {\n      name: 'chromium',\n      use: { ...devices['Desktop Chrome'] },\n    },\n  ],\n});\n~~~\n~~~typescript\n#- file: tests/e2e/setup.spec.ts\nimport { test, expect, chromium, type BrowserContext } from '@playwright/test';\nimport path from 'path';\n\nconst pathToExtension = path.resolve(__dirname, '../../dist');\n\ntest.describe('Extension E2E Setup', () => {\n  let context: BrowserContext;\n\n  test.beforeAll(async () => {\n    context = await chromium.launchPersistentContext('', {\n      headless: false, // Set to true for CI/CD, false for local debugging\n      args: [\n        `--disable-extensions-except=${pathToExtension}`,\n        `--load-extension=${pathToExtension}`,\n      ],\n    });\n  });\n\n  test.afterAll(async () => {\n    if (context) {\n      await context.close();\n    }\n  });\n\n  test('should load the extension and inject the content script on linkedin.com', async () => {\n    const page = await context.newPage();\n    await page.goto('https://www.linkedin.com');\n\n    // The content script from src/content-scripts/index.ts injects a div with class 'sidebar'\n    const sidebarLocator = page.locator('.sidebar');\n\n    // Assert that the sidebar is visible, which confirms the content script has run\n    await expect(sidebarLocator).toBeVisible({ timeout: 10000 });\n\n    await page.close();\n  });\n});\n~~~",
+        "iteration_id": "CR1",
+        "completed": false,
+        "target_files": [],
+        "input_files": [],
+        "files": []
+    },
+    {
+        "name": "CR1.T2",
+        "context": {
+            "task_id": "CR1.T2",
+            "iteration_id": "CR1",
+            "iteration_goal": "Implement a comprehensive end-to-end testing suite using Playwright.",
+            "description": "Write a Playwright test suite to verify the UI correctly injects and displays its initial state. The test will navigate to a mock or live LinkedIn post page, check for the presence of the sidebar's shadow DOM root, and assert that the initial UI components (Header, Counters, Controls) are rendered with default values.",
+            "agent_type_hint": "QualityAssuranceSpecialist",
+            "inputs": "Playwright setup from CR1.T1 and the UI source code.",
+            "target_files": [
+                "tests/e2e/ui-injection.spec.ts"
+            ],
+            "input_files": [
+                "tests/e2e/playwright.config.ts",
+                "src/ui/App.tsx",
+                "src/content-scripts/index.ts"
+            ],
+            "deliverables": "A Playwright test file that validates the extension's UI is correctly injected and initialized on a target page.",
+            "acceptance_criteria": "The test successfully navigates to a `linkedin.com/feed/update/...` URL, finds the extension's sidebar, and confirms that key UI elements are present and in their default, initial state.",
+            "dependencies": [
+                "CR1.T1"
+            ],
+            "parallelizable": true
+        },
+        "output": "",
+        "iteration_id": "CR1",
+        "completed": false,
+        "target_files": [],
+        "input_files": [],
+        "files": []
+    },
+    {
+        "name": "CR1.T3",
+        "context": {
+            "task_id": "CR1.T3",
+            "iteration_id": "CR1",
+            "iteration_goal": "Implement a comprehensive end-to-end testing suite using Playwright.",
+            "description": "Implement an E2E test for the core pipeline functionality. This test will mock the `domInteractor` to provide a predefined set of comments. It will then simulate a user clicking the 'Start' button, verify that the UI state changes to 'Running', click 'Stop', and check that the pipeline pauses. Finally, it will click 'Resume' and confirm the process continues.",
+            "agent_type_hint": "QualityAssuranceSpecialist",
+            "inputs": "Core application logic for the pipeline and the Playwright setup.",
+            "target_files": [
+                "tests/e2e/pipeline-controls.spec.ts"
+            ],
+            "input_files": [
+                "src/background/services/pipelineManager.ts",
+                "src/ui/components/Controls.tsx"
+            ],
+            "deliverables": "A Playwright test file that covers the start, stop, and resume user flows by interacting with the UI.",
+            "acceptance_criteria": "The test correctly simulates clicks on control buttons and asserts that the UI and the application's internal state (observed via UI changes or direct evaluation) reflect the expected behavior for starting, stopping, and resuming the pipeline.",
+            "dependencies": [
+                "CR1.T1"
+            ],
+            "parallelizable": true
+        },
+        "output": "",
+        "iteration_id": "CR1",
+        "completed": false,
+        "target_files": [],
+        "input_files": [],
+        "files": []
+    },
+    {
+        "name": "CR1.T4",
+        "context": {
+            "task_id": "CR1.T4",
+            "iteration_id": "CR1",
+            "iteration_goal": "Implement a comprehensive end-to-end testing suite using Playwright.",
+            "description": "Create an E2E test to validate the real-time UI updates. The test will use Playwright's features to execute scripts in the page context, simulating the service worker broadcasting `STATE_UPDATE` and `LOG_MESSAGE` events. It will then assert that the Live Counters, Pipeline Progress view, and Logs Panel in the UI update correctly in response.",
+            "agent_type_hint": "QualityAssuranceSpecialist",
+            "inputs": "UI components, state management logic, and the Playwright setup.",
+            "target_files": [
+                "tests/e2e/real-time-ui.spec.ts"
+            ],
+            "input_files": [
+                "src/ui/store/index.ts",
+                "src/ui/components/Counters.tsx",
+                "src/ui/components/PipelineProgress.tsx",
+                "src/ui/components/LogsPanel.tsx"
+            ],
+            "deliverables": "A Playwright test that verifies the UI is correctly data-bound to background events by simulating those events.",
+            "acceptance_criteria": "When mock `chrome.runtime` messages are dispatched via a test script, the test asserts that the text content of counter elements, the status icons in the progress view, and the rows in the log panel update to match the event payload.",
+            "dependencies": [
+                "CR1.T1"
+            ],
+            "parallelizable": true
+        },
+        "output": "",
+        "iteration_id": "CR1",
+        "completed": false,
+        "target_files": [],
+        "input_files": [],
+        "files": []
+    },
+    {
+        "name": "CR1.T5",
+        "context": {
+            "task_id": "CR1.T5",
+            "iteration_id": "CR1",
+            "iteration_goal": "Implement a comprehensive end-to-end testing suite using Playwright.",
+            "description": "Write a test for the AI settings panel and its persistence. The test will interact with the UI to input a mock API key, select a model from a mocked list, and change prompt text. It will then reload the page/extension and verify that the settings have been correctly loaded from `chrome.storage.sync` and are displayed in the UI.",
+            "agent_type_hint": "QualityAssuranceSpecialist",
+            "inputs": "AI settings components, configuration manager, and Playwright setup.",
+            "target_files": [
+                "tests/e2e/settings-persistence.spec.ts"
+            ],
+            "input_files": [
+                "src/ui/components/AiSettings.tsx",
+                "src/background/services/configManager.ts"
+            ],
+            "deliverables": "A Playwright test that ensures user settings are saved and reloaded correctly across sessions.",
+            "acceptance_criteria": "After entering data into settings fields and reloading the page, the test asserts that the input fields contain the same data, confirming the save/load cycle through `chrome.storage.sync` was successful.",
+            "dependencies": [
+                "CR1.T1"
+            ],
+            "parallelizable": true
+        },
+        "output": "",
+        "iteration_id": "CR1",
+        "completed": false,
+        "target_files": [],
+        "input_files": [],
+        "files": []
+    },
+    {
+        "name": "CR1.T6",
+        "context": {
+            "task_id": "CR1.T6",
+            "iteration_id": "CR1",
+            "iteration_goal": "Implement a comprehensive end-to-end testing suite using Playwright.",
+            "description": "Create an E2E test for error handling. This test will use Playwright's network interception (`page.route`) to mock an API call to OpenRouter and force an error response. It will then start the pipeline and verify that the UI correctly displays an error state for the relevant comment in the Pipeline Progress view and that a corresponding error message appears in the Logs Panel.",
+            "agent_type_hint": "QualityAssuranceSpecialist",
+            "inputs": "Error handling logic in the pipeline, UI components, and Playwright setup.",
+            "target_files": [
+                "tests/e2e/error-handling.spec.ts"
+            ],
+            "input_files": [
+                "src/background/services/pipelineManager.ts",
+                "src/background/services/openRouterClient.ts",
+                "src/ui/components/PipelineProgress.tsx",
+                "src/ui/components/LogsPanel.tsx"
+            ],
+            "deliverables": "A Playwright test that simulates a network failure and validates the UI's error-state reporting.",
+            "acceptance_criteria": "When a mocked network request fails, the test asserts that the UI updates to show a 'FAILED' status for the item and that a structured error log appears in the logging panel.",
+            "dependencies": [
+                "CR1.T1",
+                "CR1.T3"
+            ],
+            "parallelizable": true
+        },
+        "output": "",
+        "iteration_id": "CR1",
+        "completed": false,
+        "target_files": [],
+        "input_files": [],
+        "files": []
     }
 ]
