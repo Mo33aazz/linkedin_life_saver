@@ -1,5 +1,7 @@
-/* Global styles and variables.
-   Assuming a setup with CSS variables for theming.
+/* 
+  STEP 1: DEFAULT STYLES AND VARIABLES (:root)
+  This will apply to your extension popup by default.
+  It defines all the variables and a basic layout.
 */
 :root {
   --color-text-primary: #1a1a1a;
@@ -8,13 +10,15 @@
   --color-bg-secondary: #f9f9f9;
   --color-bg-tertiary: #e9e9e9;
   --color-border: #ddd;
-  --color-accent: #1877f2; /* LinkedIn blue */
+  --color-accent: #1877f2;
   --color-success: #34a853;
   --color-error: #ea4335;
   --border-radius: 6px;
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+  background-color: var(--color-bg-secondary);
+  color: var(--color-text-primary);
 }
 
-/* For dark mode */
 @media (prefers-color-scheme: dark) {
   :root {
     --color-text-primary: #e1e1e1;
@@ -23,24 +27,65 @@
     --color-bg-secondary: #2c2c2e;
     --color-bg-tertiary: #3a3a3c;
     --color-border: #444;
-    --color-accent: #1877f2;
   }
 }
 
-body {
+/*
+  STEP 2: SIDEBAR-SPECIFIC OVERRIDES (:host(.sidebar))
+  These styles will ONLY apply when the host element has class="sidebar".
+  It contains the positioning logic and re-defines the variables for the host.
+*/
+:host(.sidebar) {
+  /* Positioning */
+  position: fixed;
+  top: 0;
+  right: 0;
+  height: 100vh;
+  z-index: 9999;
+  width: 350px;
+  box-shadow: -2px 0 10px rgba(0, 0, 0, 0.1);
+  overflow-y: auto;
+
+  /* Re-declare variables to be scoped to the host */
+  --color-text-primary: #1a1a1a;
+  --color-text-secondary: #555;
+  --color-bg-primary: #ffffff;
+  --color-bg-secondary: #f9f9f9;
+  --color-bg-tertiary: #e9e9e9;
+  --color-border: #ddd;
+  --color-accent: #1877f2;
+  --color-success: #34a853;
+  --color-error: #ea4335;
+  --border-radius: 6px;
   font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
-  background-color: var(--color-bg-primary);
+  background-color: var(--color-bg-secondary);
   color: var(--color-text-primary);
 }
 
+@media (prefers-color-scheme: dark) {
+  :host(.sidebar) {
+    --color-text-primary: #e1e1e1;
+    --color-text-secondary: #aaa;
+    --color-bg-primary: #1c1c1e;
+    --color-bg-secondary: #2c2c2e;
+    --color-bg-tertiary: #3a3a3c;
+    --color-border: #444;
+  }
+}
+
 .sidebar-container {
-  min-width: 320px;
+  min-width: 420px;
   padding: 1rem;
   display: flex;
   flex-direction: column;
   gap: 1.5rem;
 }
 
+/* 
+  STEP 3: SHARED COMPONENT STYLES
+  These styles are unchanged. They will use the variables defined by either
+  :root (in the popup) or :host(.sidebar) (in the content script).
+*/
 .sidebar-section {
   background-color: var(--color-bg-primary);
   padding: 1rem;

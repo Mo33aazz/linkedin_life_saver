@@ -38,8 +38,11 @@ main() {
 
     # Safely check if a 'test' script is defined in package.json using jq.
     # The '-e' flag sets the exit code to 0 if the key is found, 1 otherwise.
+    npm run build
+
     if jq -e '.scripts.test' package.json > /dev/null; then
         echo "INFO: 'test' script found. Running tests..." >&2
+   
         npm test
         echo "SUCCESS: Tests passed." >&2
     else

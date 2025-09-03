@@ -1,4 +1,4 @@
-import { test, expect } from '@playwright/test';
+import { test, expect } from './fixtures';
 
 const LINKEDIN_POST_URL =
   'https://www.linkedin.com/feed/update/urn:li:activity:7123456789012345678/';
@@ -19,28 +19,28 @@ test.describe('Pipeline Controls E2E Test', () => {
 
     // 2. ASSERT: Verify the initial 'idle' state.
     // The 'Start' button should be visible, and others hidden.
-    await expect(startButton).toBeVisible();
-    await expect(stopButton).not.toBeVisible();
-    await expect(resumeButton).not.toBeVisible();
+    await expect(startButton).toBeVisible({ timeout: 5000 });
+    await expect(stopButton).not.toBeVisible({ timeout: 5000 });
+    await expect(resumeButton).not.toBeVisible({ timeout: 5000 });
 
     // 3. ACT & ASSERT: Test the START action.
     // Click start and wait for the UI to update to the 'running' state,
     // which is indicated by the 'Stop' button appearing.
     // This tests the full message loop: UI -> Service Worker -> UI.
     await startButton.click();
-    await expect(stopButton).toBeVisible();
-    await expect(startButton).not.toBeVisible();
+    await expect(stopButton).toBeVisible({ timeout: 5000 });
+    await expect(startButton).not.toBeVisible({ timeout: 5000 });
 
     // 4. ACT & ASSERT: Test the STOP (pause) action.
     // Click stop and wait for the UI to update to the 'paused' state.
     await stopButton.click();
-    await expect(resumeButton).toBeVisible();
-    await expect(stopButton).not.toBeVisible();
+    await expect(resumeButton).toBeVisible({ timeout: 5000 });
+    await expect(stopButton).not.toBeVisible({ timeout: 5000 });
 
     // 5. ACT & ASSERT: Test the RESUME action.
     // Click resume and wait for the UI to update back to the 'running' state.
     await resumeButton.click();
-    await expect(stopButton).toBeVisible();
-    await expect(resumeButton).not.toBeVisible();
+    await expect(stopButton).toBeVisible({ timeout: 5000 });
+    await expect(resumeButton).not.toBeVisible({ timeout: 5000 });
   });
 });

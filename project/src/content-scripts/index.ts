@@ -7,8 +7,9 @@ console.log('Content script starting...');
  * Injects the UI into the page.
  */
 const initializeContentScript = () => {
+  const hostSelector = 'sidebar';
   // Prevent re-injection.
-  if (document.querySelector('div.sidebar')) {
+  if (document.querySelector(`div.${hostSelector}`)) {
     console.log('Sidebar already injected. Skipping.');
     return;
   }
@@ -18,7 +19,7 @@ const initializeContentScript = () => {
 
     // Create a host element for the shadow DOM
     const host = document.createElement('div');
-    host.className = 'sidebar';
+    host.className = hostSelector;
     document.body.appendChild(host);
 
     // Create shadow DOM root

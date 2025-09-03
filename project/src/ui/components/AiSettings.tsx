@@ -12,6 +12,10 @@ export const AiSettings = () => {
     'idle'
   );
 
+  // Prompts state
+  const [replyPrompt, setReplyPrompt] = useState('');
+  const [dmPrompt, setDmPrompt] = useState('');
+
   // Other settings
   const [temperature, setTemperature] = useState(0.7);
   const [topP, setTopP] = useState(1.0);
@@ -25,6 +29,8 @@ export const AiSettings = () => {
         setSelectedModel(config.model || '');
         setTemperature(config.temperature || 0.7);
         setTopP(config.top_p || 1.0);
+        setReplyPrompt(config.reply?.customPrompt || '');
+        setDmPrompt(config.dm?.customPrompt || '');
 
         // If an API key is already present, fetch models automatically.
         if (config.apiKey) {
@@ -43,6 +49,12 @@ export const AiSettings = () => {
       model: selectedModel,
       temperature,
       top_p: topP,
+      reply: {
+        customPrompt: replyPrompt,
+      },
+      dm: {
+        customPrompt: dmPrompt,
+      },
     };
     chrome.runtime.sendMessage(
       { type: 'UPDATE_AI_CONFIG', payload: partialConfig },
@@ -174,12 +186,26 @@ export const AiSettings = () => {
 
       <div className="form-group">
         <label htmlFor="replyPrompt">Custom Reply Prompt</label>
-        <textarea id="replyPrompt" name="replyPrompt" rows={4} />
+        <textarea
+          id="replyPrompt"
+          name="replyPrompt"
+          rows={4}
+          value={replyPrompt}
+          onInput={(e) =>
+            setReplyPrompt((e.target as HTMLTextAreaElement).value)
+          }
+        />
       </div>
 
       <div className="form-group">
         <label htmlFor="dmPrompt">Custom DM Prompt</label>
-        <textarea id="dmPrompt" name="dmPrompt" rows={4} />
+        <textarea
+          id="dmPrompt"
+          name="dmPrompt"
+          rows={4}
+          value={dmPrompt}
+          onInput={(e) => setDmPrompt((e.target as HTMLTextAreaElement).value)}
+        />
       </div>
 
       <div className="form-group">

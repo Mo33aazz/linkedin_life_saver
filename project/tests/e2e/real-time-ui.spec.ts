@@ -1,4 +1,5 @@
-import { test, expect, Page } from '@playwright/test';
+import { test, expect } from './fixtures';
+import { Page } from '@playwright/test';
 import { ExtensionMessage, Comment } from '../../src/shared/types';
 
 /**
@@ -63,7 +64,7 @@ test.describe('Real-time UI Updates', () => {
     // A real LinkedIn post URL is needed for the content script to activate.
     await page.goto(
       'https://www.linkedin.com/feed/update/urn:li:activity:7197578443311341568/',
-      { waitUntil: 'networkidle' }
+      { waitUntil: 'domcontentloaded' }
     );
 
     // Wait for the UI to be injected by looking for the sidebar host element.

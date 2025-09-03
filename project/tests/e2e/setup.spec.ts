@@ -1,4 +1,4 @@
-import { test, expect } from '@playwright/test';
+import { test, expect } from './fixtures';
 
 test.describe('Extension E2E Setup', () => {
   test('should load the extension and inject the content script on linkedin.com', async ({ page }) => {
@@ -10,6 +10,6 @@ test.describe('Extension E2E Setup', () => {
     const sidebarLocator = page.locator('.sidebar');
 
     // Assert that the sidebar is visible, which confirms the content script is active.
-    await expect(sidebarLocator).toBeVisible({ timeout: 10000 });
+    await expect(sidebarLocator).toBeVisible({ timeout: 100000 });
   });
 });

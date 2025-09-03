@@ -1,13 +1,8 @@
-import { test, expect } from '@playwright/test';
+import { test, expect } from './fixtures';
 
 test.describe('AI Settings Persistence', () => {
   // Define mock data to be used in the test.
   const MOCK_API_KEY = 'sk-or-playwright-test-key-123456';
-  const MOCK_MODELS = [
-    { id: 'mock/model-1', name: 'Mock Model One' },
-    { id: 'mock/model-2', name: 'Mock Model Two (Selected)' },
-    { id: 'mock/model-3', name: 'Mock Model Three' },
-  ];
   const MOCK_SELECTED_MODEL_ID = 'mock/model-2';
   const MOCK_REPLY_PROMPT = 'This is a test reply prompt from Playwright.';
   const MOCK_DM_PROMPT = 'This is a test DM prompt from Playwright.';
@@ -20,9 +15,19 @@ test.describe('AI Settings Persistence', () => {
     // This makes the test independent of the actual OpenRouter API.
     await page.addInitScript(() => {
       const originalSendMessage = chrome.runtime.sendMessage;
-      window.chrome.runtime.sendMessage = (message, callback) => {
-        if (message.type === 'GET_MODELS') {
-          // When the UI requests models, provide our mock list.
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      (window.chrome.runtime as any).sendMessage = function (...args: any[]) {
+        const message = args[0];
+        const callback =
+          typeof args[args.length - 1] === 'function'
+            ? args[args.length - 1]
+            : undefined;
+
+        if (
+          typeof message === 'object' &&
+          message !== null &&
+          message.type === 'GET_MODELS'
+        ) {
           if (callback) {
             callback({
               status: 'success',
@@ -35,14 +40,17 @@ test.describe('AI Settings Persistence', () => {
           }
           return;
         }
-        // For all other messages (like GET_AI_CONFIG, UPDATE_AI_CONFIG),
-        // use the original implementation to test the actual persistence logic.
-        return originalSendMessage(message, callback);
+        // Forward all other messages to the original function.
+        // eslint-disable-next-line @typescript-eslint/ban-ts-comment
+        // @ts-ignore - Overriding sendMessage with a dynamic mock is complex to type.
+        return originalSendMessage.apply(this, args);
       };
     });
 
     // 2. Navigate to a LinkedIn page to trigger the extension's content script.
-    await page.goto('https://www.linkedin.com/feed/');
+    await page.goto('https://www.linkedin.com/feed/', {
+      waitUntil: 'domcontentloaded',
+    });
 
     // 3. Wait for the sidebar to be injected and visible.
     const sidebar = page.locator('div.sidebar');
@@ -70,9 +78,6 @@ test.describe('AI Settings Persistence', () => {
     await modelSelect.selectOption(MOCK_SELECTED_MODEL_ID);
 
     // 7. Fill in the prompt text areas.
-    // Note: The current AiSettings.tsx does not persist these values.
-    // This test correctly checks the requirement, and will fail until the
-    // component is fixed, which is the desired behavior for a regression test.
     await replyPromptInput.fill(MOCK_REPLY_PROMPT);
     await dmPromptInput.fill(MOCK_DM_PROMPT);
 
@@ -104,9 +109,6 @@ test.describe('AI Settings Persistence', () => {
     await expect(apiKeyInputAfter).toHaveValue(MOCK_API_KEY);
     await expect(modelSelectAfter).toHaveValue(MOCK_SELECTED_MODEL_ID);
     await expect(temperatureSliderAfter).toHaveValue(MOCK_TEMPERATURE);
-
-    // These assertions for prompts are expected to fail with the current
-    // implementation of AiSettings.tsx, correctly identifying the bug.
     await expect(replyPromptInputAfter).toHaveValue(MOCK_REPLY_PROMPT);
     await expect(dmPromptInputAfter).toHaveValue(MOCK_DM_PROMPT);
   });

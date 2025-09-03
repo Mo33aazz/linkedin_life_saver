@@ -1,4 +1,4 @@
-import { test, expect } from '@playwright/test';
+import { test, expect } from './fixtures';
 
 test.describe('Extension UI Injection and Initial State', () => {
   test('should inject the sidebar with default components on a LinkedIn post page', async ({
