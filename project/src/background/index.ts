@@ -1,8 +1,16 @@
 // This is the service worker script.
 // It will house the core orchestration logic, state management, and API calls.
-import { calculateCommentStats } from './services/stateManager';
+import {
+  calculateCommentStats,
+  savePostState,
+  loadAllStates,
+} from './services/stateManager';
+import { Post, PostState } from '../shared/types';
 
 console.log('LinkedIn Engagement Assistant Service Worker loaded.');
+
+// Load all persisted states into memory on startup
+loadAllStates();
 
 chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
   if (message.type === 'ping') {
@@ -13,8 +21,9 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
   }
 
   if (message.type === 'COMMENTS_PARSED') {
-    const { comments, userProfileUrl } = message.payload;
-    if (!comments || !userProfileUrl) {
+    // Assuming a richer payload that includes post metadata
+    const { comments, userProfileUrl, postUrn, postUrl } = message.payload;
+    if (!comments || !userProfileUrl || !postUrn || !postUrl) {
       console.error('Invalid payload received for COMMENTS_PARSED');
       sendResponse({ status: 'error', message: 'Invalid payload' });
       return true;
@@ -24,6 +33,22 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
 
     // Log the results to meet acceptance criteria
     console.log('Calculated Comment Stats:', stats);
+
+    // Create and save the full post state
+    const postMeta: Post = {
+      postId: postUrn,
+      postUrl,
+      lastUpdated: new Date().toISOString(),
+      runState: 'idle',
+    };
+
+    const postState: PostState = {
+      _meta: postMeta,
+      comments,
+    };
+
+    // Asynchronously save state. No need to await for the response to the content script.
+    savePostState(postUrn, postState);
 
     sendResponse({ status: 'success', stats });
     return true; // Keep the message channel open for async response

@@ -1,7 +1,6 @@
 /// <reference types="chrome" />
-/* global chrome */
 
-import { CommentType, Post, PostState } from '../../shared/types';
+import { Comment, CommentType, Post, PostState } from '../../shared/types';
 
 // A minimal interface for the data required by the stats calculation.
 // This decouples the function from the full state-managed `Comment` object.
@@ -18,6 +17,12 @@ export interface CommentStats {
   totalTopLevelNoReplies: number;
   userTopLevelNoReplies: number;
 }
+
+/**
+ * In-memory cache for post states.
+ * The key is the post URN.
+ */
+const stateCache = new Map<string, PostState>();
 
 /**
  * Calculates statistics about comments on a post.
@@ -71,7 +76,7 @@ export const calculateCommentStats = (
 };
 
 /**
- * Saves the entire state for a given post to chrome.storage.local.
+ * Saves the entire state for a given post to chrome.storage.local and updates the cache.
  * The post's URN is used as the key. The in-memory PostState is transformed
  * into the required storage format before saving.
  *
@@ -88,6 +93,7 @@ export const savePostState = async (
       [state._meta.postUrl]: state.comments,
     };
     await chrome.storage.local.set({ [postUrn]: storableState });
+    stateCache.set(postUrn, state);
     console.log(`State saved for post URN: ${postUrn}`);
   } catch (error) {
     console.error(`Error saving state for post URN ${postUrn}:`, error);
@@ -95,7 +101,7 @@ export const savePostState = async (
 };
 
 /**
- * Loads the state for a given post from chrome.storage.local.
+ * Loads the state for a given post from chrome.storage.local into the cache.
  * Transforms the stored format back into the in-memory PostState representation.
  *
  * @param postUrn - The unique URN of the post to load.
@@ -109,14 +115,15 @@ export const loadPostState = async (
     const storedData = storageResult?.[postUrn];
 
     if (storedData && storedData._meta && storedData._meta.postUrl) {
-      console.log(`State loaded for post URN: ${postUrn}`);
       const meta = storedData._meta as Post;
-      const comments = storedData[meta.postUrl] || [];
+      const comments = (storedData[meta.postUrl] || []) as Comment[];
 
       const state: PostState = {
         _meta: meta,
         comments,
       };
+      stateCache.set(postUrn, state);
+      console.log(`State loaded for post URN: ${postUrn}`);
       return state;
     }
     console.log(`No state found for post URN: ${postUrn}`);
@@ -125,4 +132,33 @@ export const loadPostState = async (
     console.error(`Error loading state for post URN ${postUrn}:`, error);
     return null;
   }
+};
+
+/**
+ * Loads all post states from chrome.storage.local into the in-memory cache on startup.
+ */
+export const loadAllStates = async (): Promise<void> => {
+  try {
+    const allData = await chrome.storage.local.get(null);
+    const postUrns = Object.keys(allData).filter(key =>
+      key.startsWith('urn:li:activity:')
+    );
+
+    for (const postUrn of postUrns) {
+      await loadPostState(postUrn); // This will load and cache
+    }
+    console.log(`Loaded ${stateCache.size} post states into memory.`);
+  } catch (error) {
+    console.error('Error loading all states on startup:', error);
+  }
+};
+
+/**
+ * Retrieves a post's state from the in-memory cache.
+ *
+ * @param postUrn - The unique URN of the post.
+ * @returns The PostState object if found in the cache, otherwise undefined.
+ */
+export const getPostState = (postUrn: string): PostState | undefined => {
+  return stateCache.get(postUrn);
 };
