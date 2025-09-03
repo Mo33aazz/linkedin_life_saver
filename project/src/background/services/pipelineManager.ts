@@ -65,12 +65,16 @@ const generateReply = async (
   comment: Comment,
   postState: PostState
 ): Promise<string | null> => {
-  const context = { postId: postState._meta.postId, commentId: comment.commentId };
+  const context = {
+    postId: postState._meta.postId,
+    commentId: comment.commentId,
+    step: 'GENERATE_REPLY',
+  };
   logger.info('Generating AI reply', context);
   try {
     const aiConfig = getConfig();
     if (!aiConfig.apiKey) {
-      logger.error('OpenRouter API key is not set.');
+      logger.error('OpenRouter API key is not set.', undefined, context);
       return null;
     }
 
@@ -118,12 +122,16 @@ const generateDm = async (
   comment: Comment,
   postState: PostState
 ): Promise<string | null> => {
-  const context = { postId: postState._meta.postId, commentId: comment.commentId };
+  const context = {
+    postId: postState._meta.postId,
+    commentId: comment.commentId,
+    step: 'GENERATE_DM',
+  };
   logger.info('Generating AI DM', context);
   try {
     const aiConfig = getConfig();
     if (!aiConfig.apiKey) {
-      logger.error('OpenRouter API key is not set.');
+      logger.error('OpenRouter API key is not set.', undefined, context);
       return null;
     }
 
@@ -168,12 +176,16 @@ const processComment = async (
   comment: Comment,
   postState: PostState
 ): Promise<void> => {
-  const context = { postId: postState._meta.postId, commentId: comment.commentId };
+  const context = {
+    postId: postState._meta.postId,
+    commentId: comment.commentId,
+  };
   try {
     // STEP 1: Check connection status if it's unknown
     if (typeof comment.connected === 'undefined') {
-      logger.info('Checking connection status', {
-        ...context,
+      const stepContext = { ...context, step: 'CONNECTION_CHECK' };
+      logger.info('Attempting to check connection status', {
+        ...stepContext,
         profileUrl: comment.ownerProfileUrl,
       });
       let connectionTabId: number | undefined;
@@ -222,8 +234,8 @@ const processComment = async (
 
         if (injectionResults && injectionResults.length > 0) {
           comment.connected = injectionResults[0].result as boolean;
-          logger.info('Connection status determined', {
-            ...context,
+          logger.info('Connection status determined successfully', {
+            ...stepContext,
             connected: comment.connected,
           });
         } else {
@@ -231,7 +243,7 @@ const processComment = async (
         }
       } catch (error) {
         logger.error('Failed to check connection status', error, {
-          ...context,
+          ...stepContext,
           profileUrl: comment.ownerProfileUrl,
         });
         comment.connected = false; // Default to false on error
@@ -249,7 +261,8 @@ const processComment = async (
 
     // STATE: QUEUED -> LIKED
     if (comment.likeStatus === '') {
-      logger.info('Liking comment', context);
+      const stepContext = { ...context, step: 'LIKE_ATTEMPT' };
+      logger.info('Attempting to like comment', stepContext);
       if (!activeTabId) {
         throw new Error('Cannot like comment, active tab ID is not set.');
       }
@@ -262,10 +275,18 @@ const processComment = async (
       if (likeSuccess) {
         comment.likeStatus = 'DONE';
         comment.pipeline.likedAt = new Date().toISOString();
-        logger.info('Comment liked successfully', context);
+        logger.info('Comment liked successfully', {
+          ...context,
+          step: 'LIKE_SUCCESS',
+        });
         await savePostState(postState._meta.postId, postState);
         broadcastState({ comments: postState.comments }); // Broadcast progress
       } else {
+        logger.error(
+          'Like action failed in content script',
+          new Error('sendMessageToTab returned false'),
+          { ...context, step: 'LIKE_FAILED' }
+        );
         throw new Error(`Like action failed for comment ${comment.commentId}`);
       }
       return; // IMPORTANT: Return after each atomic action.
@@ -273,16 +294,24 @@ const processComment = async (
 
     // STATE: LIKED -> REPLIED
     if (comment.replyStatus === '') {
-      logger.info('Attempting to reply to comment', context);
+      const stepContext = { ...context, step: 'REPLY_ATTEMPT' };
+      logger.info('Attempting to reply to comment', stepContext);
 
       const replyText = await generateReply(comment, postState);
 
       if (replyText === null) {
+        logger.error('AI reply generation failed', undefined, {
+          ...context,
+          step: 'GENERATE_REPLY_FAILED',
+        });
         throw new Error('AI reply generation failed.');
       }
 
       if (replyText === '__SKIP__') {
-        logger.info('AI requested to skip comment', context);
+        logger.info('AI requested to skip comment, skipping reply', {
+          ...context,
+          step: 'REPLY_SKIPPED_AI',
+        });
         comment.replyStatus = 'DONE'; // Mark as done to skip
         comment.lastError = 'Skipped by AI';
         comment.pipeline.repliedAt = new Date().toISOString();
@@ -293,6 +322,7 @@ const processComment = async (
 
       logger.info('Generated reply, submitting to page', {
         ...context,
+        step: 'SUBMIT_REPLY',
         replyLength: replyText.length,
       });
       comment.pipeline.generatedReply = replyText;
@@ -310,10 +340,18 @@ const processComment = async (
       if (replySuccess) {
         comment.replyStatus = 'DONE';
         comment.pipeline.repliedAt = new Date().toISOString();
-        logger.info('Comment replied to successfully', context);
+        logger.info('Comment replied to successfully', {
+          ...context,
+          step: 'REPLY_SUCCESS',
+        });
         await savePostState(postState._meta.postId, postState);
         broadcastState({ comments: postState.comments }); // Broadcast progress
       } else {
+        logger.error(
+          'Reply action failed in content script',
+          new Error('sendMessageToTab returned false'),
+          { ...context, step: 'REPLY_FAILED' }
+        );
         throw new Error(`Reply action failed for comment ${comment.commentId}`);
       }
       return;
@@ -321,6 +359,7 @@ const processComment = async (
 
     // STATE: REPLIED -> DM_SENT (for connected users)
     if (comment.connected && comment.dmStatus === '') {
+      const stepContext = { ...context, step: 'DM_ATTEMPT' };
       // The messaging URL is based on the member ID, which is part of the profile URL.
       const profileIdMatch = comment.ownerProfileUrl.match(/\/in\/([^/]+)/);
       if (!profileIdMatch || !profileIdMatch[1]) {
@@ -331,15 +370,20 @@ const processComment = async (
       const profileId = profileIdMatch[1];
       const messagingUrl = `https://www.linkedin.com/messaging/thread/new/?recipient=${profileId}`;
 
-      logger.info('Attempting to send DM', context);
+      logger.info('Attempting to send DM', stepContext);
       const dmText = await generateDm(comment, postState);
 
       if (!dmText) {
+        logger.error('AI DM generation failed', undefined, {
+          ...context,
+          step: 'GENERATE_DM_FAILED',
+        });
         throw new Error('AI DM generation failed.');
       }
 
       logger.info('Generated DM, sending message', {
         ...context,
+        step: 'SEND_DM',
         dmLength: dmText.length,
       });
       comment.pipeline.generatedDm = dmText;
@@ -375,7 +419,7 @@ const processComment = async (
         });
 
         // Give the page a moment to settle after loading
-        await new Promise(resolve => setTimeout(resolve, 3000));
+        await new Promise((resolve) => setTimeout(resolve, 3000));
 
         const dmSuccess = await sendMessageToTab<boolean>(dmTabId, {
           type: 'SEND_DM',
@@ -385,10 +429,18 @@ const processComment = async (
         if (dmSuccess) {
           comment.dmStatus = 'DONE';
           comment.pipeline.dmAt = new Date().toISOString();
-          logger.info('DM sent successfully', context);
+          logger.info('DM sent successfully', {
+            ...context,
+            step: 'DM_SUCCESS',
+          });
           await savePostState(postState._meta.postId, postState);
           broadcastState({ comments: postState.comments });
         } else {
+          logger.error(
+            'Send DM action failed in content script',
+            new Error('sendMessageToTab returned false'),
+            { ...context, step: 'DM_FAILED' }
+          );
           throw new Error(
             `Send DM action failed for comment ${comment.commentId}`
           );
@@ -401,7 +453,10 @@ const processComment = async (
       return;
     }
   } catch (error) {
-    logger.error('Failed to process comment', error, context);
+    logger.error('Failed to process comment', error, {
+      ...context,
+      step: 'PROCESS_COMMENT_FAILED',
+    });
     // TODO: Implement error handling (update lastError, attempts, set status to FAILED)
   }
 };
@@ -412,7 +467,10 @@ const processQueue = async (): Promise<void> => {
     return;
   }
   isProcessing = true;
-  logger.info('Starting processing queue.', { postUrn: activePostUrn });
+  logger.info('Starting processing queue.', {
+    postUrn: activePostUrn,
+    step: 'PROCESS_QUEUE_START',
+  });
 
   while (pipelineStatus === 'running') {
     if (!activePostUrn) {
@@ -435,6 +493,7 @@ const processQueue = async (): Promise<void> => {
     if (!nextComment) {
       logger.info('All comments have been processed. Pipeline finished.', {
         postUrn: activePostUrn,
+        step: 'PROCESS_QUEUE_COMPLETE',
       });
       pipelineStatus = 'idle';
       postState._meta.runState = 'idle';
@@ -445,17 +504,19 @@ const processQueue = async (): Promise<void> => {
     logger.info('Processing next comment', {
       postId: postState._meta.postId,
       commentId: nextComment.commentId,
+      step: 'PROCESS_COMMENT_START',
     });
     await processComment(nextComment, postState);
 
     // TODO: Implement a configurable delay with jitter later
-    await new Promise(resolve => setTimeout(resolve, 2000)); // 2-second delay
+    await new Promise((resolve) => setTimeout(resolve, 2000)); // 2-second delay
   }
 
   isProcessing = false;
   logger.info('Processing loop ended.', {
     finalStatus: pipelineStatus,
     postUrn: activePostUrn,
+    step: 'PROCESS_QUEUE_END',
   });
   const finalPostState = activePostUrn ? getPostState(activePostUrn) : null;
   broadcastState({
@@ -483,7 +544,7 @@ export const startPipeline = async (
     return;
   }
 
-  logger.info('Starting pipeline', { postUrn, tabId });
+  logger.info('Starting pipeline', { postUrn, tabId, step: 'PIPELINE_START' });
   pipelineStatus = 'running';
   activePostUrn = postUrn;
   activeTabId = tabId;
@@ -496,7 +557,9 @@ export const startPipeline = async (
 
 export const stopPipeline = async (): Promise<void> => {
   if (pipelineStatus !== 'running') {
-    logger.warn('Pipeline is not running, cannot stop.', { status: pipelineStatus });
+    logger.warn('Pipeline is not running, cannot stop.', {
+      status: pipelineStatus,
+    });
     return;
   }
   if (!activePostUrn) {
@@ -505,7 +568,10 @@ export const stopPipeline = async (): Promise<void> => {
     return;
   }
 
-  logger.info('Stopping pipeline...', { postUrn: activePostUrn });
+  logger.info('Stopping pipeline...', {
+    postUrn: activePostUrn,
+    step: 'PIPELINE_STOP',
+  });
   pipelineStatus = 'paused';
 
   const postState = getPostState(activePostUrn);
@@ -536,7 +602,10 @@ export const resumePipeline = async (): Promise<void> => {
     return;
   }
 
-  logger.info('Resuming pipeline', { postUrn: activePostUrn });
+  logger.info('Resuming pipeline', {
+    postUrn: activePostUrn,
+    step: 'PIPELINE_RESUME',
+  });
   pipelineStatus = 'running';
   postState._meta.runState = 'running';
   await savePostState(activePostUrn, postState);

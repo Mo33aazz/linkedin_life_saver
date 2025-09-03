@@ -113,8 +113,12 @@ export class OpenRouterClient {
       throw error;
     }
 
-    logger.info('Successfully received chat completion from OpenRouter.');
+    const replyText = jsonResponse.choices[0].message.content.trim();
+    logger.info('Successfully received chat completion from OpenRouter.', {
+      model: payload.model,
+      replyLength: replyText.length,
+    });
     // 3. Return the content of the first message choice.
-    return jsonResponse.choices[0].message.content.trim();
+    return replyText;
   }
 }

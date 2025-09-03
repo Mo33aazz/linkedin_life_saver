@@ -104,6 +104,10 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
   }
 
   if (message.type === 'COMMENTS_PARSED') {
+    logger.info('Received COMMENTS_PARSED message', {
+      commentCount: message.payload?.comments?.length,
+      postUrn: message.payload?.postUrn,
+    });
     // Assuming a richer payload that includes post metadata
     const { comments, userProfileUrl, postUrn, postUrl } = message.payload;
     if (!comments || !userProfileUrl || !postUrn || !postUrl) {
@@ -169,8 +173,9 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
   }
 
   if (message.type === 'UPDATE_AI_CONFIG') {
+    const { apiKey, ...safeConfig } = message.payload as Partial<AIConfig>;
     logger.info('Received request to update AI config', {
-      config: message.payload,
+      config: safeConfig,
     });
     updateConfig(message.payload as Partial<AIConfig>)
       .then(() => {
@@ -256,11 +261,11 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
     const tabId = sender.tab?.id;
     if (!tabId) {
       const errorMsg = 'Could not get tab ID to start pipeline.';
-      logger.error(errorMsg);
+      logger.error(errorMsg, undefined, { postUrn });
       sendResponse({ status: 'error', message: errorMsg });
       return true;
     }
-    logger.info(`Received START_PIPELINE for ${postUrn} on tab ${tabId}`);
+    logger.info('Received START_PIPELINE message', { postUrn, tabId });
     startPipeline(postUrn, tabId).then(() => {
       sendResponse({ status: 'success' });
     });
@@ -268,7 +273,7 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
   }
 
   if (message.type === 'STOP_PIPELINE') {
-    logger.info('Received STOP_PIPELINE');
+    logger.info('Received STOP_PIPELINE message');
     stopPipeline().then(() => {
       sendResponse({ status: 'success' });
     });
@@ -276,7 +281,7 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
   }
 
   if (message.type === 'RESUME_PIPELINE') {
-    logger.info('Received RESUME_PIPELINE');
+    logger.info('Received RESUME_PIPELINE message');
     resumePipeline().then(() => {
       sendResponse({ status: 'success' });
     });
