@@ -63,12 +63,16 @@ test.describe('Real-time UI Updates', () => {
     // A real LinkedIn post URL is needed for the content script to activate.
     await page.goto(
       'https://www.linkedin.com/feed/update/urn:li:activity:7197578443311341568/',
-      { waitUntil: 'domcontentloaded' }
+      { waitUntil: 'networkidle' }
     );
 
-    // Wait for the UI to be injected and the main header to be visible.
+    // Wait for the UI to be injected by looking for the sidebar host element.
+    const sidebarHost = page.locator('div.sidebar');
+    await expect(sidebarHost).toBeVisible({ timeout: 15000 });
+
+    // Then, wait for the main header to be visible inside the shadow DOM.
     await expect(
-      page.locator('h1:has-text("LinkedIn Engagement Assistant")')
+      sidebarHost.locator('h1:has-text("LinkedIn Engagement Assistant")')
     ).toBeVisible({ timeout: 10000 });
   });
 

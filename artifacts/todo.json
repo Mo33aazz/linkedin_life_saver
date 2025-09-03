@@ -1647,6 +1647,126 @@
         ]
     },
     {
+        "name": "CR2.T1",
+        "context": {
+            "task_id": "CR2.T1",
+            "iteration_id": "CR2",
+            "iteration_goal": "Resolve all TypeScript build errors to achieve a clean compilation.",
+            "description": "Overhaul the core type definitions in `src/shared/types.ts` to fix widespread compilation errors. This involves adding missing type exports, correcting property types, defining proper structures for state objects like `PostState` and `Comment`, and ensuring all types match their usage across the application.",
+            "agent_type_hint": "BackendAgent",
+            "inputs": "The list of TypeScript errors related to missing or incorrect types in `src/shared/types.ts`.",
+            "target_files": [
+                "src/shared/types.ts"
+            ],
+            "input_files": [],
+            "deliverables": "A fully revised `src/shared/types.ts` file that correctly defines all shared data structures, resolving errors such as missing exports ('Post', 'RunState', 'ChatMessage'), incorrect property types ('LogEntry.timestamp'), and flawed object structures ('PostState._meta', 'Comment.pipeline').",
+            "acceptance_criteria": "After applying changes, all TypeScript errors related to types defined in `src/shared/types.ts` (e.g., TS2305, TS2411, TS2322, TS2339 on shared types) are resolved when running a type check.",
+            "dependencies": [],
+            "parallelizable": false
+        },
+        "output": "Based on the analysis of the TypeScript errors and the design instructions for task CR2.T1, I will overhaul the `src/shared/types.ts` file. This involves defining and exporting missing types like `RunState`, `CommentType`, `ChatMessage`, and `Post`. I will also correct the `LogEntry` timestamp type, refactor the invalid `PostState` structure, and update the `Comment` interface to include missing properties. These changes will resolve the widespread compilation errors and align the type definitions with their usage across the application.\n\nI will replace the entire content of `src/shared/types.ts` with the corrected and enhanced type definitions.\n\n~~~typescript\n#- file: src/shared/types.ts\nexport type LogLevel = 'INFO' | 'WARN' | 'ERROR' | 'DEBUG';\n\n// Corrected: timestamp is a string (ISO format) from new Date().toISOString()\nexport interface LogEntry {\n  timestamp: string;\n  level: LogLevel;\n  message: string;\n  context?: Record<string, unknown>;\n}\n\nexport type ActionStatus = '' | 'DONE' | 'FAILED';\n\n// New: Exported RunState for reuse in PostState, UIState, etc.\nexport type RunState = 'idle' | 'running' | 'paused' | 'error';\n\n// New: Exported CommentType for reuse and clarity.\nexport type CommentType = 'top-level' | 'reply';\n\n// New: Exported ChatMessage for AI client interactions.\nexport interface ChatMessage {\n  role: string;\n  content: string;\n}\n\n// Updated: Comment interface with corrected types and additional pipeline properties.\nexport interface Comment {\n  commentId: string;\n  text: string;\n  ownerProfileUrl: string;\n  timestamp: string;\n  type: CommentType; // Using the new CommentType alias.\n  connected: boolean;\n  threadId: string;\n  likeStatus: ActionStatus;\n  replyStatus: ActionStatus;\n  dmStatus: ActionStatus;\n  attempts: {\n    like: number;\n    reply: number;\n    dm: number;\n  };\n  lastError: string;\n  pipeline: {\n    queuedAt: string;\n    likedAt: string;\n    repliedAt: string;\n    dmAt: string;\n    // Added optional properties based on pipelineManager usage.\n    generatedReply?: string;\n    generatedDm?: string;\n  };\n}\n\n// Updated: UIState now uses the exported RunState type.\nexport interface UIState {\n  isInitializing: boolean;\n  pipelineStatus: RunState;\n  stats: {\n    totalTopLevelNoReplies: number;\n    userTopLevelNoReplies: number;\n  };\n  comments: Comment[];\n}\n\n// New: Exported Post interface to represent post metadata.\nexport interface Post {\n  postId: string;\n  postUrl: string;\n  lastUpdated: string;\n  runState: RunState;\n}\n\n// Refactored: PostState structure is now valid, clear, and uses the Post interface.\nexport interface PostState {\n  _meta: Post;\n  comments: Comment[];\n}\n\nexport interface OpenRouterModel {\n  id: string;\n  name: string;\n}\n\nexport interface AIConfig {\n  provider?: string;\n  apiKey?: string;\n  model?: string;\n  temperature?: number;\n  top_p?: number;\n  max_tokens?: number;\n  stream?: boolean;\n  reply?: {\n    customPrompt?: string;\n  };\n  dm?: {\n    customPrompt?: string;\n  };\n  attribution?: {\n    httpReferer?: string;\n    xTitle?: string;\n  };\n  modelFilters?: {\n    onlyTextOutput?: boolean;\n    minContext?: number;\n  };\n}\n\nexport type ExtensionMessage =\n  | { type: 'STATE_UPDATE'; payload: Partial<UIState> }\n  | { type: 'LOG_ENTRY'; payload: LogEntry }\n  | { type: 'ping' }\n  | { type: 'START_PIPELINE'; payload: { postUrn: string } }\n  | { type: 'STOP_PIPELINE' }\n  | { type: 'RESUME_PIPELINE' }\n  | { type: 'GET_AI_CONFIG'; payload?: never }\n  | { type: 'UPDATE_AI_CONFIG'; payload: Partial<AIConfig> }\n  | { type: 'GET_MODELS'; payload?: never }\n  | { type: 'REQUEST_POST_STATE_FOR_EXPORT'; payload?: never };\n~~~",
+        "iteration_id": "CR2",
+        "completed": false,
+        "target_files": [],
+        "input_files": [],
+        "files": []
+    },
+    {
+        "name": "CR2.T2",
+        "context": {
+            "task_id": "CR2.T2",
+            "iteration_id": "CR2",
+            "iteration_goal": "Resolve all TypeScript build errors to achieve a clean compilation.",
+            "description": "Refactor the background scripts to fix declaration order, add necessary null-safety checks, and correct function call signatures. This includes resolving the 'used before declaration' error for `broadcastStateUpdate`, adding guards for potentially undefined configuration objects (`config.modelFilters`), and correcting the number of arguments passed to logger methods.",
+            "agent_type_hint": "BackendAgent",
+            "inputs": "The list of TypeScript errors in `src/background/` and the corrected types from CR2.T1.",
+            "target_files": [
+                "src/background/index.ts",
+                "src/background/logger.ts",
+                "src/background/services/openRouterClient.ts",
+                "src/background/services/pipelineManager.ts",
+                "src/background/services/stateManager.ts"
+            ],
+            "input_files": [
+                "src/shared/types.ts"
+            ],
+            "deliverables": "Updated background service and worker files that compile without errors. The `broadcastStateUpdate` function will be defined before it is used. Null checks will be added before accessing nested properties on `aiConfig` and `config`. All calls to `logger.info`, `logger.warn`, etc., will match the function's signature. Checks for null `activeTabId` will be in place.",
+            "acceptance_criteria": "All TypeScript errors within the `src/background/` directory (e.g., TS2448, TS18048, TS2554, TS2345) are resolved.",
+            "dependencies": [
+                "CR2.T1"
+            ],
+            "parallelizable": false
+        },
+        "output": "",
+        "iteration_id": "CR2",
+        "completed": false,
+        "target_files": [],
+        "input_files": [],
+        "files": []
+    },
+    {
+        "name": "CR2.T3",
+        "context": {
+            "task_id": "CR2.T3",
+            "iteration_id": "CR2",
+            "iteration_goal": "Resolve all TypeScript build errors to achieve a clean compilation.",
+            "description": "Fix errors across the frontend UI components and content scripts. This involves removing unnecessary `import { h } from 'preact'` statements, creating a type declaration file for Vite's CSS imports (`.css?inline`), adding explicit types for component props to resolve implicit 'any' errors, and replacing browser-incompatible `process.env` calls with Vite's `import.meta.env` alternative.",
+            "agent_type_hint": "FrontendAgent",
+            "inputs": "The list of TypeScript errors in `src/ui/`, `src/content-scripts/`, and `src/shared/`.",
+            "target_files": [
+                "src/vite-env.d.ts",
+                "src/ui/App.tsx",
+                "src/ui/components/AiSettings.tsx",
+                "src/ui/components/Controls.tsx",
+                "src/ui/components/Counters.tsx",
+                "src/ui/components/Header.tsx",
+                "src/ui/components/LogsPanel.tsx",
+                "src/ui/components/PipelineProgress.tsx",
+                "src/ui/store/index.ts",
+                "src/content-scripts/index.ts"
+            ],
+            "input_files": [],
+            "deliverables": "A new `src/vite-env.d.ts` file to handle CSS module types. All Preact component files updated to remove unused imports and add explicit prop types. The Zustand store (`src/ui/store/index.ts`) will be updated to use `import.meta.env.DEV` instead of `process.env.NODE_ENV`.",
+            "acceptance_criteria": "All TypeScript errors within the `src/ui/`, `src/content-scripts/` directories (e.g., TS6133, TS2307, TS7031, TS2591) are resolved.",
+            "dependencies": [],
+            "parallelizable": false
+        },
+        "output": "",
+        "iteration_id": "CR2",
+        "completed": false,
+        "target_files": [],
+        "input_files": [],
+        "files": []
+    },
+    {
+        "name": "CR2.T4",
+        "context": {
+            "task_id": "CR2.T4",
+            "iteration_id": "CR2",
+            "iteration_goal": "Resolve all TypeScript build errors to achieve a clean compilation.",
+            "description": "Configure the TypeScript environment for the E2E tests to correctly recognize Node.js built-in modules and global variables. This involves installing `@types/node` and updating the main `tsconfig.json` or creating a specific one for tests to include the 'node' type definitions, resolving errors related to 'path', '__dirname', and 'process'.",
+            "agent_type_hint": "SetupAgent",
+            "inputs": "The list of TypeScript errors in `tests/e2e/playwright.config.ts`.",
+            "target_files": [
+                "tsconfig.json",
+                "package.json"
+            ],
+            "input_files": [
+                "tests/e2e/playwright.config.ts"
+            ],
+            "deliverables": "An updated `package.json` with `@types/node` added as a dev dependency. A modified `tsconfig.json` that includes the 'node' type library in its `compilerOptions.types` array, enabling the type checker to recognize Node.js-specific code in test configuration files.",
+            "acceptance_criteria": "After installing dependencies and applying tsconfig changes, all TypeScript errors within the `tests/` directory (e.g., TS2307 for 'path', TS2304 for '__dirname', TS2591 for 'process') are resolved.",
+            "dependencies": [],
+            "parallelizable": false
+        },
+        "output": "",
+        "iteration_id": "CR2",
+        "completed": false,
+        "target_files": [],
+        "input_files": [],
+        "files": []
+    },
+    {
         "name": "CR1.T1",
         "context": {
             "task_id": "CR1.T1",
