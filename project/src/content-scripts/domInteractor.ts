@@ -118,9 +118,15 @@ export const extractComments = (): ParsedComment[] => {
     );
 
     const ownerRelativeUrl = ownerLinkElement?.getAttribute('href');
-    const ownerProfileUrl = ownerRelativeUrl
-      ? `https://www.linkedin.com${ownerRelativeUrl}`
-      : '';
+    let ownerProfileUrl = '';
+    if (ownerRelativeUrl) {
+      // Ensure the URL is absolute, making it consistent with getSignedInUserProfileUrl
+      if (ownerRelativeUrl.startsWith('https://www.linkedin.com')) {
+        ownerProfileUrl = ownerRelativeUrl;
+      } else {
+        ownerProfileUrl = `https://www.linkedin.com${ownerRelativeUrl}`;
+      }
+    }
     const text = textElement?.innerText.trim() ?? '';
     const timestamp = timestampElement?.innerText.trim() ?? '';
 
