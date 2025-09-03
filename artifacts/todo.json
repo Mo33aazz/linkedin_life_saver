@@ -1,0 +1,1055 @@
+[
+    {
+        "name": "I1.T1",
+        "context": {
+            "task_id": "I1.T1",
+            "iteration_id": "I1",
+            "iteration_goal": "Initialize the project structure, build system, and generate core architectural diagrams that will guide development.",
+            "description": "Initialize a new project using Vite with the Preact + TypeScript template. Configure ESLint, Prettier, and set up basic project scripts in `package.json`.",
+            "agent_type_hint": "SetupAgent",
+            "inputs": "Section 2 & 3 of this plan.",
+            "target_files": [
+                "package.json",
+                "vite.config.ts",
+                "tsconfig.json",
+                ".eslintrc.cjs",
+                ".prettierrc"
+            ],
+            "input_files": [],
+            "deliverables": "A runnable, empty Vite project structure.",
+            "acceptance_criteria": "The `npm run dev` command successfully starts the development server, and `npm run build` creates a `dist/` directory.",
+            "dependencies": [],
+            "parallelizable": true
+        },
+        "output": null,
+        "iteration_id": "I1",
+        "completed": false,
+        "target_files": [
+            "package.json",
+            "vite.config.ts",
+            "tsconfig.json",
+            ".eslintrc.cjs",
+            ".prettierrc"
+        ],
+        "input_files": [],
+        "files": []
+    },
+    {
+        "name": "I1.T2",
+        "context": {
+            "task_id": "I1.T2",
+            "iteration_id": "I1",
+            "iteration_goal": "Initialize the project structure, build system, and generate core architectural diagrams that will guide development.",
+            "description": "Create the initial `public/manifest.json` for a Manifest V3 extension. Define basic properties like name, version, permissions (`storage`, `activeTab`), and declare the service worker and content script entry points. Create empty placeholder files for them.",
+            "agent_type_hint": "SetupAgent",
+            "inputs": "Section 3 of this plan.",
+            "target_files": [
+                "public/manifest.json",
+                "src/background/index.ts",
+                "src/content-scripts/index.ts"
+            ],
+            "input_files": [],
+            "deliverables": "A valid `manifest.json` file and corresponding empty script files.",
+            "acceptance_criteria": "The generated extension can be loaded into a Chromium browser without manifest errors.",
+            "dependencies": [
+                "I1.T1"
+            ],
+            "parallelizable": false
+        },
+        "output": null,
+        "iteration_id": "I1",
+        "completed": false,
+        "target_files": [
+            "public/manifest.json",
+            "src/background/index.ts",
+            "src/content-scripts/index.ts"
+        ],
+        "input_files": [],
+        "files": []
+    },
+    {
+        "name": "I1.T3",
+        "context": {
+            "task_id": "I1.T3",
+            "iteration_id": "I1",
+            "iteration_goal": "Initialize the project structure, build system, and generate core architectural diagrams that will guide development.",
+            "description": "Generate the System Context Diagram in PlantUML format based on the description in the architecture document.",
+            "agent_type_hint": "DiagrammingAgent",
+            "inputs": "Section 3.3 of the architecture document.",
+            "target_files": [
+                "docs/diagrams/system_context.puml"
+            ],
+            "input_files": [],
+            "deliverables": "A PlantUML file for the System Context Diagram.",
+            "acceptance_criteria": "The PlantUML file renders correctly and accurately reflects the system's external interactions.",
+            "dependencies": [],
+            "parallelizable": true
+        },
+        "output": null,
+        "iteration_id": "I1",
+        "completed": false,
+        "target_files": [
+            "docs/diagrams/system_context.puml"
+        ],
+        "input_files": [],
+        "files": []
+    },
+    {
+        "name": "I1.T4",
+        "context": {
+            "task_id": "I1.T4",
+            "iteration_id": "I1",
+            "iteration_goal": "Initialize the project structure, build system, and generate core architectural diagrams that will guide development.",
+            "description": "Generate the Container Diagram in PlantUML format based on the description in the architecture document.",
+            "agent_type_hint": "DiagrammingAgent",
+            "inputs": "Section 3.4 of the architecture document.",
+            "target_files": [
+                "docs/diagrams/container.puml"
+            ],
+            "input_files": [],
+            "deliverables": "A PlantUML file for the Container Diagram.",
+            "acceptance_criteria": "The PlantUML file renders correctly and accurately shows the major components of the extension.",
+            "dependencies": [],
+            "parallelizable": true
+        },
+        "output": null,
+        "iteration_id": "I1",
+        "completed": false,
+        "target_files": [
+            "docs/diagrams/container.puml"
+        ],
+        "input_files": [],
+        "files": []
+    },
+    {
+        "name": "I1.T5",
+        "context": {
+            "task_id": "I1.T5",
+            "iteration_id": "I1",
+            "iteration_goal": "Initialize the project structure, build system, and generate core architectural diagrams that will guide development.",
+            "description": "Generate the Data Schema ERD in PlantUML format based on the JSON schema described in the requirements and architecture documents.",
+            "agent_type_hint": "DiagrammingAgent",
+            "inputs": "Section 5 of the requirements, Section 3.6 of the architecture document.",
+            "target_files": [
+                "docs/diagrams/data_schema_erd.puml"
+            ],
+            "input_files": [],
+            "deliverables": "A PlantUML file representing the data model.",
+            "acceptance_criteria": "The PlantUML file renders correctly and accurately reflects the per-post JSON data structure.",
+            "dependencies": [],
+            "parallelizable": true
+        },
+        "output": null,
+        "iteration_id": "I1",
+        "completed": false,
+        "target_files": [
+            "docs/diagrams/data_schema_erd.puml"
+        ],
+        "input_files": [],
+        "files": []
+    },
+    {
+        "name": "I1.T6",
+        "context": {
+            "task_id": "I1.T6",
+            "iteration_id": "I1",
+            "iteration_goal": "Initialize the project structure, build system, and generate core architectural diagrams that will guide development.",
+            "description": "Create the initial `src/shared/types.ts` file. Define TypeScript interfaces for the core data models (`PostState`, `Comment`, `AIConfig`) based on the data schema from `I1.T5` and the requirements.",
+            "agent_type_hint": "BackendAgent",
+            "inputs": "Deliverable from `I1.T5`, Section 14.3 of requirements.",
+            "target_files": [
+                "src/shared/types.ts"
+            ],
+            "input_files": [
+                "docs/diagrams/data_schema_erd.puml"
+            ],
+            "deliverables": "A TypeScript file with core type definitions.",
+            "acceptance_criteria": "Interfaces are defined for all key entities and match the specified schemas. The file has no TypeScript errors.",
+            "dependencies": [
+                "I1.T5"
+            ],
+            "parallelizable": false
+        },
+        "output": null,
+        "iteration_id": "I1",
+        "completed": false,
+        "target_files": [
+            "src/shared/types.ts"
+        ],
+        "input_files": [
+            "docs/diagrams/data_schema_erd.puml"
+        ],
+        "files": []
+    },
+    {
+        "name": "I2.T1",
+        "context": {
+            "task_id": "I2.T1",
+            "iteration_id": "I2",
+            "iteration_goal": "Inject a basic, non-functional sidebar UI onto LinkedIn pages and establish the fundamental message-passing communication between the UI, content script, and service worker.",
+            "description": "Implement the content script logic in `src/content-scripts/index.ts` to create a root element and inject the Preact Sidebar UI into the LinkedIn page using a Shadow DOM to prevent style conflicts.",
+            "agent_type_hint": "FrontendAgent",
+            "inputs": "Section 3.2 of the architecture document.",
+            "target_files": [
+                "src/content-scripts/index.ts"
+            ],
+            "input_files": [
+                "src/content-scripts/index.ts",
+                "src/ui/index.tsx"
+            ],
+            "deliverables": "Code that successfully injects the UI onto the page.",
+            "acceptance_criteria": "When on a `linkedin.com` page, a placeholder sidebar element appears.",
+            "dependencies": [
+                "I1.T2"
+            ],
+            "parallelizable": false
+        },
+        "output": null,
+        "iteration_id": "I2",
+        "completed": false,
+        "target_files": [
+            "src/content-scripts/index.ts"
+        ],
+        "input_files": [
+            "src/content-scripts/index.ts",
+            "src/ui/index.tsx"
+        ],
+        "files": []
+    },
+    {
+        "name": "I2.T2",
+        "context": {
+            "task_id": "I2.T2",
+            "iteration_id": "I2",
+            "iteration_goal": "Inject a basic, non-functional sidebar UI onto LinkedIn pages and establish the fundamental message-passing communication between the UI, content script, and service worker.",
+            "description": "Create the basic component structure for the Sidebar UI in Preact. Develop placeholder components for Header, Live Counters, Pipeline Progress, Controls, and Logs panels as described in the requirements.",
+            "agent_type_hint": "FrontendAgent",
+            "inputs": "Section 0 of the requirements.",
+            "target_files": [
+                "src/ui/App.tsx",
+                "src/ui/components/Header.tsx",
+                "src/ui/components/Counters.tsx",
+                "etc."
+            ],
+            "input_files": [
+                "src/ui/"
+            ],
+            "deliverables": "A set of Preact components forming the UI shell.",
+            "acceptance_criteria": "The sidebar UI renders with all planned sections visible, containing static placeholder content.",
+            "dependencies": [
+                "I1.T1"
+            ],
+            "parallelizable": true
+        },
+        "output": null,
+        "iteration_id": "I2",
+        "completed": false,
+        "target_files": [
+            "src/ui/App.tsx",
+            "src/ui/components/Header.tsx",
+            "src/ui/components/Counters.tsx",
+            "etc."
+        ],
+        "input_files": [
+            "src/ui/"
+        ],
+        "files": []
+    },
+    {
+        "name": "I2.T3",
+        "context": {
+            "task_id": "I2.T3",
+            "iteration_id": "I2",
+            "iteration_goal": "Inject a basic, non-functional sidebar UI onto LinkedIn pages and establish the fundamental message-passing communication between the UI, content script, and service worker.",
+            "description": "Set up a basic message router in the service worker (`background/index.ts`) and establish a two-way communication channel. The UI should be able to send a \"ping\" message and the service worker should respond with a \"pong\" that the UI logs to the console.",
+            "agent_type_hint": "BackendAgent",
+            "inputs": "Chrome Extension messaging documentation.",
+            "target_files": [
+                "src/background/index.ts",
+                "src/ui/App.tsx"
+            ],
+            "input_files": [
+                "src/background/index.ts",
+                "src/ui/App.tsx"
+            ],
+            "deliverables": "Code demonstrating basic message passing.",
+            "acceptance_criteria": "The UI successfully sends a message to the service worker on load, and the service worker's response is visible in the browser console.",
+            "dependencies": [
+                "I2.T1",
+                "I2.T2"
+            ],
+            "parallelizable": false
+        },
+        "output": null,
+        "iteration_id": "I2",
+        "completed": false,
+        "target_files": [
+            "src/background/index.ts",
+            "src/ui/App.tsx"
+        ],
+        "input_files": [
+            "src/background/index.ts",
+            "src/ui/App.tsx"
+        ],
+        "files": []
+    },
+    {
+        "name": "I2.T4",
+        "context": {
+            "task_id": "I2.T4",
+            "iteration_id": "I2",
+            "iteration_goal": "Inject a basic, non-functional sidebar UI onto LinkedIn pages and establish the fundamental message-passing communication between the UI, content script, and service worker.",
+            "description": "Generate the Core Interaction Sequence Diagram in PlantUML, illustrating the message flow for starting the pipeline, as described in the architecture document.",
+            "agent_type_hint": "DiagrammingAgent",
+            "inputs": "Section 3.7 of the architecture document.",
+            "target_files": [
+                "docs/diagrams/sequence_start_pipeline.puml"
+            ],
+            "input_files": [],
+            "deliverables": "A PlantUML file for the sequence diagram.",
+            "acceptance_criteria": "The diagram renders correctly and accurately reflects the planned asynchronous communication pattern.",
+            "dependencies": [],
+            "parallelizable": true
+        },
+        "output": null,
+        "iteration_id": "I2",
+        "completed": false,
+        "target_files": [
+            "docs/diagrams/sequence_start_pipeline.puml"
+        ],
+        "input_files": [],
+        "files": []
+    },
+    {
+        "name": "I3.T1",
+        "context": {
+            "task_id": "I3.T1",
+            "iteration_id": "I3",
+            "iteration_goal": "Implement the logic to read and parse all necessary data from the LinkedIn page, without taking any automated actions.",
+            "description": "Implement the auto-scrolling logic in the `domInteractor.ts`. The function should repeatedly scroll the page down until the page height stabilizes, ensuring all comments are loaded.",
+            "agent_type_hint": "FrontendAgent",
+            "inputs": "Section 1 of the requirements.",
+            "target_files": [
+                "src/content-scripts/domInteractor.ts"
+            ],
+            "input_files": [
+                "src/content-scripts/domInteractor.ts"
+            ],
+            "deliverables": "An async function that handles page scrolling.",
+            "acceptance_criteria": "The function reliably scrolls to the bottom of a LinkedIn post's comment section.",
+            "dependencies": [
+                "I2.T1"
+            ],
+            "parallelizable": false
+        },
+        "output": null,
+        "iteration_id": "I3",
+        "completed": false,
+        "target_files": [
+            "src/content-scripts/domInteractor.ts"
+        ],
+        "input_files": [
+            "src/content-scripts/domInteractor.ts"
+        ],
+        "files": []
+    },
+    {
+        "name": "I3.T2",
+        "context": {
+            "task_id": "I3.T2",
+            "iteration_id": "I3",
+            "iteration_goal": "Implement the logic to read and parse all necessary data from the LinkedIn page, without taking any automated actions.",
+            "description": "Implement functions in `domInteractor.ts` to parse the DOM and extract: 1) The signed-in user's profile URL. 2) All comment elements, extracting owner URL, text, and timestamp for each.",
+            "agent_type_hint": "FrontendAgent",
+            "inputs": "Sections 2 & 3 of the requirements.",
+            "target_files": [
+                "src/content-scripts/domInteractor.ts"
+            ],
+            "input_files": [
+                "src/content-scripts/domInteractor.ts"
+            ],
+            "deliverables": "Functions that return structured data parsed from the DOM.",
+            "acceptance_criteria": "The functions accurately extract the required data from a sample LinkedIn post page.",
+            "dependencies": [
+                "I3.T1"
+            ],
+            "parallelizable": false
+        },
+        "output": null,
+        "iteration_id": "I3",
+        "completed": false,
+        "target_files": [
+            "src/content-scripts/domInteractor.ts"
+        ],
+        "input_files": [
+            "src/content-scripts/domInteractor.ts"
+        ],
+        "files": []
+    },
+    {
+        "name": "I3.T3",
+        "context": {
+            "task_id": "I3.T3",
+            "iteration_id": "I3",
+            "iteration_goal": "Implement the logic to read and parse all necessary data from the LinkedIn page, without taking any automated actions.",
+            "description": "Implement logic in the service worker that, upon receiving the parsed data from the content script, calculates the required counts: total top-level comments without replies, and user's top-level comments without replies.",
+            "agent_type_hint": "BackendAgent",
+            "inputs": "Section 4 of the requirements, `I3.T2` deliverables.",
+            "target_files": [
+                "src/background/services/stateManager.ts"
+            ],
+            "input_files": [
+                "src/background/index.ts",
+                "src/shared/types.ts"
+            ],
+            "deliverables": "Logic to process comment data and compute statistics.",
+            "acceptance_criteria": "Given a sample comment list, the logic correctly calculates and logs the counts.",
+            "dependencies": [
+                "I1.T6",
+                "I3.T2"
+            ],
+            "parallelizable": false
+        },
+        "output": null,
+        "iteration_id": "I3",
+        "completed": false,
+        "target_files": [
+            "src/background/services/stateManager.ts"
+        ],
+        "input_files": [
+            "src/background/index.ts",
+            "src/shared/types.ts"
+        ],
+        "files": []
+    },
+    {
+        "name": "I4.T1",
+        "context": {
+            "task_id": "I4.T1",
+            "iteration_id": "I4",
+            "iteration_goal": "Persist the extracted post and comment data to `chrome.storage.local` and display the live counts in the sidebar UI.",
+            "description": "Implement the `StateManager` in the service worker. It should handle saving the full post state (including all comments) to `chrome.storage.local` in a JSON file named by the post URN. It should also handle loading this state on startup.",
+            "agent_type_hint": "BackendAgent",
+            "inputs": "Section 5 of the requirements, `I1.T5` diagram.",
+            "target_files": [
+                "src/background/services/stateManager.ts"
+            ],
+            "input_files": [
+                "src/background/services/stateManager.ts",
+                "src/shared/types.ts"
+            ],
+            "deliverables": "A module for saving and loading state from browser storage.",
+            "acceptance_criteria": "After parsing a post, a correctly formatted JSON object is saved to `chrome.storage.local`. Reloading the extension correctly loads this data back into memory.",
+            "dependencies": [
+                "I3.T3"
+            ],
+            "parallelizable": false
+        },
+        "output": null,
+        "iteration_id": "I4",
+        "completed": false,
+        "target_files": [
+            "src/background/services/stateManager.ts"
+        ],
+        "input_files": [
+            "src/background/services/stateManager.ts",
+            "src/shared/types.ts"
+        ],
+        "files": []
+    },
+    {
+        "name": "I4.T2",
+        "context": {
+            "task_id": "I4.T2",
+            "iteration_id": "I4",
+            "iteration_goal": "Persist the extracted post and comment data to `chrome.storage.local` and display the live counts in the sidebar UI.",
+            "description": "Implement the UI state management using Zustand. The service worker will broadcast `STATE_UPDATE` messages with the latest counts and pipeline status. The UI store will listen for these messages and update its state, causing the Preact components to re-render.",
+            "agent_type_hint": "FrontendAgent",
+            "inputs": "`I3.T3` logic, `I2.T2` components.",
+            "target_files": [
+                "src/ui/store/index.ts",
+                "src/ui/components/Counters.tsx"
+            ],
+            "input_files": [
+                "src/ui/store/index.ts",
+                "src/ui/components/Counters.tsx",
+                "src/background/index.ts"
+            ],
+            "deliverables": "A reactive UI that updates when the service worker sends new data.",
+            "acceptance_criteria": "The \"Live Counters\" section in the sidebar accurately reflects the counts calculated by the service worker in real-time.",
+            "dependencies": [
+                "I4.T1"
+            ],
+            "parallelizable": false
+        },
+        "output": null,
+        "iteration_id": "I4",
+        "completed": false,
+        "target_files": [
+            "src/ui/store/index.ts",
+            "src/ui/components/Counters.tsx"
+        ],
+        "input_files": [
+            "src/ui/store/index.ts",
+            "src/ui/components/Counters.tsx",
+            "src/background/index.ts"
+        ],
+        "files": []
+    },
+    {
+        "name": "I4.T3",
+        "context": {
+            "task_id": "I4.T3",
+            "iteration_id": "I4",
+            "iteration_goal": "Persist the extracted post and comment data to `chrome.storage.local` and display the live counts in the sidebar UI.",
+            "description": "Implement the \"Export JSON\" button in the UI. When clicked, it should request the current post's state from the service worker, which then provides the JSON data for the UI to trigger a file download.",
+            "agent_type_hint": "FrontendAgent",
+            "inputs": "Section 0 of the requirements.",
+            "target_files": [
+                "src/ui/components/Controls.tsx"
+            ],
+            "input_files": [
+                "src/ui/components/Controls.tsx",
+                "src/background/index.ts"
+            ],
+            "deliverables": "A working \"Export JSON\" button.",
+            "acceptance_criteria": "Clicking the button successfully downloads a JSON file containing the full state for the current post.",
+            "dependencies": [
+                "I4.T1"
+            ],
+            "parallelizable": false
+        },
+        "output": null,
+        "iteration_id": "I4",
+        "completed": false,
+        "target_files": [
+            "src/ui/components/Controls.tsx"
+        ],
+        "input_files": [
+            "src/ui/components/Controls.tsx",
+            "src/background/index.ts"
+        ],
+        "files": []
+    },
+    {
+        "name": "I5.T1",
+        "context": {
+            "task_id": "I5.T1",
+            "iteration_id": "I5",
+            "iteration_goal": "Build the AI settings UI and establish a connection with the OpenRouter API to fetch models and test the API key.",
+            "description": "Build the \"AI\" section of the Controls panel in the UI. Include a masked input for the API key, a searchable combobox for models, input fields for prompts, and sliders for temperature/top-p. Also, create a formal JSON Schema for the `aiConfig` object.",
+            "agent_type_hint": "FrontendAgent, DocumentationAgent",
+            "inputs": "Section 14.2 and 14.3 of the requirements.",
+            "target_files": [
+                "src/ui/components/AiSettings.tsx",
+                "docs/schemas/aiConfig.schema.json"
+            ],
+            "input_files": [
+                "src/ui/components/Controls.tsx"
+            ],
+            "deliverables": "A Preact component for AI settings and a JSON Schema file.",
+            "acceptance_criteria": "The UI for AI configuration is rendered correctly. The JSON Schema validates against the structure defined in the requirements.",
+            "dependencies": [
+                "I2.T2"
+            ],
+            "parallelizable": true
+        },
+        "output": null,
+        "iteration_id": "I5",
+        "completed": false,
+        "target_files": [
+            "src/ui/components/AiSettings.tsx",
+            "docs/schemas/aiConfig.schema.json"
+        ],
+        "input_files": [
+            "src/ui/components/Controls.tsx"
+        ],
+        "files": []
+    },
+    {
+        "name": "I5.T2",
+        "context": {
+            "task_id": "I5.T2",
+            "iteration_id": "I5",
+            "iteration_goal": "Build the AI settings UI and establish a connection with the OpenRouter API to fetch models and test the API key.",
+            "description": "Implement the `ConfigManager` in the service worker to save the `aiConfig` object to `chrome.storage.sync` and load it on startup. Changes in the UI should trigger messages to update the configuration.",
+            "agent_type_hint": "BackendAgent",
+            "inputs": "`I5.T1` deliverables.",
+            "target_files": [
+                "src/background/services/configManager.ts"
+            ],
+            "input_files": [
+                "src/background/services/configManager.ts",
+                "src/shared/types.ts"
+            ],
+            "deliverables": "A module for managing synced configuration.",
+            "acceptance_criteria": "AI settings persist across browser sessions and are synced between devices (if enabled).",
+            "dependencies": [
+                "I5.T1"
+            ],
+            "parallelizable": false
+        },
+        "output": null,
+        "iteration_id": "I5",
+        "completed": false,
+        "target_files": [
+            "src/background/services/configManager.ts"
+        ],
+        "input_files": [
+            "src/background/services/configManager.ts",
+            "src/shared/types.ts"
+        ],
+        "files": []
+    },
+    {
+        "name": "I5.T3",
+        "context": {
+            "task_id": "I5.T3",
+            "iteration_id": "I5",
+            "iteration_goal": "Build the AI settings UI and establish a connection with the OpenRouter API to fetch models and test the API key.",
+            "description": "Implement the `OpenRouterClient` in the service worker. This module will encapsulate all API calls to OpenRouter, including adding the necessary `Authorization` header with the API key from the `ConfigManager`.",
+            "agent_type_hint": "BackendAgent",
+            "inputs": "Section 14.1 and 15 of the requirements.",
+            "target_files": [
+                "src/background/services/openRouterClient.ts"
+            ],
+            "input_files": [
+                "src/background/services/openRouterClient.ts"
+            ],
+            "deliverables": "A client module for interacting with the OpenRouter API.",
+            "acceptance_criteria": "The module is created and can be instantiated with the API key.",
+            "dependencies": [
+                "I5.T2"
+            ],
+            "parallelizable": false
+        },
+        "output": null,
+        "iteration_id": "I5",
+        "completed": false,
+        "target_files": [
+            "src/background/services/openRouterClient.ts"
+        ],
+        "input_files": [
+            "src/background/services/openRouterClient.ts"
+        ],
+        "files": []
+    },
+    {
+        "name": "I5.T4",
+        "context": {
+            "task_id": "I5.T4",
+            "iteration_id": "I5",
+            "iteration_goal": "Build the AI settings UI and establish a connection with the OpenRouter API to fetch models and test the API key.",
+            "description": "Implement the functionality to fetch the list of available models from OpenRouter using the `OpenRouterClient`. The UI should trigger this fetch, and the service worker will return the list to populate the model combobox.",
+            "agent_type_hint": "BackendAgent",
+            "inputs": "Section 14.4 of the requirements.",
+            "target_files": [
+                "src/background/services/openRouterClient.ts",
+                "src/ui/components/AiSettings.tsx"
+            ],
+            "input_files": [
+                "src/background/services/openRouterClient.ts",
+                "src/ui/components/AiSettings.tsx"
+            ],
+            "deliverables": "A populated model selection dropdown in the UI.",
+            "acceptance_criteria": "When a valid API key is entered, the model combobox is populated with models fetched from the OpenRouter API.",
+            "dependencies": [
+                "I5.T3"
+            ],
+            "parallelizable": false
+        },
+        "output": null,
+        "iteration_id": "I5",
+        "completed": false,
+        "target_files": [
+            "src/background/services/openRouterClient.ts",
+            "src/ui/components/AiSettings.tsx"
+        ],
+        "input_files": [
+            "src/background/services/openRouterClient.ts",
+            "src/ui/components/AiSettings.tsx"
+        ],
+        "files": []
+    },
+    {
+        "name": "I6.T1",
+        "context": {
+            "task_id": "I6.T1",
+            "iteration_id": "I6",
+            "iteration_goal": "Implement the main automation pipeline for liking and replying to comments using the configured AI.",
+            "description": "Implement the `PipelineManager` in the service worker. This will manage the Finite State Machine (FSM) for each comment (`QUEUED` -> `LIKED` -> `REPLIED` -> ...). Implement the Start/Stop/Resume logic that controls the pipeline execution.",
+            "agent_type_hint": "BackendAgent",
+            "inputs": "Section 9 and 21 of the requirements.",
+            "target_files": [
+                "src/background/services/pipelineManager.ts"
+            ],
+            "input_files": [
+                "src/background/services/pipelineManager.ts"
+            ],
+            "deliverables": "A state machine and controller for the automation pipeline.",
+            "acceptance_criteria": "The Start button initiates the processing loop, and the Stop button gracefully pauses it.",
+            "dependencies": [
+                "I4.T1"
+            ],
+            "parallelizable": false
+        },
+        "output": null,
+        "iteration_id": "I6",
+        "completed": false,
+        "target_files": [
+            "src/background/services/pipelineManager.ts"
+        ],
+        "input_files": [
+            "src/background/services/pipelineManager.ts"
+        ],
+        "files": []
+    },
+    {
+        "name": "I6.T2",
+        "context": {
+            "task_id": "I6.T2",
+            "iteration_id": "I6",
+            "iteration_goal": "Implement the main automation pipeline for liking and replying to comments using the configured AI.",
+            "description": "Implement the \"Like\" action in `domInteractor.ts`, controlled by a message from the `PipelineManager`. The pipeline will issue a \"like\" command for a specific comment, and the content script will find and click the corresponding button.",
+            "agent_type_hint": "FrontendAgent",
+            "inputs": "Section 7 of the requirements.",
+            "target_files": [
+                "src/content-scripts/domInteractor.ts"
+            ],
+            "input_files": [
+                "src/content-scripts/domInteractor.ts"
+            ],
+            "deliverables": "A function to perform the \"Like\" action.",
+            "acceptance_criteria": "The extension successfully likes a target comment on the page.",
+            "dependencies": [
+                "I6.T1"
+            ],
+            "parallelizable": false
+        },
+        "output": null,
+        "iteration_id": "I6",
+        "completed": false,
+        "target_files": [
+            "src/content-scripts/domInteractor.ts"
+        ],
+        "input_files": [
+            "src/content-scripts/domInteractor.ts"
+        ],
+        "files": []
+    },
+    {
+        "name": "I6.T3",
+        "context": {
+            "task_id": "I6.T3",
+            "iteration_id": "I6",
+            "iteration_goal": "Implement the main automation pipeline for liking and replying to comments using the configured AI.",
+            "description": "Integrate the `OpenRouterClient` with the `PipelineManager`. When a comment is ready for a reply, the manager will construct the prompt using the templates and settings, call the chat completions endpoint, and receive the AI-generated text.",
+            "agent_type_hint": "BackendAgent",
+            "inputs": "Section 14.5 of the requirements.",
+            "target_files": [
+                "src/background/services/pipelineManager.ts"
+            ],
+            "input_files": [
+                "src/background/services/pipelineManager.ts",
+                "src/background/services/openRouterClient.ts"
+            ],
+            "deliverables": "Logic to generate a reply for a given comment.",
+            "acceptance_criteria": "The pipeline successfully gets a valid reply string from the OpenRouter API. It correctly handles the `__SKIP__` response.",
+            "dependencies": [
+                "I5.T3",
+                "I6.T1"
+            ],
+            "parallelizable": false
+        },
+        "output": null,
+        "iteration_id": "I6",
+        "completed": false,
+        "target_files": [
+            "src/background/services/pipelineManager.ts"
+        ],
+        "input_files": [
+            "src/background/services/pipelineManager.ts",
+            "src/background/services/openRouterClient.ts"
+        ],
+        "files": []
+    },
+    {
+        "name": "I6.T4",
+        "context": {
+            "task_id": "I6.T4",
+            "iteration_id": "I6",
+            "iteration_goal": "Implement the main automation pipeline for liking and replying to comments using the configured AI.",
+            "description": "Implement the \"Reply\" action in `domInteractor.ts`. This function will receive the AI-generated text, click the reply button, simulate human-like typing into the text box, and submit the reply.",
+            "agent_type_hint": "FrontendAgent",
+            "inputs": "Section 7 of the requirements.",
+            "target_files": [
+                "src/content-scripts/domInteractor.ts"
+            ],
+            "input_files": [
+                "src/content-scripts/domInteractor.ts"
+            ],
+            "deliverables": "A function to perform the \"Reply\" action.",
+            "acceptance_criteria": "The extension successfully posts the AI-generated text as a reply to a target comment.",
+            "dependencies": [
+                "I6.T3"
+            ],
+            "parallelizable": false
+        },
+        "output": null,
+        "iteration_id": "I6",
+        "completed": false,
+        "target_files": [
+            "src/content-scripts/domInteractor.ts"
+        ],
+        "input_files": [
+            "src/content-scripts/domInteractor.ts"
+        ],
+        "files": []
+    },
+    {
+        "name": "I6.T5",
+        "context": {
+            "task_id": "I6.T5",
+            "iteration_id": "I6",
+            "iteration_goal": "Implement the main automation pipeline for liking and replying to comments using the configured AI.",
+            "description": "Implement the real-time \"Pipeline Progress\" view in the UI. This will be a list of comments being processed, with a stepper for each row showing the current state (Queued \u2192 Liked \u2192 Replied).",
+            "agent_type_hint": "FrontendAgent",
+            "inputs": "Section 0 of the requirements.",
+            "target_files": [
+                "src/ui/components/PipelineProgress.tsx"
+            ],
+            "input_files": [
+                "src/ui/components/PipelineProgress.tsx",
+                "src/ui/store/index.ts"
+            ],
+            "deliverables": "A dynamic UI component showing real-time progress.",
+            "acceptance_criteria": "As the pipeline runs, the UI accurately reflects the status of each comment with animated step transitions.",
+            "dependencies": [
+                "I4.T2",
+                "I6.T1"
+            ],
+            "parallelizable": false
+        },
+        "output": null,
+        "iteration_id": "I6",
+        "completed": false,
+        "target_files": [
+            "src/ui/components/PipelineProgress.tsx"
+        ],
+        "input_files": [
+            "src/ui/components/PipelineProgress.tsx",
+            "src/ui/store/index.ts"
+        ],
+        "files": []
+    },
+    {
+        "name": "I7.T1",
+        "context": {
+            "task_id": "I7.T1",
+            "iteration_id": "I7",
+            "iteration_goal": "Add the functionality to check a commenter's connection status and send AI-generated direct messages.",
+            "description": "Implement the logic to check connection status. The pipeline will open a commenter's profile in a new, background tab, parse the DOM to determine if they are a connection, and then close the tab. The result is saved to the state file.",
+            "agent_type_hint": "BackendAgent",
+            "inputs": "Section 6 of the requirements.",
+            "target_files": [
+                "src/background/services/pipelineManager.ts"
+            ],
+            "input_files": [
+                "src/background/services/pipelineManager.ts"
+            ],
+            "deliverables": "Logic to determine and persist connection status.",
+            "acceptance_criteria": "The `connected` field in the comment's state is correctly updated to `true` or `false`.",
+            "dependencies": [
+                "I6.T1"
+            ],
+            "parallelizable": false
+        },
+        "output": null,
+        "iteration_id": "I7",
+        "completed": false,
+        "target_files": [
+            "src/background/services/pipelineManager.ts"
+        ],
+        "input_files": [
+            "src/background/services/pipelineManager.ts"
+        ],
+        "files": []
+    },
+    {
+        "name": "I7.T2",
+        "context": {
+            "task_id": "I7.T2",
+            "iteration_id": "I7",
+            "iteration_goal": "Add the functionality to check a commenter's connection status and send AI-generated direct messages.",
+            "description": "Implement the \"Send DM\" action. This includes generating the DM text via OpenRouter (using the DM prompt), opening the messaging thread URL, typing the message, and sending it.",
+            "agent_type_hint": "BackendAgent, FrontendAgent",
+            "inputs": "Section 8 and 14.6 of the requirements.",
+            "target_files": [
+                "src/background/services/pipelineManager.ts",
+                "src/content-scripts/domInteractor.ts"
+            ],
+            "input_files": [
+                "src/background/services/pipelineManager.ts",
+                "src/content-scripts/domInteractor.ts"
+            ],
+            "deliverables": "A complete DM sending functionality integrated into the pipeline.",
+            "acceptance_criteria": "For a connected commenter, the extension successfully sends a personalized DM.",
+            "dependencies": [
+                "I7.T1"
+            ],
+            "parallelizable": false
+        },
+        "output": null,
+        "iteration_id": "I7",
+        "completed": false,
+        "target_files": [
+            "src/background/services/pipelineManager.ts",
+            "src/content-scripts/domInteractor.ts"
+        ],
+        "input_files": [
+            "src/background/services/pipelineManager.ts",
+            "src/content-scripts/domInteractor.ts"
+        ],
+        "files": []
+    },
+    {
+        "name": "I8.T1",
+        "context": {
+            "task_id": "I8.T1",
+            "iteration_id": "I8",
+            "iteration_goal": "Implement robust logging, comprehensive error handling with retries, and final UI/UX polish.",
+            "description": "Implement a structured logger in the service worker. All significant events (pipeline steps, API calls, errors) should generate a structured log object. These logs should be broadcast to the UI.",
+            "agent_type_hint": "BackendAgent",
+            "inputs": "Section 12 of the requirements.",
+            "target_files": [
+                "src/background/logger.ts"
+            ],
+            "input_files": [
+                "src/background/logger.ts"
+            ],
+            "deliverables": "A structured logging service.",
+            "acceptance_criteria": "The service worker generates detailed, structured logs for all key operations.",
+            "dependencies": [
+                "I6.T1"
+            ],
+            "parallelizable": false
+        },
+        "output": null,
+        "iteration_id": "I8",
+        "completed": false,
+        "target_files": [
+            "src/background/logger.ts"
+        ],
+        "input_files": [
+            "src/background/logger.ts"
+        ],
+        "files": []
+    },
+    {
+        "name": "I8.T2",
+        "context": {
+            "task_id": "I8.T2",
+            "iteration_id": "I8",
+            "iteration_goal": "Implement robust logging, comprehensive error handling with retries, and final UI/UX polish.",
+            "description": "Build the live \"Logs Panel\" in the UI. It should display a stream of incoming log messages and include controls for filtering by log level (Info, Warn, Error).",
+            "agent_type_hint": "FrontendAgent",
+            "inputs": "`I8.T1` deliverables.",
+            "target_files": [
+                "src/ui/components/LogsPanel.tsx"
+            ],
+            "input_files": [
+                "src/ui/components/LogsPanel.tsx",
+                "src/ui/store/index.ts"
+            ],
+            "deliverables": "A functional logging UI.",
+            "acceptance_criteria": "The Logs Panel displays logs in real-time and can be filtered correctly.",
+            "dependencies": [
+                "I8.T1"
+            ],
+            "parallelizable": false
+        },
+        "output": null,
+        "iteration_id": "I8",
+        "completed": false,
+        "target_files": [
+            "src/ui/components/LogsPanel.tsx"
+        ],
+        "input_files": [
+            "src/ui/components/LogsPanel.tsx",
+            "src/ui/store/index.ts"
+        ],
+        "files": []
+    },
+    {
+        "name": "I8.T3",
+        "context": {
+            "task_id": "I8.T3",
+            "iteration_id": "I8",
+            "iteration_goal": "Implement robust logging, comprehensive error handling with retries, and final UI/UX polish.",
+            "description": "Implement the retry logic with exponential backoff and jitter for all external network requests and critical DOM actions, as specified in Section 10 of the requirements. Update the state with attempt counts and final error messages.",
+            "agent_type_hint": "BackendAgent",
+            "inputs": "Section 10 of the requirements.",
+            "target_files": [
+                "src/background/services/pipelineManager.ts",
+                "src/background/services/openRouterClient.ts"
+            ],
+            "input_files": [
+                "src/background/services/pipelineManager.ts",
+                "src/background/services/openRouterClient.ts"
+            ],
+            "deliverables": "Robust retry mechanisms.",
+            "acceptance_criteria": "A failed API call is retried up to 3 times with increasing delays. A final failure updates the comment's status to \"FAILED\" and logs the error.",
+            "dependencies": [
+                "I8.T1"
+            ],
+            "parallelizable": false
+        },
+        "output": null,
+        "iteration_id": "I8",
+        "completed": false,
+        "target_files": [
+            "src/background/services/pipelineManager.ts",
+            "src/background/services/openRouterClient.ts"
+        ],
+        "input_files": [
+            "src/background/services/pipelineManager.ts",
+            "src/background/services/openRouterClient.ts"
+        ],
+        "files": []
+    },
+    {
+        "name": "I8.T4",
+        "context": {
+            "task_id": "I8.T4",
+            "iteration_id": "I8",
+            "iteration_goal": "Implement robust logging, comprehensive error handling with retries, and final UI/UX polish.",
+            "description": "Add final UI polish. Implement skeleton loaders for when data is being fetched, add smooth transitions for counter updates, and ensure the UI is fully responsive and non-blocking.",
+            "agent_type_hint": "FrontendAgent",
+            "inputs": "Section 0 \"UX Notes\" of the requirements.",
+            "target_files": [
+                "src/ui/App.tsx",
+                "and various components"
+            ],
+            "input_files": [
+                "src/ui/"
+            ],
+            "deliverables": "A polished and professional-looking user interface.",
+            "acceptance_criteria": "The UI feels smooth, responsive, and provides clear visual feedback during operations.",
+            "dependencies": [
+                "I8.T2"
+            ],
+            "parallelizable": false
+        },
+        "output": null,
+        "iteration_id": "I8",
+        "completed": false,
+        "target_files": [
+            "src/ui/App.tsx",
+            "and various components"
+        ],
+        "input_files": [
+            "src/ui/"
+        ],
+        "files": []
+    }
+]
