@@ -78,7 +78,8 @@ export const calculateCommentStats = (
 /**
  * Saves the entire state for a given post to chrome.storage.local and updates the cache.
  * The post's URN is used as the key. The in-memory PostState is transformed
- * into the required storage format before saving.
+ * into the required storage format before saving. The `lastUpdated` timestamp is
+ * automatically set to the current time on every save.
  *
  * @param postUrn - The unique URN of the post, used as the storage key.
  * @param state - The PostState object to save.
@@ -88,12 +89,22 @@ export const savePostState = async (
   state: PostState
 ): Promise<void> => {
   try {
+    // Create a new state object with an updated timestamp to ensure data freshness
+    // and to avoid mutating the original state object passed into the function.
+    const stateToSave: PostState = {
+      ...state,
+      _meta: {
+        ...state._meta,
+        lastUpdated: new Date().toISOString(),
+      },
+    };
+
     const storableState = {
-      _meta: state._meta,
-      [state._meta.postUrl]: state.comments,
+      _meta: stateToSave._meta,
+      [stateToSave._meta.postUrl]: stateToSave.comments,
     };
     await chrome.storage.local.set({ [postUrn]: storableState });
-    stateCache.set(postUrn, state);
+    stateCache.set(postUrn, stateToSave);
     console.log(`State saved for post URN: ${postUrn}`);
   } catch (error) {
     console.error(`Error saving state for post URN ${postUrn}:`, error);
