@@ -137,6 +137,6 @@ export interface UIState {
  * Defines the structure for messages sent between extension components.
  */
 export interface ExtensionMessage {
-  type: 'STATE_UPDATE' | 'GET_LATEST_STATE';
+  type: 'STATE_UPDATE' | 'GET_LATEST_STATE' | 'REQUEST_POST_STATE_FOR_EXPORT';
   payload?: unknown;
 }
