@@ -3,29 +3,20 @@
   "name": "LinkedIn Engagement Assistant",
   "version": "1.0.0",
   "description": "An intelligent browser extension to automate and scale engagement on LinkedIn.",
-  "permissions": [
-    "storage",
-    "activeTab",
-    "scripting",
-    "tabs"
-  ],
-  "host_permissions": [
-    "https://www.linkedin.com/*"
-  ],
+  "permissions": ["storage", "activeTab", "scripting", "tabs"],
+  "host_permissions": ["https://www.linkedin.com/*"],
   "background": {
-    "service_worker": "src/background/index.ts"
+    "service_worker": "background.js",
+    "type": "module"
   },
   "content_scripts": [
     {
-      "matches": [
-        "https://www.linkedin.com/*"
-      ],
-      "js": [
-        "src/content-scripts/index.ts"
-      ]
+      "matches": ["https://www.linkedin.com/*"],
+      "js": ["content.js"]
     }
   ],
   "action": {
+    "default_popup": "index.html",
     "default_title": "LinkedIn Engagement Assistant"
   },
   "icons": {
