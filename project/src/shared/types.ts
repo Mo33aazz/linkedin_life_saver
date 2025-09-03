@@ -1,223 +1,95 @@
-/**
- * Defines the severity level of a log entry.
- */
 export type LogLevel = 'INFO' | 'WARN' | 'ERROR' | 'DEBUG';
 
-/**
- * Represents a structured log entry.
- */
 export interface LogEntry {
-  timestamp: string;
+  timestamp: number;
   level: LogLevel;
   message: string;
-  context?: {
-    postId?: string;
-    commentId?: string;
-    step?: string;
-    error?: {
-      name: string;
-      message: string;
-      stack?: string;
-    };
-    [key: string]: unknown; // For any other contextual data
-  };
+  context?: Record<string, any>;
 }
 
-/**
- * Represents the overall processing state of a post.
- */
-export type RunState = 'idle' | 'running' | 'paused' | 'error';
-
-/**
- * Represents the type of a comment.
- */
-export type CommentType = 'top-level' | 'reply';
-
-/**
- * Represents the status of a pipeline action (Like, Reply, DM).
- */
 export type ActionStatus = '' | 'DONE' | 'FAILED';
 
-/**
- * Tracks the number of attempts for each action.
- */
-export interface Attempts {
-  like: number;
-  reply: number;
-  dm: number;
-}
-
-/**
- * Timestamps for key events in the processing pipeline for a comment.
- */
-export interface PipelineTimestamps {
-  queuedAt: string;
-  likedAt: string;
-  repliedAt: string;
-  dmAt: string;
-  generatedReply?: string;
-  generatedDm?: string;
-}
-
-/**
- * Represents a single comment and its processing state.
- */
 export interface Comment {
   commentId: string;
   text: string;
   ownerProfileUrl: string;
   timestamp: string;
-  type: CommentType;
-  connected?: boolean;
+  type: 'top-level' | 'reply';
+  connected: boolean;
   threadId: string;
   likeStatus: ActionStatus;
   replyStatus: ActionStatus;
   dmStatus: ActionStatus;
+  attempts: {
+    like: number;
+    reply: number;
+    dm: number;
+  };
   lastError: string;
-  attempts: Attempts;
-  pipeline: PipelineTimestamps;
+  pipeline: {
+    queuedAt: string;
+    likedAt: string;
+    repliedAt: string;
+    dmAt: string;
+  };
 }
 
-/**
- * Represents the metadata for a post being processed.
- */
-export interface Post {
-  postId: string; // The URN
-  postUrl: string;
-  lastUpdated: string;
-  runState: RunState;
-}
-
-/**
- * Represents the entire state object for a single post.
- * This is the in-memory representation, which is then transformed for storage.
- */
-export interface PostState {
-  _meta: Post;
-  comments: Comment[];
-}
-
-/**
- * Represents a model from the OpenRouter API.
- */
-export interface OpenRouterModel {
-  id: string;
-  name: string;
-  context_length: number;
-}
-
-/**
- * Configuration for AI-generated replies.
- */
-export interface ReplyConfig {
-  customPrompt: string;
-}
-
-/**
- * Configuration for AI-generated direct messages.
- */
-export interface DmConfig {
-  customPrompt: string;
-}
-
-/**
- * Attribution headers for OpenRouter API calls.
- */
-export interface AttributionConfig {
-  httpReferer: string;
-  xTitle: string;
-}
-
-/**
- * Filters for selecting an AI model.
- */
-export interface ModelFiltersConfig {
-  onlyTextOutput: boolean;
-  minContext: number;
-}
-
-/**
- * Represents the complete AI configuration stored in chrome.storage.sync.
- */
-export interface AIConfig {
-  provider: 'openrouter';
-  apiKey: string;
-  model: string;
-  temperature: number;
-  top_p: number;
-  max_tokens: number;
-  stream: boolean;
-  reply: ReplyConfig;
-  dm: DmConfig;
-  attribution: AttributionConfig;
-  modelFilters: ModelFiltersConfig;
-}
-
-/**
- * Represents a single message in a chat completion request.
- */
-export interface ChatMessage {
-  role: 'system' | 'user' | 'assistant';
-  content: string;
-}
-
-/**
- * Represents the payload for the OpenRouter Chat Completions API.
- */
-export interface ChatCompletionRequestPayload {
-  model: string;
-  messages: ChatMessage[];
-  temperature?: number;
-  top_p?: number;
-  max_tokens?: number;
-  stream?: boolean;
-}
-
-/**
- * Represents a simplified structure of the response from the OpenRouter Chat Completions API.
- */
-export interface OpenRouterChatCompletionResponse {
-  choices: {
-    message: {
-      content: string;
-    };
-  }[];
-}
-
-/**
- * An object representing the calculated statistics for comments.
- */
-export interface CommentStats {
-  totalTopLevelNoReplies: number;
-  userTopLevelNoReplies: number;
-}
-
-/**
- * Represents the state of the UI, managed by Zustand.
- */
 export interface UIState {
-  pipelineStatus: RunState;
-  stats: CommentStats;
+  isInitializing: boolean;
+  pipelineStatus: 'idle' | 'running' | 'paused' | 'error';
+  stats: {
+    totalTopLevelNoReplies: number;
+    userTopLevelNoReplies: number;
+  };
   comments: Comment[];
 }
 
-/**
- * Defines the structure for messages sent between extension components.
- */
-export interface ExtensionMessage {
-  type:
-    | 'STATE_UPDATE'
-    | 'GET_LATEST_STATE'
-    | 'REQUEST_POST_STATE_FOR_EXPORT'
-    | 'UPDATE_AI_CONFIG'
-    | 'GET_AI_CONFIG'
-    | 'GET_MODELS'
-    | 'START_PIPELINE'
-    | 'STOP_PIPELINE'
-    | 'RESUME_PIPELINE'
-    | 'LIKE_COMMENT'
-    | 'REPLY_TO_COMMENT'
-    | 'SEND_DM'
-    | 'LOG_ENTRY';
-  payload?: unknown;
+export interface PostState {
+  [postUrl: string]: Comment[];
+  _meta: {
+    postId: string;
+    lastUpdated: string;
+    runState: 'idle' | 'running' | 'paused' | 'error';
+  };
 }
+
+export interface OpenRouterModel {
+    id: string;
+    name: string;
+}
+
+export interface AIConfig {
+    provider?: string;
+    apiKey?: string;
+    model?: string;
+    temperature?: number;
+    top_p?: number;
+    max_tokens?: number;
+    stream?: boolean;
+    reply?: {
+      customPrompt?: string;
+    };
+    dm?: {
+      customPrompt?: string;
+    };
+    attribution?: {
+      httpReferer?: string;
+      xTitle?: string;
+    };
+    modelFilters?: {
+      onlyTextOutput?: boolean;
+      minContext?: number;
+    };
+}
+
+export type ExtensionMessage =
+  | { type: 'STATE_UPDATE'; payload: Partial<UIState> }
+  | { type: 'LOG_ENTRY'; payload: LogEntry }
+  | { type: 'ping' }
+  | { type: 'START_PIPELINE', payload: { postUrn: string } }
+  | { type: 'STOP_PIPELINE' }
+  | { type: 'RESUME_PIPELINE' }
+  | { type: 'GET_AI_CONFIG', payload?: never }
+  | { type: 'UPDATE_AI_CONFIG', payload: Partial<AIConfig> }
+  | { type: 'GET_MODELS', payload?: never }
+  | { type: 'REQUEST_POST_STATE_FOR_EXPORT', payload?: never };

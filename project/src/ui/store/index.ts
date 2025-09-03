@@ -9,6 +9,7 @@ interface Store extends UIState {
 
 // 2. Create the Zustand store with an initial state.
 export const useStore = create<Store>((set) => ({
+  isInitializing: true,
   pipelineStatus: 'idle',
   stats: {
     totalTopLevelNoReplies: 0,

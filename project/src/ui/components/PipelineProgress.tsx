@@ -1,6 +1,7 @@
 import { h } from 'preact';
 import { useStore } from '../store';
 import { Comment, ActionStatus } from '../../shared/types';
+import { Skeleton } from './Skeleton';
 
 type StepStatus = 'complete' | 'active' | 'pending' | 'failed';
 
@@ -103,23 +104,44 @@ const CommentRow = ({ comment }: { comment: Comment }) => {
   );
 };
 
+const PipelineProgressSkeleton = () => (
+    <div className="pipeline-list">
+      {Array.from({ length: 3 }).map((_, i) => (
+        <div className="comment-row" key={i}>
+          <div className="comment-info">
+            <Skeleton className="skeleton-author" />
+            <Skeleton className="skeleton-text" />
+          </div>
+          <div className="stepper-container">
+             <Skeleton className="skeleton-stepper" />
+          </div>
+        </div>
+      ))}
+    </div>
+  );
+
 export const PipelineProgress = () => {
   const comments = useStore((state) => state.comments);
+  const isInitializing = useStore((state) => state.isInitializing);
 
   return (
     <div className="sidebar-section">
       <h2>Pipeline Progress</h2>
-      <div className="pipeline-list">
-        {comments.length === 0 ? (
-          <p className="idle-message">
-            Pipeline is idle. Start processing to see progress.
-          </p>
-        ) : (
-          comments.map((comment) => (
-            <CommentRow key={comment.commentId} comment={comment} />
-          ))
-        )}
-      </div>
+      {isInitializing && comments.length === 0 ? (
+        <PipelineProgressSkeleton />
+      ) : (
+        <div className="pipeline-list">
+          {comments.length === 0 ? (
+            <p className="idle-message">
+              Pipeline is idle. Start processing to see progress.
+            </p>
+          ) : (
+            comments.map((comment) => (
+              <CommentRow key={comment.commentId} comment={comment} />
+            ))
+          )}
+        </div>
+      )}
     </div>
   );
 };

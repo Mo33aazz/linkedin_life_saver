@@ -58,6 +58,67 @@ body {
   padding-bottom: 0.5rem;
 }
 
+/* Generic Button Styles */
+button {
+  background-color: var(--color-accent);
+  color: var(--color-bg-primary);
+  border: none;
+  padding: 0.5rem 1rem;
+  border-radius: var(--border-radius);
+  font-weight: 600;
+  cursor: pointer;
+  transition: background-color 0.2s ease-out, transform 0.1s ease-out, filter 0.2s ease-out;
+}
+
+button:hover {
+  filter: brightness(1.1);
+}
+
+button:active {
+  transform: scale(0.98);
+  filter: brightness(0.95);
+}
+
+button:disabled {
+  background-color: var(--color-bg-tertiary);
+  color: var(--color-text-secondary);
+  cursor: not-allowed;
+  filter: none;
+  transform: none;
+}
+
+
+/* Counters Section */
+.counter-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 1rem;
+}
+
+.counter-item {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 1rem;
+  background-color: var(--color-bg-secondary);
+  border-radius: var(--border-radius);
+  text-align: center;
+}
+
+.counter-value {
+  font-size: 1.75rem;
+  font-weight: 600;
+  color: var(--color-accent);
+}
+
+.counter-label {
+  font-size: 0.875rem;
+  color: var(--color-text-secondary);
+  margin-top: 0.25rem;
+}
+
+
 /* Pipeline Progress Section */
 .pipeline-list {
   max-height: 300px;
@@ -132,7 +193,7 @@ body {
   height: 2px;
   background-color: var(--color-border);
   transform: translateX(calc(60px / 2));
-  transition: background-color 0.3s ease;
+  transition: background-color 0.4s ease;
   z-index: 0;
 }
 
@@ -142,7 +203,7 @@ body {
   border-radius: 50%;
   background-color: var(--color-bg-tertiary);
   border: 2px solid var(--color-border);
-  transition: all 0.3s ease;
+  transition: all 0.4s ease;
   z-index: 1;
   position: relative;
 }
@@ -152,7 +213,7 @@ body {
   margin-top: 0.5rem;
   color: var(--color-text-secondary);
   text-align: center;
-  transition: color 0.3s ease;
+  transition: color 0.4s ease;
   height: 2.5em; /* Reserve space to prevent layout shift */
 }
 
@@ -206,4 +267,58 @@ body {
   100% {
     box-shadow: 0 0 0 0 rgba(24, 119, 242, 0);
   }
+}
+
+/* Skeleton Loader */
+.skeleton-loader {
+  background-color: var(--color-bg-tertiary);
+  border-radius: var(--border-radius);
+  position: relative;
+  overflow: hidden;
+}
+
+.skeleton-loader::after {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: -150%;
+  width: 150%;
+  height: 100%;
+  background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.2), transparent);
+  animation: shimmer 1.5s infinite;
+}
+
+@keyframes shimmer {
+  0% {
+    left: -150%;
+  }
+  100% {
+    left: 150%;
+  }
+}
+
+/* Helper classes for skeletons */
+.skeleton-value {
+  height: 1.75em;
+  width: 40px;
+  margin-bottom: 0.5rem;
+}
+
+.skeleton-label {
+  height: 0.875em;
+  width: 120px;
+}
+
+.skeleton-author {
+    width: 80px;
+    height: 1em;
+    margin-bottom: 0.5rem;
+}
+.skeleton-text {
+    width: 120px;
+    height: 0.875em;
+}
+.skeleton-stepper {
+    width: 240px;
+    height: 30px;
 }
