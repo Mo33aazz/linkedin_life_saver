@@ -1,0 +1,14 @@
+
+> linkedin-engagement-assistant@0.0.0 lint
+> eslint . --ext .ts,.tsx --report-unused-disable-directives --max-warnings 0
+
+
+/home/moaz/code_machine/projects/linkedin_life_saver/project/src/main.tsx
+  12:50  warning  Insert `⏎`  prettier/prettier
+
+/home/moaz/code_machine/projects/linkedin_life_saver/project/vite.config.ts
+  7:4  warning  Insert `⏎`  prettier/prettier
+
+✖ 2 problems (0 errors, 2 warnings)
+  0 errors and 2 warnings potentially fixable with the `--fix` option.
+
