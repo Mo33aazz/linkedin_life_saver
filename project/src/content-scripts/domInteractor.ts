@@ -62,6 +62,10 @@ const SELECTORS = {
     replyEditor: 'div.ql-editor[contenteditable="true"]',
     replySubmitButton: 'button.comments-comment-box__submit-button',
   },
+  dm: {
+    messageInput: 'div.msg-form__contenteditable[contenteditable="true"]',
+    sendButton: 'button.msg-form__send-button',
+  },
 };
 
 /**
@@ -291,5 +295,47 @@ export const replyToComment = async (
   await delay(2000); // Wait for the reply to be posted
 
   console.log(`Successfully replied to comment: ${commentId}`);
+  return true;
+};
+
+/**
+ * Navigates to a user's messaging thread, types the given text in a
+ * human-like manner, and sends the direct message.
+ * @param dmText - The AI-generated text to send as a DM.
+ * @returns A promise that resolves to true if the action was successful, false otherwise.
+ */
+export const sendDm = async (dmText: string): Promise<boolean> => {
+  console.log('Attempting to send a DM...');
+
+  const editor = document.querySelector<HTMLDivElement>(SELECTORS.dm.messageInput);
+  const submitButton = document.querySelector<HTMLButtonElement>(
+    SELECTORS.dm.sendButton
+  );
+
+  if (!editor || !submitButton) {
+    console.warn('Could not find DM editor or submit button.');
+    return false;
+  }
+
+  editor.focus();
+  editor.innerHTML = ''; // Clear any placeholder or draft text.
+
+  for (const char of dmText) {
+    editor.innerHTML += char;
+    await delay(40 + Math.random() * 60); // Human-like typing delay
+  }
+
+  editor.dispatchEvent(new Event('input', { bubbles: true, cancelable: true }));
+  await delay(400);
+
+  if (submitButton.disabled) {
+    console.warn('DM submit button is disabled.');
+    return false;
+  }
+
+  submitButton.click();
+  await delay(2500); // Wait for message to be sent
+
+  console.log('Successfully sent DM.');
   return true;
 };

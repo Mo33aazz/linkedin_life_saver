@@ -31,6 +31,7 @@ export interface PipelineTimestamps {
   repliedAt: string;
   dmAt: string;
   generatedReply?: string;
+  generatedDm?: string;
 }
 
 /**
@@ -190,6 +191,7 @@ export interface ExtensionMessage {
     | 'STOP_PIPELINE'
     | 'RESUME_PIPELINE'
     | 'LIKE_COMMENT'
-    | 'REPLY_TO_COMMENT';
+    | 'REPLY_TO_COMMENT'
+    | 'SEND_DM';
   payload?: unknown;
 }

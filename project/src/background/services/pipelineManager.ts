@@ -52,6 +52,10 @@ const findNextComment = (postState: PostState): Comment | null => {
     if (comment.likeStatus === '' || comment.replyStatus === '') {
       return comment;
     }
+    // New check for DM
+    if (comment.connected && comment.dmStatus === '') {
+      return comment;
+    }
   }
   return null; // No more comments to process
 };
@@ -100,6 +104,51 @@ const generateReply = async (
     return replyText;
   } catch (error) {
     console.error('Failed to generate AI reply:', error);
+    return null;
+  }
+};
+
+const generateDm = async (
+  comment: Comment,
+  postState: PostState
+): Promise<string | null> => {
+  try {
+    const aiConfig = getConfig();
+    if (!aiConfig.apiKey) {
+      console.error('OpenRouter API key is not set.');
+      return null;
+    }
+
+    const client = new OpenRouterClient(aiConfig.apiKey, aiConfig.attribution);
+
+    const userMessageContent = `
+      Their comment on my post: '${comment.text}'
+      My custom instructions for this DM: ${aiConfig.dm.customPrompt}
+      My post URL for context: ${postState._meta.postUrl}
+      Commenter Profile URL: ${comment.ownerProfileUrl}
+      Output: ONLY the direct message text. Be concise, personable, and professional.
+    `;
+
+    const messages: ChatMessage[] = [
+      {
+        role: 'system',
+        content:
+          'You are a helpful LinkedIn engagement assistant. Your goal is to write a brief, personalized direct message to someone who left a thoughtful comment on your post. Your tone should be warm and aim to start a meaningful conversation.',
+      },
+      { role: 'user', content: userMessageContent },
+    ];
+
+    const dmText = await client.createChatCompletion({
+      model: aiConfig.model,
+      messages,
+      temperature: aiConfig.temperature,
+      top_p: aiConfig.top_p,
+      max_tokens: aiConfig.max_tokens,
+    });
+
+    return dmText;
+  } catch (error) {
+    console.error('Failed to generate AI DM:', error);
     return null;
   }
 };
@@ -248,6 +297,84 @@ const processComment = async (
       }
       return;
     }
+
+    // STATE: REPLIED -> DM_SENT (for connected users)
+    if (comment.connected && comment.dmStatus === '') {
+      // The messaging URL is based on the member ID, which is part of the profile URL.
+      const profileIdMatch = comment.ownerProfileUrl.match(/\/in\/([^/]+)/);
+      if (!profileIdMatch || !profileIdMatch[1]) {
+        throw new Error(
+          `Could not extract profile ID from URL: ${comment.ownerProfileUrl}`
+        );
+      }
+      const profileId = profileIdMatch[1];
+      const messagingUrl = `https://www.linkedin.com/messaging/thread/new/?recipient=${profileId}`;
+
+      console.log(`Generating DM for comment: ${comment.commentId}`);
+      const dmText = await generateDm(comment, postState);
+
+      if (!dmText) {
+        throw new Error('AI DM generation failed.');
+      }
+
+      console.log(`Generated DM for ${comment.commentId}: '${dmText}'`);
+      comment.pipeline.generatedDm = dmText;
+
+      let dmTabId: number | undefined;
+      try {
+        const tab = await chrome.tabs.create({
+          url: messagingUrl,
+          active: false,
+        });
+        dmTabId = tab.id;
+        if (!dmTabId) {
+          throw new Error('Failed to create a new tab for sending DM.');
+        }
+
+        // Wait for the tab to load completely
+        await new Promise<void>((resolve, reject) => {
+          const timeout = setTimeout(
+            () => reject(new Error('DM tab loading timed out')),
+            20000
+          );
+          const listener = (
+            tabId: number,
+            changeInfo: chrome.tabs.TabChangeInfo
+          ) => {
+            if (tabId === dmTabId && changeInfo.status === 'complete') {
+              clearTimeout(timeout);
+              chrome.tabs.onUpdated.removeListener(listener);
+              resolve();
+            }
+          };
+          chrome.tabs.onUpdated.addListener(listener);
+        });
+
+        // Give the page a moment to settle after loading
+        await new Promise(resolve => setTimeout(resolve, 3000));
+
+        const dmSuccess = await sendMessageToTab<boolean>(dmTabId, {
+          type: 'SEND_DM',
+          payload: { dmText },
+        });
+
+        if (dmSuccess) {
+          comment.dmStatus = 'DONE';
+          comment.pipeline.dmAt = new Date().toISOString();
+          await savePostState(postState._meta.postId, postState);
+          broadcastState({ comments: postState.comments });
+        } else {
+          throw new Error(
+            `Send DM action failed for comment ${comment.commentId}`
+          );
+        }
+      } finally {
+        if (dmTabId) {
+          await chrome.tabs.remove(dmTabId);
+        }
+      }
+      return;
+    }
   } catch (error) {
     console.error(`Failed to process comment ${comment.commentId}:`, error);
     // TODO: Implement error handling (update lastError, attempts, set status to FAILED)
@@ -288,7 +415,7 @@ const processQueue = async (): Promise<void> => {
     await processComment(nextComment, postState);
 
     // TODO: Implement a configurable delay with jitter later
-    await new Promise((resolve) => setTimeout(resolve, 2000)); // 2-second delay
+    await new Promise(resolve => setTimeout(resolve, 2000)); // 2-second delay
   }
 
   isProcessing = false;
