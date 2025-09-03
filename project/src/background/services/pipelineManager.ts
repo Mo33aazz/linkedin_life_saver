@@ -11,6 +11,10 @@ import { getPostState, savePostState } from './stateManager';
 import { getConfig } from './configManager';
 import { OpenRouterClient } from './openRouterClient';
 
+// Retry logic constants
+const MAX_RETRIES = 3;
+const INITIAL_DELAY = 2000; // Start with a 2-second delay for DOM actions
+
 // Internal state for the pipeline
 let pipelineStatus: RunState = 'idle';
 let activePostUrn: string | null = null;
@@ -30,6 +34,38 @@ let sendMessageToTab: <T>(
   logger.warn('sendMessageToTab not initialized in PipelineManager');
   return Promise.reject('sendMessageToTab not initialized');
 };
+
+/**
+ * A generic helper to retry an asynchronous function with exponential backoff and jitter.
+ */
+interface RetryOptions {
+  maxRetries: number;
+  initialDelay: number;
+  onRetry: (error: Error, attempt: number) => void;
+}
+
+async function retryAsyncFunction<T>(
+  asyncFn: () => Promise<T>,
+  options: RetryOptions
+): Promise<T> {
+  let lastError: Error | undefined;
+
+  for (let attempt = 0; attempt < options.maxRetries; attempt++) {
+    try {
+      return await asyncFn();
+    } catch (error) {
+      lastError = error as Error;
+      options.onRetry(lastError, attempt + 1);
+
+      if (attempt < options.maxRetries - 1) {
+        const delay = options.initialDelay * Math.pow(2, attempt);
+        const jitter = delay * 0.2 * (Math.random() - 0.5); // +/- 10% jitter
+        await new Promise((resolve) => setTimeout(resolve, delay + jitter));
+      }
+    }
+  }
+  throw lastError;
+}
 
 export const initPipelineManager = (
   broadcaster: (state: Partial<UIState>) => void,
@@ -266,198 +302,259 @@ const processComment = async (
       if (!activeTabId) {
         throw new Error('Cannot like comment, active tab ID is not set.');
       }
+      comment.attempts.like = 0;
 
-      const likeSuccess = await sendMessageToTab<boolean>(activeTabId, {
-        type: 'LIKE_COMMENT',
-        payload: { commentId: comment.commentId },
-      });
+      try {
+        await retryAsyncFunction(
+          async () => {
+            comment.attempts.like++;
+            const likeSuccess = await sendMessageToTab<boolean>(activeTabId, {
+              type: 'LIKE_COMMENT',
+              payload: { commentId: comment.commentId },
+            });
+            if (!likeSuccess) {
+              throw new Error(
+                `Content script failed to like comment ${comment.commentId}`
+              );
+            }
+          },
+          {
+            maxRetries: MAX_RETRIES,
+            initialDelay: INITIAL_DELAY,
+            onRetry: (error, attempt) => {
+              logger.warn(
+                `Like attempt ${attempt}/${MAX_RETRIES} failed`,
+                error,
+                { ...stepContext, attempt }
+              );
+            },
+          }
+        );
 
-      if (likeSuccess) {
         comment.likeStatus = 'DONE';
         comment.pipeline.likedAt = new Date().toISOString();
         logger.info('Comment liked successfully', {
           ...context,
           step: 'LIKE_SUCCESS',
         });
-        await savePostState(postState._meta.postId, postState);
-        broadcastState({ comments: postState.comments }); // Broadcast progress
-      } else {
-        logger.error(
-          'Like action failed in content script',
-          new Error('sendMessageToTab returned false'),
-          { ...context, step: 'LIKE_FAILED' }
-        );
-        throw new Error(`Like action failed for comment ${comment.commentId}`);
+      } catch (error) {
+        logger.error('Failed to like comment after all retries', error, {
+          ...context,
+          step: 'LIKE_FAILED_FINAL',
+        });
+        comment.likeStatus = 'FAILED';
+        comment.lastError = (error as Error).message;
       }
-      return; // IMPORTANT: Return after each atomic action.
+
+      await savePostState(postState._meta.postId, postState);
+      broadcastState({ comments: postState.comments });
+      return; // Atomic step complete
     }
 
     // STATE: LIKED -> REPLIED
     if (comment.replyStatus === '') {
       const stepContext = { ...context, step: 'REPLY_ATTEMPT' };
       logger.info('Attempting to reply to comment', stepContext);
+      comment.attempts.reply = 0;
 
-      const replyText = await generateReply(comment, postState);
+      try {
+        const replyText = await generateReply(comment, postState);
 
-      if (replyText === null) {
-        logger.error('AI reply generation failed', undefined, {
+        if (replyText === null) {
+          throw new Error('AI reply generation failed after all retries.');
+        }
+
+        if (replyText === '__SKIP__') {
+          logger.info('AI requested to skip comment, skipping reply', {
+            ...context,
+            step: 'REPLY_SKIPPED_AI',
+          });
+          comment.replyStatus = 'DONE'; // Mark as done to skip
+          comment.lastError = 'Skipped by AI';
+          comment.pipeline.repliedAt = new Date().toISOString();
+          await savePostState(postState._meta.postId, postState);
+          broadcastState({ comments: postState.comments });
+          return;
+        }
+
+        logger.info('Generated reply, submitting to page', {
           ...context,
-          step: 'GENERATE_REPLY_FAILED',
+          step: 'SUBMIT_REPLY',
+          replyLength: replyText.length,
         });
-        throw new Error('AI reply generation failed.');
-      }
+        comment.pipeline.generatedReply = replyText;
 
-      if (replyText === '__SKIP__') {
-        logger.info('AI requested to skip comment, skipping reply', {
-          ...context,
-          step: 'REPLY_SKIPPED_AI',
-        });
-        comment.replyStatus = 'DONE'; // Mark as done to skip
-        comment.lastError = 'Skipped by AI';
-        comment.pipeline.repliedAt = new Date().toISOString();
-        await savePostState(postState._meta.postId, postState);
-        broadcastState({ comments: postState.comments });
-        return;
-      }
+        if (!activeTabId) {
+          throw new Error('Cannot reply to comment, active tab ID is not set.');
+        }
 
-      logger.info('Generated reply, submitting to page', {
-        ...context,
-        step: 'SUBMIT_REPLY',
-        replyLength: replyText.length,
-      });
-      comment.pipeline.generatedReply = replyText;
+        await retryAsyncFunction(
+          async () => {
+            comment.attempts.reply++;
+            const replySuccess = await sendMessageToTab<boolean>(activeTabId, {
+              type: 'REPLY_TO_COMMENT',
+              payload: { commentId: comment.commentId, replyText },
+            });
+            if (!replySuccess) {
+              throw new Error(
+                `Content script failed to reply to comment ${comment.commentId}`
+              );
+            }
+          },
+          {
+            maxRetries: MAX_RETRIES,
+            initialDelay: INITIAL_DELAY,
+            onRetry: (error, attempt) => {
+              logger.warn(
+                `Reply attempt ${attempt}/${MAX_RETRIES} failed`,
+                error,
+                { ...stepContext, attempt }
+              );
+            },
+          }
+        );
 
-      // Send the replyText to the domInteractor to be posted.
-      if (!activeTabId) {
-        throw new Error('Cannot reply to comment, active tab ID is not set.');
-      }
-
-      const replySuccess = await sendMessageToTab<boolean>(activeTabId, {
-        type: 'REPLY_TO_COMMENT',
-        payload: { commentId: comment.commentId, replyText },
-      });
-
-      if (replySuccess) {
         comment.replyStatus = 'DONE';
         comment.pipeline.repliedAt = new Date().toISOString();
         logger.info('Comment replied to successfully', {
           ...context,
           step: 'REPLY_SUCCESS',
         });
-        await savePostState(postState._meta.postId, postState);
-        broadcastState({ comments: postState.comments }); // Broadcast progress
-      } else {
-        logger.error(
-          'Reply action failed in content script',
-          new Error('sendMessageToTab returned false'),
-          { ...context, step: 'REPLY_FAILED' }
-        );
-        throw new Error(`Reply action failed for comment ${comment.commentId}`);
+      } catch (error) {
+        logger.error('Failed to reply to comment', error, {
+          ...context,
+          step: 'REPLY_FAILED_FINAL',
+        });
+        comment.replyStatus = 'FAILED';
+        comment.lastError = (error as Error).message;
       }
+
+      await savePostState(postState._meta.postId, postState);
+      broadcastState({ comments: postState.comments });
       return;
     }
 
     // STATE: REPLIED -> DM_SENT (for connected users)
     if (comment.connected && comment.dmStatus === '') {
       const stepContext = { ...context, step: 'DM_ATTEMPT' };
-      // The messaging URL is based on the member ID, which is part of the profile URL.
-      const profileIdMatch = comment.ownerProfileUrl.match(/\/in\/([^/]+)/);
-      if (!profileIdMatch || !profileIdMatch[1]) {
-        throw new Error(
-          `Could not extract profile ID from URL: ${comment.ownerProfileUrl}`
-        );
-      }
-      const profileId = profileIdMatch[1];
-      const messagingUrl = `https://www.linkedin.com/messaging/thread/new/?recipient=${profileId}`;
-
       logger.info('Attempting to send DM', stepContext);
-      const dmText = await generateDm(comment, postState);
+      comment.attempts.dm = 0;
 
-      if (!dmText) {
-        logger.error('AI DM generation failed', undefined, {
-          ...context,
-          step: 'GENERATE_DM_FAILED',
-        });
-        throw new Error('AI DM generation failed.');
-      }
-
-      logger.info('Generated DM, sending message', {
-        ...context,
-        step: 'SEND_DM',
-        dmLength: dmText.length,
-      });
-      comment.pipeline.generatedDm = dmText;
-
-      let dmTabId: number | undefined;
       try {
-        const tab = await chrome.tabs.create({
-          url: messagingUrl,
-          active: false,
-        });
-        dmTabId = tab.id;
-        if (!dmTabId) {
-          throw new Error('Failed to create a new tab for sending DM.');
+        const profileIdMatch = comment.ownerProfileUrl.match(/\/in\/([^/]+)/);
+        if (!profileIdMatch || !profileIdMatch[1]) {
+          throw new Error(
+            `Could not extract profile ID from URL: ${comment.ownerProfileUrl}`
+          );
+        }
+        const profileId = profileIdMatch[1];
+        const messagingUrl = `https://www.linkedin.com/messaging/thread/new/?recipient=${profileId}`;
+
+        const dmText = await generateDm(comment, postState);
+        if (!dmText) {
+          throw new Error('AI DM generation failed after all retries.');
         }
 
-        // Wait for the tab to load completely
-        await new Promise<void>((resolve, reject) => {
-          const timeout = setTimeout(
-            () => reject(new Error('DM tab loading timed out')),
-            20000
-          );
-          const listener = (
-            tabId: number,
-            changeInfo: chrome.tabs.TabChangeInfo
-          ) => {
-            if (tabId === dmTabId && changeInfo.status === 'complete') {
-              clearTimeout(timeout);
-              chrome.tabs.onUpdated.removeListener(listener);
-              resolve();
+        logger.info('Generated DM, sending message', {
+          ...context,
+          step: 'SEND_DM',
+          dmLength: dmText.length,
+        });
+        comment.pipeline.generatedDm = dmText;
+
+        let dmTabId: number | undefined;
+        try {
+          const tab = await chrome.tabs.create({
+            url: messagingUrl,
+            active: false,
+          });
+          dmTabId = tab.id;
+          if (!dmTabId) {
+            throw new Error('Failed to create a new tab for sending DM.');
+          }
+
+          await new Promise<void>((resolve, reject) => {
+            const timeout = setTimeout(
+              () => reject(new Error('DM tab loading timed out')),
+              20000
+            );
+            const listener = (
+              tabId: number,
+              changeInfo: chrome.tabs.TabChangeInfo
+            ) => {
+              if (tabId === dmTabId && changeInfo.status === 'complete') {
+                clearTimeout(timeout);
+                chrome.tabs.onUpdated.removeListener(listener);
+                resolve();
+              }
+            };
+            chrome.tabs.onUpdated.addListener(listener);
+          });
+
+          await new Promise((resolve) => setTimeout(resolve, 3000));
+
+          await retryAsyncFunction(
+            async () => {
+              comment.attempts.dm++;
+              const dmSuccess = await sendMessageToTab<boolean>(dmTabId, {
+                type: 'SEND_DM',
+                payload: { dmText },
+              });
+              if (!dmSuccess) {
+                throw new Error('Content script failed to send DM');
+              }
+            },
+            {
+              maxRetries: MAX_RETRIES,
+              initialDelay: INITIAL_DELAY,
+              onRetry: (error, attempt) => {
+                logger.warn(
+                  `Send DM attempt ${attempt}/${MAX_RETRIES} failed`,
+                  error,
+                  { ...stepContext, attempt }
+                );
+              },
             }
-          };
-          chrome.tabs.onUpdated.addListener(listener);
-        });
+          );
 
-        // Give the page a moment to settle after loading
-        await new Promise((resolve) => setTimeout(resolve, 3000));
-
-        const dmSuccess = await sendMessageToTab<boolean>(dmTabId, {
-          type: 'SEND_DM',
-          payload: { dmText },
-        });
-
-        if (dmSuccess) {
           comment.dmStatus = 'DONE';
           comment.pipeline.dmAt = new Date().toISOString();
           logger.info('DM sent successfully', {
             ...context,
             step: 'DM_SUCCESS',
           });
-          await savePostState(postState._meta.postId, postState);
-          broadcastState({ comments: postState.comments });
-        } else {
-          logger.error(
-            'Send DM action failed in content script',
-            new Error('sendMessageToTab returned false'),
-            { ...context, step: 'DM_FAILED' }
-          );
-          throw new Error(
-            `Send DM action failed for comment ${comment.commentId}`
-          );
+        } finally {
+          if (dmTabId) {
+            await chrome.tabs.remove(dmTabId);
+          }
         }
-      } finally {
-        if (dmTabId) {
-          await chrome.tabs.remove(dmTabId);
-        }
+      } catch (error) {
+        logger.error('Failed to send DM after all retries', error, {
+          ...context,
+          step: 'DM_FAILED_FINAL',
+        });
+        comment.dmStatus = 'FAILED';
+        comment.lastError = (error as Error).message;
       }
+
+      await savePostState(postState._meta.postId, postState);
+      broadcastState({ comments: postState.comments });
       return;
     }
   } catch (error) {
-    logger.error('Failed to process comment', error, {
+    logger.error('An unexpected error occurred while processing comment', error, {
       ...context,
-      step: 'PROCESS_COMMENT_FAILED',
+      step: 'PROCESS_COMMENT_UNEXPECTED_ERROR',
     });
-    // TODO: Implement error handling (update lastError, attempts, set status to FAILED)
+    // Mark the current step as failed if possible
+    if (comment.likeStatus === '') comment.likeStatus = 'FAILED';
+    else if (comment.replyStatus === '') comment.replyStatus = 'FAILED';
+    else if (comment.connected && comment.dmStatus === '')
+      comment.dmStatus = 'FAILED';
+
+    comment.lastError = `Unexpected error: ${(error as Error).message}`;
+    await savePostState(postState._meta.postId, postState);
+    broadcastState({ comments: postState.comments });
   }
 };
 
