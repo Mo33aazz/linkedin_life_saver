@@ -30,6 +30,7 @@ export interface PipelineTimestamps {
   likedAt: string;
   repliedAt: string;
   dmAt: string;
+  generatedReply?: string;
 }
 
 /**
@@ -124,6 +125,37 @@ export interface AIConfig {
   dm: DmConfig;
   attribution: AttributionConfig;
   modelFilters: ModelFiltersConfig;
+}
+
+/**
+ * Represents a single message in a chat completion request.
+ */
+export interface ChatMessage {
+  role: 'system' | 'user' | 'assistant';
+  content: string;
+}
+
+/**
+ * Represents the payload for the OpenRouter Chat Completions API.
+ */
+export interface ChatCompletionRequestPayload {
+  model: string;
+  messages: ChatMessage[];
+  temperature?: number;
+  top_p?: number;
+  max_tokens?: number;
+  stream?: boolean;
+}
+
+/**
+ * Represents a simplified structure of the response from the OpenRouter Chat Completions API.
+ */
+export interface OpenRouterChatCompletionResponse {
+  choices: {
+    message: {
+      content: string;
+    };
+  }[];
 }
 
 /**

@@ -1,7 +1,14 @@
 // src/background/services/pipelineManager.ts
 
-import { RunState, PostState, Comment } from '../../shared/types';
+import {
+  RunState,
+  PostState,
+  Comment,
+  ChatMessage,
+} from '../../shared/types';
 import { getPostState, savePostState } from './stateManager';
+import { getConfig } from './configManager';
+import { OpenRouterClient } from './openRouterClient';
 
 // Internal state for the pipeline
 let pipelineStatus: RunState = 'idle';
@@ -44,6 +51,54 @@ const findNextComment = (postState: PostState): Comment | null => {
   return null; // No more comments to process
 };
 
+const generateReply = async (
+  comment: Comment,
+  postState: PostState
+): Promise<string | null> => {
+  try {
+    const aiConfig = getConfig();
+    if (!aiConfig.apiKey) {
+      console.error('OpenRouter API key is not set.');
+      return null;
+    }
+
+    const client = new OpenRouterClient(aiConfig.apiKey, aiConfig.attribution);
+
+    // Note: Some template variables are placeholders for now.
+    // In a future task, these would be dynamically populated.
+    const systemPrompt = aiConfig.reply.customPrompt; // Simplified for now
+    const userMessageContent = `
+      Post URL: ${postState._meta.postUrl}
+      My persona: ${systemPrompt}
+      Original comment (from ${comment.ownerProfileUrl}):
+      '${comment.text}'
+      Output: ONLY the reply text. If the comment is irrelevant, toxic, or spam, output exactly '__SKIP__'.
+    `;
+
+    const messages: ChatMessage[] = [
+      {
+        role: 'system',
+        content:
+          'You are a helpful LinkedIn engagement assistant. Your goal is to write brief, genuinely specific replies to post comments based on the user-provided persona.',
+      },
+      { role: 'user', content: userMessageContent },
+    ];
+
+    const replyText = await client.createChatCompletion({
+      model: aiConfig.model,
+      messages: messages,
+      temperature: aiConfig.temperature,
+      top_p: aiConfig.top_p,
+      max_tokens: aiConfig.max_tokens,
+    });
+
+    return replyText;
+  } catch (error) {
+    console.error('Failed to generate AI reply:', error);
+    return null;
+  }
+};
+
 const processComment = async (
   comment: Comment,
   postState: PostState
@@ -74,9 +129,29 @@ const processComment = async (
 
     // STATE: LIKED -> REPLIED
     if (comment.replyStatus === '') {
-      console.log(`Replying to comment: ${comment.commentId}`);
-      // This will involve calling the OpenRouterClient and then the domInteractor.
-      // For now, we'll simulate success.
+      console.log(`Generating reply for comment: ${comment.commentId}`);
+
+      const replyText = await generateReply(comment, postState);
+
+      if (replyText === null) {
+        throw new Error('AI reply generation failed.');
+      }
+
+      if (replyText === '__SKIP__') {
+        console.log(`AI requested to skip comment ${comment.commentId}.`);
+        comment.replyStatus = 'DONE'; // Mark as done to skip
+        comment.lastError = 'Skipped by AI';
+        comment.pipeline.repliedAt = new Date().toISOString();
+        await savePostState(postState._meta.postId, postState);
+        broadcastUpdate();
+        return;
+      }
+
+      console.log(`Generated reply for ${comment.commentId}: '${replyText}'`);
+      comment.pipeline.generatedReply = replyText;
+
+      // TODO (I6.T4): Send the replyText to the domInteractor to be posted.
+      // For now, we'll simulate success as per the task scope.
       comment.replyStatus = 'DONE';
       comment.pipeline.repliedAt = new Date().toISOString();
       await savePostState(postState._meta.postId, postState);

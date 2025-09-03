@@ -1,5 +1,10 @@
 // 1. Import the AttributionConfig type for type safety.
-import { AttributionConfig, OpenRouterModel } from '../../shared/types';
+import {
+  AttributionConfig,
+  OpenRouterModel,
+  ChatCompletionRequestPayload,
+  OpenRouterChatCompletionResponse,
+} from '../../shared/types';
 
 // 2. Define the base URL for the OpenRouter API as a constant.
 const API_BASE_URL = 'https://openrouter.ai/api/v1';
@@ -54,12 +59,43 @@ export class OpenRouterClient {
 
   /**
    * Creates a chat completion using the specified model and messages.
-   * @returns A promise that resolves to the chat completion response.
+   * @param payload The request payload containing the model, messages, and other parameters.
+   * @returns A promise that resolves to the AI-generated reply string.
    */
-  public async createChatCompletion(): Promise<unknown> {
-    // TODO: Implement the fetch call to the /chat/completions endpoint in a later task.
-    console.log('Creating chat completion...');
-    // For now, returning a resolved promise.
-    return Promise.resolve({});
+  public async createChatCompletion(
+    payload: ChatCompletionRequestPayload
+  ): Promise<string> {
+    // 1. Append the Content-Type header for the POST request.
+    this.#headers.append('Content-Type', 'application/json');
+
+    const response = await fetch(`${API_BASE_URL}/chat/completions`, {
+      method: 'POST',
+      headers: this.#headers,
+      body: JSON.stringify(payload),
+    });
+
+    // 2. Clean up the header for subsequent requests that might be GET.
+    this.#headers.delete('Content-Type');
+
+    if (!response.ok) {
+      const errorBody = await response.json().catch(() => ({}));
+      const errorMessage =
+        errorBody?.error?.message || `HTTP error! status: ${response.status}`;
+      throw new Error(`Chat completion failed: ${errorMessage}`);
+    }
+
+    const jsonResponse =
+      (await response.json()) as OpenRouterChatCompletionResponse;
+
+    if (
+      !jsonResponse.choices ||
+      jsonResponse.choices.length === 0 ||
+      !jsonResponse.choices[0].message?.content
+    ) {
+      throw new Error('Invalid response structure from OpenRouter API.');
+    }
+
+    // 3. Return the content of the first message choice.
+    return jsonResponse.choices[0].message.content.trim();
   }
 }
