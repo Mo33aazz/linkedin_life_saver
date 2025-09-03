@@ -77,8 +77,14 @@ export const updateConfig = async (
       ...newConfig.attribution,
     },
     modelFilters: {
-      ...existingConfig.modelFilters,
-      ...newConfig.modelFilters,
+      onlyTextOutput:
+        newConfig.modelFilters?.onlyTextOutput ??
+        existingConfig.modelFilters?.onlyTextOutput ??
+        defaultAIConfig.modelFilters!.onlyTextOutput,
+      minContext:
+        newConfig.modelFilters?.minContext ??
+        existingConfig.modelFilters?.minContext ??
+        defaultAIConfig.modelFilters!.minContext,
     },
   };
 

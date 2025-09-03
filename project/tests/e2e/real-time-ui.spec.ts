@@ -144,7 +144,7 @@ test.describe('Real-time UI Updates', () => {
     const infoLog: ExtensionMessage = {
       type: 'LOG_ENTRY',
       payload: {
-        timestamp: Date.now(),
+        timestamp: new Date().toISOString(),
         level: 'INFO',
         message: 'Pipeline processing started.',
       },
@@ -152,7 +152,7 @@ test.describe('Real-time UI Updates', () => {
     const errorLog: ExtensionMessage = {
       type: 'LOG_ENTRY',
       payload: {
-        timestamp: Date.now() + 1, // ensure different timestamp
+        timestamp: new Date(Date.now() + 1).toISOString(), // ensure different timestamp
         level: 'ERROR',
         message: 'Failed to generate AI reply: API key invalid.',
       },

@@ -59,9 +59,14 @@ export const AiSettings = () => {
   };
 
   const handleFetchModels = async (
-    currentApiKey: string,
-    currentModel: string
+    currentApiKey: string | undefined,
+    currentModel: string | undefined
   ) => {
+    if (!currentApiKey) {
+      setError('API key must be provided to test.');
+      setTestStatus('error');
+      return;
+    }
     setIsLoading(true);
     setModels([]);
     setError(null);

@@ -308,7 +308,7 @@ const processComment = async (
         await retryAsyncFunction(
           async () => {
             comment.attempts.like++;
-            const likeSuccess = await sendMessageToTab<boolean>(activeTabId, {
+            const likeSuccess = await sendMessageToTab<boolean>(activeTabId!, {
               type: 'LIKE_COMMENT',
               payload: { commentId: comment.commentId },
             });
@@ -391,7 +391,7 @@ const processComment = async (
         await retryAsyncFunction(
           async () => {
             comment.attempts.reply++;
-            const replySuccess = await sendMessageToTab<boolean>(activeTabId, {
+            const replySuccess = await sendMessageToTab<boolean>(activeTabId!, {
               type: 'REPLY_TO_COMMENT',
               payload: { commentId: comment.commentId, replyText },
             });
@@ -496,7 +496,7 @@ const processComment = async (
           await retryAsyncFunction(
             async () => {
               comment.attempts.dm++;
-              const dmSuccess = await sendMessageToTab<boolean>(dmTabId, {
+              const dmSuccess = await sendMessageToTab<boolean>(dmTabId!, {
                 type: 'SEND_DM',
                 payload: { dmText },
               });

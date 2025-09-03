@@ -39,7 +39,11 @@ export class Logger {
     this.info('Logger initialized.');
   }
 
-  private log(level: LogLevel, message: string, context?: object): void {
+  private log(
+    level: LogLevel,
+    message: string,
+    context?: Record<string, unknown>
+  ): void {
     const logEntry: LogEntry = {
       timestamp: new Date().toISOString(),
       level,
@@ -78,7 +82,7 @@ export class Logger {
    * @param message The main log message.
    * @param context Optional structured data.
    */
-  public info(message: string, context?: object): void {
+  public info(message: string, context?: Record<string, unknown>): void {
     this.log('INFO', message, context);
   }
 
@@ -87,7 +91,7 @@ export class Logger {
    * @param message The main log message.
    * @param context Optional structured data.
    */
-  public warn(message: string, context?: object): void {
+  public warn(message: string, context?: Record<string, unknown>): void {
     this.log('WARN', message, context);
   }
 
@@ -97,7 +101,11 @@ export class Logger {
    * @param error The Error object.
    * @param context Optional additional structured data.
    */
-  public error(message: string, error?: unknown, context?: object): void {
+  public error(
+    message: string,
+    error?: unknown,
+    context?: Record<string, unknown>
+  ): void {
     const errorContext = {
       ...context,
       error:
@@ -120,7 +128,7 @@ export class Logger {
    * @param message The main log message.
    * @param context Optional structured data.
    */
-  public debug(message: string, context?: object): void {
+  public debug(message: string, context?: Record<string, unknown>): void {
     this.log('DEBUG', message, context);
   }
 }

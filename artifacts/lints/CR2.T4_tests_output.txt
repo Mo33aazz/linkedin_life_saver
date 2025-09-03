@@ -1,0 +1,16 @@
+
+> linkedin-engagement-assistant@0.0.0 build
+> tsc && vite build
+
+vite v5.4.19 building for production...
+transforming...
+✓ 30 modules transformed.
+rendering chunks...
+computing gzip size...
+dist/index.html         0.50 kB │ gzip:  0.30 kB
+dist/assets/popup.css   4.95 kB │ gzip:  1.45 kB
+dist/popup.js           0.80 kB │ gzip:  0.46 kB
+dist/content.js         5.73 kB │ gzip:  1.85 kB
+dist/background.js     20.31 kB │ gzip:  6.85 kB
+dist/chunks/App.js     35.25 kB │ gzip: 13.13 kB
+✓ built in 127ms
