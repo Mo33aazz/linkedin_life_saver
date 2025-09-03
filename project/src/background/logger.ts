@@ -113,6 +113,15 @@ export class Logger {
     };
     this.log('ERROR', message, errorContext);
   }
+
+  /**
+   * Logs a debug message.
+   * @param message The main log message.
+   * @param context Optional structured data.
+   */
+  public debug(message: string, context?: object): void {
+    this.log('DEBUG', message, context);
+  }
 }
 
 /**

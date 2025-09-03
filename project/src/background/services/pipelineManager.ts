@@ -1,5 +1,5 @@
 // src/background/services/pipelineManager.ts
-
+import { logger } from '../logger';
 import {
   RunState,
   PostState,
@@ -19,7 +19,7 @@ let isProcessing = false; // A lock to prevent concurrent processing loops
 
 // This will be set by the main service worker script to broadcast updates
 let broadcastState: (state: Partial<UIState>) => void = () => {
-  console.warn('broadcastState not initialized in PipelineManager');
+  logger.warn('broadcastState not initialized in PipelineManager');
 };
 
 // This will be set by the main service worker script to send messages to content scripts
@@ -27,7 +27,7 @@ let sendMessageToTab: <T>(
   tabId: number,
   message: { type: string; payload?: unknown }
 ) => Promise<T> = async () => {
-  console.warn('sendMessageToTab not initialized in PipelineManager');
+  logger.warn('sendMessageToTab not initialized in PipelineManager');
   return Promise.reject('sendMessageToTab not initialized');
 };
 
@@ -40,6 +40,7 @@ export const initPipelineManager = (
 ) => {
   broadcastState = broadcaster;
   sendMessageToTab = messageSender;
+  logger.info('PipelineManager initialized.');
 };
 
 const findNextComment = (postState: PostState): Comment | null => {
@@ -64,10 +65,12 @@ const generateReply = async (
   comment: Comment,
   postState: PostState
 ): Promise<string | null> => {
+  const context = { postId: postState._meta.postId, commentId: comment.commentId };
+  logger.info('Generating AI reply', context);
   try {
     const aiConfig = getConfig();
     if (!aiConfig.apiKey) {
-      console.error('OpenRouter API key is not set.');
+      logger.error('OpenRouter API key is not set.');
       return null;
     }
 
@@ -100,10 +103,13 @@ const generateReply = async (
       top_p: aiConfig.top_p,
       max_tokens: aiConfig.max_tokens,
     });
-
+    logger.info('AI reply generated successfully', {
+      ...context,
+      replyTextLength: replyText.length,
+    });
     return replyText;
   } catch (error) {
-    console.error('Failed to generate AI reply:', error);
+    logger.error('Failed to generate AI reply', error, context);
     return null;
   }
 };
@@ -112,10 +118,12 @@ const generateDm = async (
   comment: Comment,
   postState: PostState
 ): Promise<string | null> => {
+  const context = { postId: postState._meta.postId, commentId: comment.commentId };
+  logger.info('Generating AI DM', context);
   try {
     const aiConfig = getConfig();
     if (!aiConfig.apiKey) {
-      console.error('OpenRouter API key is not set.');
+      logger.error('OpenRouter API key is not set.');
       return null;
     }
 
@@ -145,10 +153,13 @@ const generateDm = async (
       top_p: aiConfig.top_p,
       max_tokens: aiConfig.max_tokens,
     });
-
+    logger.info('AI DM generated successfully', {
+      ...context,
+      dmTextLength: dmText.length,
+    });
     return dmText;
   } catch (error) {
-    console.error('Failed to generate AI DM:', error);
+    logger.error('Failed to generate AI DM', error, context);
     return null;
   }
 };
@@ -157,10 +168,14 @@ const processComment = async (
   comment: Comment,
   postState: PostState
 ): Promise<void> => {
+  const context = { postId: postState._meta.postId, commentId: comment.commentId };
   try {
     // STEP 1: Check connection status if it's unknown
     if (typeof comment.connected === 'undefined') {
-      console.log(`Checking connection status for ${comment.ownerProfileUrl}`);
+      logger.info('Checking connection status', {
+        ...context,
+        profileUrl: comment.ownerProfileUrl,
+      });
       let connectionTabId: number | undefined;
       try {
         const tab = await chrome.tabs.create({
@@ -207,17 +222,18 @@ const processComment = async (
 
         if (injectionResults && injectionResults.length > 0) {
           comment.connected = injectionResults[0].result as boolean;
-          console.log(
-            `Connection status for ${comment.ownerProfileUrl}: ${comment.connected}`
-          );
+          logger.info('Connection status determined', {
+            ...context,
+            connected: comment.connected,
+          });
         } else {
           throw new Error('Script injection failed or returned no result.');
         }
       } catch (error) {
-        console.error(
-          `Failed to check connection status for ${comment.ownerProfileUrl}:`,
-          error
-        );
+        logger.error('Failed to check connection status', error, {
+          ...context,
+          profileUrl: comment.ownerProfileUrl,
+        });
         comment.connected = false; // Default to false on error
         comment.lastError = (error as Error).message;
       } finally {
@@ -233,7 +249,7 @@ const processComment = async (
 
     // STATE: QUEUED -> LIKED
     if (comment.likeStatus === '') {
-      console.log(`Liking comment: ${comment.commentId}`);
+      logger.info('Liking comment', context);
       if (!activeTabId) {
         throw new Error('Cannot like comment, active tab ID is not set.');
       }
@@ -246,6 +262,7 @@ const processComment = async (
       if (likeSuccess) {
         comment.likeStatus = 'DONE';
         comment.pipeline.likedAt = new Date().toISOString();
+        logger.info('Comment liked successfully', context);
         await savePostState(postState._meta.postId, postState);
         broadcastState({ comments: postState.comments }); // Broadcast progress
       } else {
@@ -256,7 +273,7 @@ const processComment = async (
 
     // STATE: LIKED -> REPLIED
     if (comment.replyStatus === '') {
-      console.log(`Generating reply for comment: ${comment.commentId}`);
+      logger.info('Attempting to reply to comment', context);
 
       const replyText = await generateReply(comment, postState);
 
@@ -265,7 +282,7 @@ const processComment = async (
       }
 
       if (replyText === '__SKIP__') {
-        console.log(`AI requested to skip comment ${comment.commentId}.`);
+        logger.info('AI requested to skip comment', context);
         comment.replyStatus = 'DONE'; // Mark as done to skip
         comment.lastError = 'Skipped by AI';
         comment.pipeline.repliedAt = new Date().toISOString();
@@ -274,7 +291,10 @@ const processComment = async (
         return;
       }
 
-      console.log(`Generated reply for ${comment.commentId}: '${replyText}'`);
+      logger.info('Generated reply, submitting to page', {
+        ...context,
+        replyLength: replyText.length,
+      });
       comment.pipeline.generatedReply = replyText;
 
       // Send the replyText to the domInteractor to be posted.
@@ -290,6 +310,7 @@ const processComment = async (
       if (replySuccess) {
         comment.replyStatus = 'DONE';
         comment.pipeline.repliedAt = new Date().toISOString();
+        logger.info('Comment replied to successfully', context);
         await savePostState(postState._meta.postId, postState);
         broadcastState({ comments: postState.comments }); // Broadcast progress
       } else {
@@ -310,14 +331,17 @@ const processComment = async (
       const profileId = profileIdMatch[1];
       const messagingUrl = `https://www.linkedin.com/messaging/thread/new/?recipient=${profileId}`;
 
-      console.log(`Generating DM for comment: ${comment.commentId}`);
+      logger.info('Attempting to send DM', context);
       const dmText = await generateDm(comment, postState);
 
       if (!dmText) {
         throw new Error('AI DM generation failed.');
       }
 
-      console.log(`Generated DM for ${comment.commentId}: '${dmText}'`);
+      logger.info('Generated DM, sending message', {
+        ...context,
+        dmLength: dmText.length,
+      });
       comment.pipeline.generatedDm = dmText;
 
       let dmTabId: number | undefined;
@@ -361,6 +385,7 @@ const processComment = async (
         if (dmSuccess) {
           comment.dmStatus = 'DONE';
           comment.pipeline.dmAt = new Date().toISOString();
+          logger.info('DM sent successfully', context);
           await savePostState(postState._meta.postId, postState);
           broadcastState({ comments: postState.comments });
         } else {
@@ -376,28 +401,31 @@ const processComment = async (
       return;
     }
   } catch (error) {
-    console.error(`Failed to process comment ${comment.commentId}:`, error);
+    logger.error('Failed to process comment', error, context);
     // TODO: Implement error handling (update lastError, attempts, set status to FAILED)
   }
 };
 
 const processQueue = async (): Promise<void> => {
   if (isProcessing) {
-    console.log('Processing is already in progress.');
+    logger.info('Processing is already in progress.');
     return;
   }
   isProcessing = true;
+  logger.info('Starting processing queue.', { postUrn: activePostUrn });
 
   while (pipelineStatus === 'running') {
     if (!activePostUrn) {
-      console.error('No active post URN. Stopping pipeline.');
+      logger.error('No active post URN. Stopping pipeline.');
       pipelineStatus = 'error';
       break;
     }
 
     const postState = getPostState(activePostUrn);
     if (!postState) {
-      console.error(`State for post ${activePostUrn} not found. Stopping.`);
+      logger.error('State for post not found. Stopping.', undefined, {
+        postUrn: activePostUrn,
+      });
       pipelineStatus = 'error';
       break;
     }
@@ -405,13 +433,19 @@ const processQueue = async (): Promise<void> => {
     const nextComment = findNextComment(postState);
 
     if (!nextComment) {
-      console.log('All comments have been processed. Pipeline finished.');
+      logger.info('All comments have been processed. Pipeline finished.', {
+        postUrn: activePostUrn,
+      });
       pipelineStatus = 'idle';
       postState._meta.runState = 'idle';
       await savePostState(postState._meta.postId, postState);
       break; // Exit the loop
     }
 
+    logger.info('Processing next comment', {
+      postId: postState._meta.postId,
+      commentId: nextComment.commentId,
+    });
     await processComment(nextComment, postState);
 
     // TODO: Implement a configurable delay with jitter later
@@ -419,7 +453,10 @@ const processQueue = async (): Promise<void> => {
   }
 
   isProcessing = false;
-  console.log(`Processing loop ended. Final status: ${pipelineStatus}`);
+  logger.info('Processing loop ended.', {
+    finalStatus: pipelineStatus,
+    postUrn: activePostUrn,
+  });
   const finalPostState = activePostUrn ? getPostState(activePostUrn) : null;
   broadcastState({
     pipelineStatus,
@@ -432,16 +469,21 @@ export const startPipeline = async (
   tabId: number
 ): Promise<void> => {
   if (pipelineStatus !== 'idle') {
-    console.warn(`Pipeline cannot be started from state: ${pipelineStatus}`);
+    logger.warn('Pipeline cannot be started', {
+      currentState: pipelineStatus,
+      postUrn,
+    });
     return;
   }
   const postState = getPostState(postUrn);
   if (!postState) {
-    console.error(`Cannot start pipeline, no state found for post ${postUrn}`);
+    logger.error('Cannot start pipeline, no state found for post', undefined, {
+      postUrn,
+    });
     return;
   }
 
-  console.log(`Starting pipeline for post: ${postUrn} on tab ${tabId}`);
+  logger.info('Starting pipeline', { postUrn, tabId });
   pipelineStatus = 'running';
   activePostUrn = postUrn;
   activeTabId = tabId;
@@ -454,16 +496,16 @@ export const startPipeline = async (
 
 export const stopPipeline = async (): Promise<void> => {
   if (pipelineStatus !== 'running') {
-    console.warn('Pipeline is not running.');
+    logger.warn('Pipeline is not running, cannot stop.', { status: pipelineStatus });
     return;
   }
   if (!activePostUrn) {
-    console.error('Cannot stop pipeline, no active post.');
+    logger.error('Cannot stop pipeline, no active post.');
     pipelineStatus = 'error'; // Should not happen
     return;
   }
 
-  console.log('Stopping pipeline...');
+  logger.info('Stopping pipeline...', { postUrn: activePostUrn });
   pipelineStatus = 'paused';
 
   const postState = getPostState(activePostUrn);
@@ -476,21 +518,25 @@ export const stopPipeline = async (): Promise<void> => {
 
 export const resumePipeline = async (): Promise<void> => {
   if (pipelineStatus !== 'paused') {
-    console.warn('Pipeline is not paused.');
+    logger.warn('Pipeline is not paused, cannot resume.', {
+      status: pipelineStatus,
+    });
     return;
   }
   if (!activePostUrn) {
-    console.error('Cannot resume, no active post was paused.');
+    logger.error('Cannot resume, no active post was paused.');
     return;
   }
 
   const postState = getPostState(activePostUrn);
   if (!postState) {
-    console.error(`Cannot resume, no state found for post ${activePostUrn}`);
+    logger.error('Cannot resume, no state found for post', undefined, {
+      postUrn: activePostUrn,
+    });
     return;
   }
 
-  console.log(`Resuming pipeline for post: ${activePostUrn}`);
+  logger.info('Resuming pipeline', { postUrn: activePostUrn });
   pipelineStatus = 'running';
   postState._meta.runState = 'running';
   await savePostState(activePostUrn, postState);

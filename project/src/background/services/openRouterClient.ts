@@ -5,6 +5,7 @@ import {
   ChatCompletionRequestPayload,
   OpenRouterChatCompletionResponse,
 } from '../../shared/types';
+import { logger } from '../logger';
 
 // 2. Define the base URL for the OpenRouter API as a constant.
 const API_BASE_URL = 'https://openrouter.ai/api/v1';
@@ -39,6 +40,7 @@ export class OpenRouterClient {
    * @returns A promise that resolves to the list of models.
    */
   public async getModels(): Promise<OpenRouterModel[]> {
+    logger.info('Fetching models from OpenRouter.');
     const response = await fetch(`${API_BASE_URL}/models`, {
       method: 'GET',
       headers: this.#headers,
@@ -49,10 +51,16 @@ export class OpenRouterClient {
       const errorBody = await response.json().catch(() => ({}));
       const errorMessage =
         errorBody?.error?.message || `HTTP error! status: ${response.status}`;
-      throw new Error(`Failed to fetch models: ${errorMessage}`);
+      const error = new Error(`Failed to fetch models: ${errorMessage}`);
+      logger.error('OpenRouter API request failed', error, {
+        endpoint: '/models',
+        status: response.status,
+      });
+      throw error;
     }
 
     const jsonResponse = await response.json();
+    logger.info('Successfully fetched models from OpenRouter.');
     // The models are in the 'data' property of the response object
     return jsonResponse.data as OpenRouterModel[];
   }
@@ -65,6 +73,9 @@ export class OpenRouterClient {
   public async createChatCompletion(
     payload: ChatCompletionRequestPayload
   ): Promise<string> {
+    logger.info('Requesting chat completion from OpenRouter', {
+      model: payload.model,
+    });
     // 1. Append the Content-Type header for the POST request.
     this.#headers.append('Content-Type', 'application/json');
 
@@ -81,7 +92,12 @@ export class OpenRouterClient {
       const errorBody = await response.json().catch(() => ({}));
       const errorMessage =
         errorBody?.error?.message || `HTTP error! status: ${response.status}`;
-      throw new Error(`Chat completion failed: ${errorMessage}`);
+      const error = new Error(`Chat completion failed: ${errorMessage}`);
+      logger.error('OpenRouter API request failed', error, {
+        endpoint: '/chat/completions',
+        status: response.status,
+      });
+      throw error;
     }
 
     const jsonResponse =
@@ -92,9 +108,12 @@ export class OpenRouterClient {
       jsonResponse.choices.length === 0 ||
       !jsonResponse.choices[0].message?.content
     ) {
-      throw new Error('Invalid response structure from OpenRouter API.');
+      const error = new Error('Invalid response structure from OpenRouter API.');
+      logger.error(error.message, error, { response: jsonResponse });
+      throw error;
     }
 
+    logger.info('Successfully received chat completion from OpenRouter.');
     // 3. Return the content of the first message choice.
     return jsonResponse.choices[0].message.content.trim();
   }
