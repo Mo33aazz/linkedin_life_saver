@@ -188,6 +188,7 @@ export interface ExtensionMessage {
     | 'START_PIPELINE'
     | 'STOP_PIPELINE'
     | 'RESUME_PIPELINE'
-    | 'LIKE_COMMENT';
+    | 'LIKE_COMMENT'
+    | 'REPLY_TO_COMMENT';
   payload?: unknown;
 }

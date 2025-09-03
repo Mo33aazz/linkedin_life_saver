@@ -150,12 +150,24 @@ const processComment = async (
       console.log(`Generated reply for ${comment.commentId}: '${replyText}'`);
       comment.pipeline.generatedReply = replyText;
 
-      // TODO (I6.T4): Send the replyText to the domInteractor to be posted.
-      // For now, we'll simulate success as per the task scope.
-      comment.replyStatus = 'DONE';
-      comment.pipeline.repliedAt = new Date().toISOString();
-      await savePostState(postState._meta.postId, postState);
-      broadcastUpdate(); // Broadcast progress
+      // Send the replyText to the domInteractor to be posted.
+      if (!activeTabId) {
+        throw new Error('Cannot reply to comment, active tab ID is not set.');
+      }
+
+      const replySuccess = await sendMessageToTab<boolean>(activeTabId, {
+        type: 'REPLY_TO_COMMENT',
+        payload: { commentId: comment.commentId, replyText },
+      });
+
+      if (replySuccess) {
+        comment.replyStatus = 'DONE';
+        comment.pipeline.repliedAt = new Date().toISOString();
+        await savePostState(postState._meta.postId, postState);
+        broadcastUpdate(); // Broadcast progress
+      } else {
+        throw new Error(`Reply action failed for comment ${comment.commentId}`);
+      }
       return;
     }
   } catch (error) {
