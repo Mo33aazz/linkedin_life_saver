@@ -5,7 +5,7 @@ import {
   savePostState,
   loadAllStates,
 } from './services/stateManager';
-import { Post, PostState, UIState, CommentStats } from '../shared/types';
+import { Post, PostState, UIState } from '../shared/types';
 
 console.log('LinkedIn Engagement Assistant Service Worker loaded.');
 
