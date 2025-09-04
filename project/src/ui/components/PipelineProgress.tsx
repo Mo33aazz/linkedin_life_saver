@@ -68,8 +68,8 @@ const Stepper = ({ likeStatus, replyStatus, dmStatus }: StepperProps) => {
     <div className="stepper-container">
       {steps.map((step, index) => (
         <div key={step} className={`step-item step-${statuses[index]}`}>
-          <div className="step-indicator" />
-          <p className="step-label">{step}</p>
+          <div className="step-indicator" data-testid="status-indicator" />
+          <p className="step-label" data-testid="status-indicator">{step}</p>
         </div>
       ))}
     </div>
@@ -85,7 +85,11 @@ const CommentRow = ({ comment }: { comment: Comment }) => {
       : comment.text;
 
   return (
-    <div className="comment-row">
+    <div 
+      className="comment-row"
+      data-testid={`pipeline-row-${comment.commentId}`}
+      data-comment-id={comment.commentId}
+    >
       <div className="comment-info">
         <p className="comment-author">{author}</p>
         <p className="comment-text" title={comment.text}>

@@ -32,7 +32,10 @@ const LogEntryItem = ({ log }: { log: LogEntry }) => {
   };
 
   return (
-    <div className={`log-entry ${getLogLevelClass(log.level)}`}>
+    <div 
+      className={`log-entry ${getLogLevelClass(log.level)}`}
+      data-testid={`log-entry-${log.timestamp}`}
+    >
       <span className="log-timestamp">{new Date(log.timestamp).toLocaleTimeString()}</span>
       <span className="log-level">{log.level}</span>
       <span className="log-message">{log.message}</span>

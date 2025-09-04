@@ -84,8 +84,8 @@ async function verifyBackgroundState(
   const actualState = await background.evaluate(() => {
     // Access the pipeline manager's state if exposed
     // This assumes the service worker exposes a global method for testing
-    if (typeof (self as any).getPipelineStatus === 'function') {
-      return (self as any).getPipelineStatus();
+    if (typeof (self as unknown as { getPipelineStatus?: () => string }).getPipelineStatus === 'function') {
+      return (self as unknown as { getPipelineStatus: () => string }).getPipelineStatus();
     }
     return 'unknown';
   });
@@ -125,7 +125,7 @@ test.describe('Pipeline Controls E2E', () => {
   // Test fixture: LinkedIn post URL with comments
   const TEST_POST_URL = 'https://www.linkedin.com/feed/update/urn:li:activity:7368619407989760000/';
   
-  test.beforeEach(async ({ page, context, extensionId }) => {
+  test.beforeEach(async ({ page }) => {
     // Navigate to the test post
     await page.goto(TEST_POST_URL);
     
@@ -296,7 +296,7 @@ test.describe('Pipeline Controls E2E', () => {
     expect(stats.processed + stats.remaining).toBeGreaterThan(0);
   });
 
-  test('should recover state after page reload', async ({ page, context }) => {
+  test('should recover state after page reload', async ({ page }) => {
     // Start the pipeline and let it process some comments
     await clickShadowButton(page, 'start-button');
     await waitForStateChange(page, 'running', 10000);
@@ -340,7 +340,7 @@ test.describe('Pipeline Controls E2E', () => {
     await waitForStateChange(page, 'running', 10000);
   });
 
-  test('should show error state on failure', async ({ page, background }) => {
+  test('should show error state on failure', async ({ page }) => {
     // Simulate an error condition by invalidating the API key
     await page.evaluate(() => {
       chrome.storage.sync.set({ 
@@ -395,7 +395,7 @@ test.describe('Pipeline Controls E2E', () => {
         }
         
         // Collect progress updates over 5 seconds
-        const updates: any[] = [];
+        const updates: Array<{ commentId: string | null; status: string | null; timestamp: number }> = [];
         const startTime = Date.now();
         
         const checkProgress = () => {
@@ -419,10 +419,11 @@ test.describe('Pipeline Controls E2E', () => {
     
     // Verify that we captured state transitions
     expect(progressRows).toBeInstanceOf(Array);
-    expect((progressRows as any[]).length).toBeGreaterThan(0);
+    const typedProgressRows = progressRows as Array<{ commentId: string | null; status: string | null; timestamp: number }>;
+    expect(typedProgressRows.length).toBeGreaterThan(0);
     
     // Verify state transitions follow the expected pattern
-    const transitions = new Set((progressRows as any[]).map(r => r.status));
+    const transitions = new Set(typedProgressRows.map(r => r.status));
     const expectedStates = ['Queued', 'Liked', 'Replied'];
     const hasExpectedTransitions = expectedStates.some(state => transitions.has(state));
     expect(hasExpectedTransitions).toBe(true);
@@ -465,7 +466,7 @@ test.describe('Pipeline Controls - Edge Cases', () => {
       const originalQuerySelectorAll = document.querySelectorAll.bind(document);
       document.querySelectorAll = function(selector: string) {
         if (selector.includes('comments-comment-entity')) {
-          return [] as any;
+          return [] as unknown as NodeListOf<Element>;
         }
         return originalQuerySelectorAll(selector);
       };
