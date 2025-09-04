@@ -1,8 +1,8 @@
 import { test, expect } from './fixtures';
 import type { PostState } from '../../src/shared/types';
 
-const MOCK_POST_URN = 'urn:li:activity:7123456789012345678';
-const MOCK_POST_ID = '7123456789012345678';
+const MOCK_POST_URN = 'urn:li:activity:7368619407989760000';
+const MOCK_POST_ID = '7368619407989760000';
 
 // A mock state with one comment that needs processing. This will be injected
 // into the service worker's storage to set up the test precondition.
