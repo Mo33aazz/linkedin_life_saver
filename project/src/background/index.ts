@@ -41,8 +41,10 @@ logger.info('LinkedIn Engagement Assistant Service Worker loaded.');
 // Load all persisted states into memory on startup
 loadAllStates();
 
-// Initialize the configuration on startup.
-initializeConfig();
+// Initialize the configuration on startup. This returns a promise that resolves
+// when the configuration is loaded. We await this promise in message handlers
+// that depend on the config.
+const configInitializationPromise = initializeConfig();
 
 /**
  * Broadcasts the latest state to all UI components.
@@ -173,19 +175,22 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
   }
 
   if (message.type === 'UPDATE_AI_CONFIG') {
-    // eslint-disable-next-line @typescript-eslint/no-unused-vars
-    const { apiKey: _apiKey, ...safeConfig } = message.payload as Partial<AIConfig>;
-    logger.info('Received request to update AI config', {
-      config: safeConfig,
-    });
-    updateConfig(message.payload as Partial<AIConfig>)
-      .then(() => {
+    (async () => {
+      try {
+        await configInitializationPromise;
+        // eslint-disable-next-line @typescript-eslint/no-unused-vars
+        const { apiKey: _apiKey, ...safeConfig } =
+          message.payload as Partial<AIConfig>;
+        logger.info('Received request to update AI config', {
+          config: safeConfig,
+        });
+        await updateConfig(message.payload as Partial<AIConfig>);
         sendResponse({ status: 'success' });
-      })
-      .catch((error) => {
+      } catch (error) {
         logger.error('Failed to update AI config', error);
         sendResponse({ status: 'error', message: (error as Error).message });
-      });
+      }
+    })();
     return true; // Indicate async response
   }
 
@@ -193,6 +198,7 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
     logger.info('Received request for AI config.');
     (async () => {
       try {
+        await configInitializationPromise;
         const config = getConfig();
         sendResponse({ status: 'success', payload: config });
       } catch (error) {
@@ -207,6 +213,7 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
     logger.info('Received request to get models from OpenRouter.');
     (async () => {
       try {
+        await configInitializationPromise;
         const config = getConfig();
         if (!config.apiKey) {
           throw new Error('OpenRouter API key is not set.');
@@ -262,34 +269,54 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
   }
 
   if (message.type === 'START_PIPELINE') {
-    const { postUrn } = message.payload as { postUrn: string };
-    const tabId = sender.tab?.id;
-    if (!tabId) {
-      const errorMsg = 'Could not get tab ID to start pipeline.';
-      logger.error(errorMsg, undefined, { postUrn });
-      sendResponse({ status: 'error', message: errorMsg });
-      return true;
-    }
-    logger.info('Received START_PIPELINE message', { postUrn, tabId });
-    startPipeline(postUrn, tabId).then(() => {
-      sendResponse({ status: 'success' });
-    });
+    (async () => {
+      try {
+        await configInitializationPromise;
+        const { postUrn } = message.payload as { postUrn: string };
+        const tabId = sender.tab?.id;
+        if (!tabId) {
+          throw new Error('Could not get tab ID to start pipeline.');
+        }
+        logger.info('Received START_PIPELINE message', { postUrn, tabId });
+        await startPipeline(postUrn, tabId);
+        sendResponse({ status: 'success' });
+      } catch (error) {
+        logger.error('Failed to start pipeline', error, {
+          payload: message.payload,
+        });
+        sendResponse({ status: 'error', message: (error as Error).message });
+      }
+    })();
     return true;
   }
 
   if (message.type === 'STOP_PIPELINE') {
-    logger.info('Received STOP_PIPELINE message');
-    stopPipeline().then(() => {
-      sendResponse({ status: 'success' });
-    });
+    (async () => {
+      try {
+        await configInitializationPromise;
+        logger.info('Received STOP_PIPELINE message');
+        await stopPipeline();
+        sendResponse({ status: 'success' });
+      } catch (error) {
+        logger.error('Failed to stop pipeline', error);
+        sendResponse({ status: 'error', message: (error as Error).message });
+      }
+    })();
     return true;
   }
 
   if (message.type === 'RESUME_PIPELINE') {
-    logger.info('Received RESUME_PIPELINE message');
-    resumePipeline().then(() => {
-      sendResponse({ status: 'success' });
-    });
+    (async () => {
+      try {
+        await configInitializationPromise;
+        logger.info('Received RESUME_PIPELINE message');
+        await resumePipeline();
+        sendResponse({ status: 'success' });
+      } catch (error) {
+        logger.error('Failed to resume pipeline', error);
+        sendResponse({ status: 'error', message: (error as Error).message });
+      }
+    })();
     return true;
   }
 

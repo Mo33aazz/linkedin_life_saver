@@ -34,7 +34,7 @@ export const AiSettings = () => {
 
         // If an API key is already present, fetch models automatically.
         if (config.apiKey) {
-          handleFetchModels(config.apiKey, config.model);
+          handleFetchModels(config.model);
         }
       } else {
         console.error('Failed to load AI config:', response.message);
@@ -43,74 +43,47 @@ export const AiSettings = () => {
     });
   }, []);
 
-  const handleSaveConfig = async () => {
-    const partialConfig: Partial<AIConfig> = {
-      apiKey,
-      model: selectedModel,
-      temperature,
-      top_p: topP,
-      reply: {
-        customPrompt: replyPrompt,
-      },
-      dm: {
-        customPrompt: dmPrompt,
-      },
-    };
-    chrome.runtime.sendMessage(
-      { type: 'UPDATE_AI_CONFIG', payload: partialConfig },
-      (response) => {
-        if (response.status === 'success') {
-          console.log('AI Config saved.');
-          // Optionally, provide user feedback like a toast message.
-        } else {
-          console.error('Failed to save AI config:', response.message);
-          setError(`Failed to save AI config: ${response.message}`);
+  const handleSaveConfig = () => {
+    return new Promise<void>((resolve, reject) => {
+      const partialConfig: Partial<AIConfig> = {
+        apiKey,
+        model: selectedModel,
+        temperature,
+        top_p: topP,
+        reply: {
+          customPrompt: replyPrompt,
+        },
+        dm: {
+          customPrompt: dmPrompt,
+        },
+      };
+      chrome.runtime.sendMessage(
+        { type: 'UPDATE_AI_CONFIG', payload: partialConfig },
+        (response) => {
+          if (response && response.status === 'success') {
+            console.log('AI Config saved.');
+            // Optionally, provide user feedback like a toast message.
+            resolve();
+          } else {
+            const errorMsg = `Failed to save AI config: ${
+              response?.message || 'No response from background script.'
+            }`;
+            console.error(errorMsg);
+            setError(errorMsg);
+            reject(new Error(errorMsg));
+          }
         }
-      }
-    );
+      );
+    });
   };
 
-  const handleFetchModels = async (
-    currentApiKey: string | undefined,
-    currentModel: string | undefined
-  ) => {
-    if (!currentApiKey) {
-      setError('API key must be provided to test.');
-      setTestStatus('error');
-      return;
-    }
+  const handleFetchModels = (currentModel: string | undefined) => {
     setIsLoading(true);
     setModels([]);
     setError(null);
     setTestStatus('idle');
 
-    // 1. Persist the entered API key. The service worker needs the latest key.
-    const partialConfig: Partial<AIConfig> = { apiKey: currentApiKey };
-    const saveResponse = await new Promise<{ status: string; message?: string }>(
-      (resolve) => {
-        chrome.runtime.sendMessage(
-          { type: 'UPDATE_AI_CONFIG', payload: partialConfig },
-          (res) =>
-            resolve(
-              res || {
-                status: 'error',
-                message: 'No response from background script.',
-              }
-            )
-        );
-      }
-    );
-
-    if (saveResponse.status !== 'success') {
-      setError(
-        `Failed to save API key before testing: ${saveResponse.message}`
-      );
-      setIsLoading(false);
-      setTestStatus('error');
-      return;
-    }
-
-    // 2. After the key is saved, request the models.
+    // Request models. The service worker will use the currently saved key.
     chrome.runtime.sendMessage({ type: 'GET_MODELS' }, (response) => {
       if (response.status === 'success') {
         const fetchedModels: OpenRouterModel[] = response.payload;
@@ -121,7 +94,9 @@ export const AiSettings = () => {
           setSelectedModel('');
         }
       } else {
-        setError(response.message);
+        setError(
+          `Failed to fetch models. Ensure your API key is saved and valid. Error: ${response.message}`
+        );
         setTestStatus('error');
       }
       setIsLoading(false);
@@ -129,7 +104,7 @@ export const AiSettings = () => {
   };
 
   const onTestClick = () => {
-    handleFetchModels(apiKey, selectedModel);
+    handleFetchModels(selectedModel);
   };
 
   return (
@@ -147,7 +122,6 @@ export const AiSettings = () => {
             value={apiKey}
             onInput={(e) => setApiKey((e.target as HTMLInputElement).value)}
           />
-          <button onClick={handleSaveConfig}>Save</button>
           <button onClick={onTestClick} disabled={isLoading}>
             {isLoading ? 'Testing...' : 'Test'}
           </button>
@@ -174,7 +148,7 @@ export const AiSettings = () => {
               ? 'Fetching models...'
               : models.length > 0
               ? 'Select a model...'
-              : 'Enter API key and test'}
+              : 'Save API key and test'}
           </option>
           {models.map((model) => (
             <option key={model.id} value={model.id}>
@@ -252,6 +226,12 @@ export const AiSettings = () => {
           <input type="checkbox" name="stream" checked />
           Stream Tokens
         </label>
+      </div>
+
+      <div className="form-group">
+        <button onClick={handleSaveConfig} className="save-button">
+          Save Settings
+        </button>
       </div>
     </div>
   );

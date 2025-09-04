@@ -1,19 +1,24 @@
 
 > linkedin-engagement-assistant@0.0.0 build
-> tsc && vite build
+> tsc && vite build && vite build --config vite.config.content.js
 
 vite v5.4.19 building for production...
 transforming...
-✓ 30 modules transformed.
+✓ 27 modules transformed.
 rendering chunks...
 computing gzip size...
-dist/index.html         0.50 kB │ gzip:  0.30 kB
-dist/assets/popup.css   4.95 kB │ gzip:  1.45 kB
-dist/popup.js           0.80 kB │ gzip:  0.46 kB
-dist/content.js         5.75 kB │ gzip:  1.86 kB
-dist/background.js     20.31 kB │ gzip:  6.85 kB
-dist/chunks/App.js     35.50 kB │ gzip: 13.20 kB
-✓ built in 126ms
+dist/index.html         0.44 kB │ gzip:  0.28 kB
+dist/assets/popup.css   5.70 kB │ gzip:  1.52 kB
+dist/background.js     20.61 kB │ gzip:  6.86 kB
+dist/popup.js          36.07 kB │ gzip: 13.49 kB
+✓ built in 131ms
+vite v5.4.19 building for production...
+transforming...
+✓ 20 modules transformed.
+rendering chunks...
+computing gzip size...
+dist/content.js  41.79 kB │ gzip: 14.86 kB
+✓ built in 100ms
 
 > linkedin-engagement-assistant@0.0.0 test
 > playwright test
@@ -21,194 +26,182 @@ dist/chunks/App.js     35.50 kB │ gzip: 13.20 kB
 
 Running 7 tests using 5 workers
 
-  ✘  4 tests/e2e/setup.spec.ts:4:3 › Extension E2E Setup › should load the extension and inject the content script on linkedin.com (10.8s)
-  ✘  2 tests/e2e/settings-persistence.spec.ts:11:3 › AI Settings Persistence › should save and restore settings after page reload (11.2s)
-  ✘  5 tests/e2e/ui-injection.spec.ts:4:3 › Extension UI Injection and Initial State › should inject the sidebar with default components on a LinkedIn post page (11.6s)
-  ✘  1 tests/e2e/pipeline-controls.spec.ts:7:3 › Pipeline Controls E2E Test › should correctly cycle through Start, Stop, and Resume states (11.8s)
-  ✘  3 tests/e2e/real-time-ui.spec.ts:79:3 › Real-time UI Updates › should update live counters on STATE_UPDATE (16.2s)
-  ✘  6 tests/e2e/real-time-ui.spec.ts:105:3 › Real-time UI Updates › should update pipeline progress view on STATE_UPDATE (16.1s)
-  ✘  7 tests/e2e/real-time-ui.spec.ts:141:3 › Real-time UI Updates › should add new entries to the logs panel on LOG_ENTRY (15.7s)
+  ✓  3 tests/e2e/setup.spec.ts:4:3 › Extension E2E Setup › should load the extension and inject the content script on linkedin.com (3.1s)
+
+--- PAGE & CONTENT SCRIPT LOGS ON FAILURE ---
+[VERBOSE] [DOM] Input elements should have autocomplete attributes (suggested: "username"): (More info: https://goo.gl/9p2vKq) %o
+[LOG] Content script starting...
+[LOG] Initializing content script...
+[LOG] Successfully mounted UI into shadow DOM
+[WARNING] Element with id: speedBumpOnBrowserBackIsEnabled not found
+[WARNING] Element with id: speedBumpOnTabCloseIsEnabled not found
+[LOG] UI App component mounted. Sending ping to service worker.
+[WARNING] Canvas2D: Multiple readback operations using getImageData are faster with the willReadFrequently attribute set to true. See: https://html.spec.whatwg.org/multipage/canvas.html#concept-canvas-will-read-frequently
+[LOG] Received response from service worker: {payload: pong}
+-------------------------------------------------
+  ✓  1 tests/e2e/ui-injection.spec.ts:4:3 › Extension UI Injection and Initial State › should inject the sidebar with default components on a LinkedIn post page (3.5s)
+  ✘  5 tests/e2e/real-time-ui.spec.ts:80:3 › Real-time UI Updates › should update live counters on STATE_UPDATE (3.5s)
+
+--- PAGE & CONTENT SCRIPT LOGS ON FAILURE ---
+[VERBOSE] [DOM] Input elements should have autocomplete attributes (suggested: "username"): (More info: https://goo.gl/9p2vKq) %o
+[LOG] Content script starting...
+[LOG] Initializing content script...
+[LOG] Successfully mounted UI into shadow DOM
+[WARNING] Element with id: speedBumpOnTabCloseIsEnabled not found
+[LOG] UI App component mounted. Sending ping to service worker.
+[WARNING] Canvas2D: Multiple readback operations using getImageData are faster with the willReadFrequently attribute set to true. See: https://html.spec.whatwg.org/multipage/canvas.html#concept-canvas-will-read-frequently
+[LOG] Received response from service worker: {payload: pong}
+-------------------------------------------------
+  ✘  6 tests/e2e/real-time-ui.spec.ts:106:3 › Real-time UI Updates › should update pipeline progress view on STATE_UPDATE (2.3s)
+
+--- PAGE & CONTENT SCRIPT LOGS ON FAILURE ---
+[VERBOSE] [DOM] Input elements should have autocomplete attributes (suggested: "username"): (More info: https://goo.gl/9p2vKq) %o
+[LOG] Content script starting...
+[LOG] Initializing content script...
+[LOG] Successfully mounted UI into shadow DOM
+[WARNING] Element with id: speedBumpOnTabCloseIsEnabled not found
+[LOG] UI App component mounted. Sending ping to service worker.
+[WARNING] Canvas2D: Multiple readback operations using getImageData are faster with the willReadFrequently attribute set to true. See: https://html.spec.whatwg.org/multipage/canvas.html#concept-canvas-will-read-frequently
+[LOG] Received response from service worker: {payload: pong}
+-------------------------------------------------
+
+--- PAGE & CONTENT SCRIPT LOGS ON FAILURE ---
+[VERBOSE] [DOM] Input elements should have autocomplete attributes (suggested: "username"): (More info: https://goo.gl/9p2vKq) %o
+[LOG] Content script starting...
+[LOG] Initializing content script...
+[LOG] Successfully mounted UI into shadow DOM
+[WARNING] Element with id: speedBumpOnBrowserBackIsEnabled not found
+[WARNING] Element with id: speedBumpOnTabCloseIsEnabled not found
+[LOG] UI App component mounted. Sending ping to service worker.
+[WARNING] Canvas2D: Multiple readback operations using getImageData are faster with the willReadFrequently attribute set to true. See: https://html.spec.whatwg.org/multipage/canvas.html#concept-canvas-will-read-frequently
+[LOG] Received response from service worker: {payload: pong}
+[DEBUG] Error
+[PAGE_ERROR] Cannot read properties of undefined (reading 'query') 
+ TypeError: Cannot read properties of undefined (reading 'query')
+    at chrome-extension://jamgniehpccbkoceomnkcllfoplaiffn/content.js:1:32194
+    at new Promise (<anonymous>)
+    at xr (chrome-extension://jamgniehpccbkoceomnkcllfoplaiffn/content.js:1:32166)
+    at r (chrome-extension://jamgniehpccbkoceomnkcllfoplaiffn/content.js:1:33011)
+    at HTMLButtonElement.<anonymous> (chrome-extension://jamgniehpccbkoceomnkcllfoplaiffn/content.js:1:4599)
+-------------------------------------------------
+  ✘  7 tests/e2e/real-time-ui.spec.ts:142:3 › Real-time UI Updates › should add new entries to the logs panel on LOG_ENTRY (2.1s)
+  ✘  2 tests/e2e/pipeline-controls.spec.ts:7:3 › Pipeline Controls E2E Test › should correctly cycle through Start, Stop, and Resume states (8.6s)
+
+--- PAGE & CONTENT SCRIPT LOGS ON FAILURE ---
+[WARNING] <link rel=preload> must have a valid `as` value
+[WARNING] <link rel=preload> must have a valid `as` value
+[WARNING] <link rel=preload> must have a valid `as` value
+[WARNING] <link rel=preload> must have a valid `as` value
+[WARNING] <link rel=preload> must have a valid `as` value
+[WARNING] <link rel=preload> must have a valid `as` value
+[LOG] Content script starting...
+[LOG] Initializing content script...
+[LOG] Successfully mounted UI into shadow DOM
+[LOG] UI App component mounted. Sending ping to service worker.
+[LOG] Received response from service worker: {payload: pong}
+[WARNING] [GSI_LOGGER]: Your client application may not display the Google One Tap in its default position. When FedCM becomes mandatory, One Tap only displays in the default position. Refer to the migration guide to update your code accordingly and opt-in to FedCM to test your changes. Learn more: https://developers.google.com/identity/gsi/web/guides/fedcm-migration?s=dc#layout
+[WARNING] [GSI_LOGGER]: Your client application uses one of the Google One Tap prompt UI status methods that may stop functioning when FedCM becomes mandatory. Refer to the migration guide to update your code accordingly and opt-in to FedCM to test your changes. Learn more: https://developers.google.com/identity/gsi/web/guides/fedcm-migration?s=dc#display_moment and https://developers.google.com/identity/gsi/web/guides/fedcm-migration?s=dc#skipped_moment
+[WARNING] [GSI_LOGGER]: Currently, you disable FedCM on Google One Tap. FedCM for One Tap will become mandatory starting Oct 2024, and you won’t be able to disable it. Refer to the migration guide to update your code accordingly to ensure users will not be blocked from logging in. Learn more: https://developers.google.com/identity/gsi/web/guides/fedcm-migration
+[DEBUG] Error
+[LOG] AI Config saved.
+[ERROR] Failed to load resource: the server responded with a status of 400 ()
+[ERROR] XMLHttpRequest
+[DEBUG] %c EvalError
+    at Object.GN (https://cadmus2.script.ac/fs01/main.js:1:83751)
+    at Object.GN (https://cadmus2.script.ac/fs01/main.js:1:40005)
+    at r (https://cadmus2.script.ac/fs01/main.js:1:37420)
+    at t (https://cadmus2.script.ac/fs01/main.js:1:37670)
+    at e.bt (https://cadmus2.script.ac/fs01/main.js:1:37816)
+    at e.mM (https://cadmus2.script.ac/fs01/main.js:1:38713)
+    at https://cadmus2.script.ac/fs01/main.js:1:164833
+    at https://cadmus2.script.ac/fs01/main.js:1:164866
+[ERROR] Attestation check for Shared Storage on https://crcldu.com failed.
+[ERROR] Attestation check for Shared Storage on https://crcldu.com failed.
+-------------------------------------------------
+  ✘  4 tests/e2e/settings-persistence.spec.ts:11:3 › AI Settings Persistence › should save and restore settings after page reload (30.2s)
 
 
   1) tests/e2e/pipeline-controls.spec.ts:7:3 › Pipeline Controls E2E Test › should correctly cycle through Start, Stop, and Resume states 
 
     Error: [2mexpect([22m[31mlocator[39m[2m).[22mtoBeVisible[2m()[22m failed
 
-    Locator:  locator('div.sidebar')
+    Locator:  locator('div.sidebar').locator('button').filter({ hasText: 'Stop' })
     Expected: visible
     Received: <element(s) not found>
-    Timeout:  10000ms
+    Timeout:  5000ms
 
     Call log:
-    [2m  - Expect "toBeVisible" with timeout 10000ms[22m
-    [2m  - waiting for locator('div.sidebar')[22m
+    [2m  - Expect "toBeVisible" with timeout 5000ms[22m
+    [2m  - waiting for locator('div.sidebar').locator('button').filter({ hasText: 'Stop' })[22m
 
 
-      11 |     await page.goto(LINKEDIN_POST_URL);
-      12 |     const sidebar = page.locator('div.sidebar');
-    > 13 |     await expect(sidebar).toBeVisible({ timeout: 10000 });
-         |                           ^
-      14 |
-      15 |     // Define locators for all control buttons within the sidebar's shadow DOM.
-      16 |     const startButton = sidebar.locator('button', { hasText: 'Start' });
-        at /Users/bahy/Documents/playground/capstone_project/server/projects/linkedin_life_saver/project/tests/e2e/pipeline-controls.spec.ts:13:27
+      29 |     // This tests the full message loop: UI -> Service Worker -> UI.
+      30 |     await startButton.click();
+    > 31 |     await expect(stopButton).toBeVisible({ timeout: 5000 });
+         |                              ^
+      32 |     await expect(startButton).not.toBeVisible({ timeout: 5000 });
+      33 |
+      34 |     // 4. ACT & ASSERT: Test the STOP (pause) action.
+        at /Users/bahy/Documents/playground/capstone_project/server/projects/linkedin_life_saver/project/tests/e2e/pipeline-controls.spec.ts:31:30
 
-    Error Context: test-results/tests-e2e-pipeline-control-40070-tart-Stop-and-Resume-states/error-context.md
+  2) tests/e2e/real-time-ui.spec.ts:80:3 › Real-time UI Updates › should update live counters on STATE_UPDATE 
 
-  2) tests/e2e/real-time-ui.spec.ts:79:3 › Real-time UI Updates › should update live counters on STATE_UPDATE 
+    Error: page.evaluate: TypeError: window.__E2E_TEST_DISPATCH_MESSAGE__ is not a function
+        at eval (eval at evaluate (:291:30), <anonymous>:5:12)
+        at UtilityScript.evaluate (<anonymous>:293:16)
+        at UtilityScript.<anonymous> (<anonymous>:1:44)
+        at eval (eval at evaluate (:291:30), <anonymous>:5:12)
+        at UtilityScript.evaluate (<anonymous>:293:16)
+        at UtilityScript.<anonymous> (<anonymous>:1:44)
+        at dispatchMessage (/Users/bahy/Documents/playground/capstone_project/server/projects/linkedin_life_saver/project/tests/e2e/real-time-ui.spec.ts:13:14)
+        at /Users/bahy/Documents/playground/capstone_project/server/projects/linkedin_life_saver/project/tests/e2e/real-time-ui.spec.ts:92:11
 
-    Error: [2mexpect([22m[31mlocator[39m[2m).[22mtoBeVisible[2m()[22m failed
+  3) tests/e2e/real-time-ui.spec.ts:106:3 › Real-time UI Updates › should update pipeline progress view on STATE_UPDATE 
 
-    Locator:  locator('div.lea-sidebar-host')
-    Expected: visible
-    Received: <element(s) not found>
-    Timeout:  15000ms
+    Error: page.evaluate: TypeError: window.__E2E_TEST_DISPATCH_MESSAGE__ is not a function
+        at eval (eval at evaluate (:291:30), <anonymous>:5:12)
+        at UtilityScript.evaluate (<anonymous>:293:16)
+        at UtilityScript.<anonymous> (<anonymous>:1:44)
+        at eval (eval at evaluate (:291:30), <anonymous>:5:12)
+        at UtilityScript.evaluate (<anonymous>:293:16)
+        at UtilityScript.<anonymous> (<anonymous>:1:44)
+        at dispatchMessage (/Users/bahy/Documents/playground/capstone_project/server/projects/linkedin_life_saver/project/tests/e2e/real-time-ui.spec.ts:13:14)
+        at /Users/bahy/Documents/playground/capstone_project/server/projects/linkedin_life_saver/project/tests/e2e/real-time-ui.spec.ts:117:11
 
-    Call log:
-    [2m  - Expect "toBeVisible" with timeout 15000ms[22m
-    [2m  - waiting for locator('div.lea-sidebar-host')[22m
+  4) tests/e2e/real-time-ui.spec.ts:142:3 › Real-time UI Updates › should add new entries to the logs panel on LOG_ENTRY 
 
-
-      69 |     // Wait for the UI to be injected by looking for the sidebar host element.
-      70 |     const sidebarHost = page.locator('div.lea-sidebar-host');
-    > 71 |     await expect(sidebarHost).toBeVisible({ timeout: 15000 });
-         |                               ^
-      72 |
-      73 |     // Then, wait for the main header to be visible inside the shadow DOM.
-      74 |     await expect(
-        at /Users/bahy/Documents/playground/capstone_project/server/projects/linkedin_life_saver/project/tests/e2e/real-time-ui.spec.ts:71:31
-
-    Error Context: test-results/tests-e2e-real-time-ui-Rea-9918f-ve-counters-on-STATE-UPDATE/error-context.md
-
-  3) tests/e2e/real-time-ui.spec.ts:105:3 › Real-time UI Updates › should update pipeline progress view on STATE_UPDATE 
-
-    Error: [2mexpect([22m[31mlocator[39m[2m).[22mtoBeVisible[2m()[22m failed
-
-    Locator:  locator('div.lea-sidebar-host')
-    Expected: visible
-    Received: <element(s) not found>
-    Timeout:  15000ms
-
-    Call log:
-    [2m  - Expect "toBeVisible" with timeout 15000ms[22m
-    [2m  - waiting for locator('div.lea-sidebar-host')[22m
-
-
-      69 |     // Wait for the UI to be injected by looking for the sidebar host element.
-      70 |     const sidebarHost = page.locator('div.lea-sidebar-host');
-    > 71 |     await expect(sidebarHost).toBeVisible({ timeout: 15000 });
-         |                               ^
-      72 |
-      73 |     // Then, wait for the main header to be visible inside the shadow DOM.
-      74 |     await expect(
-        at /Users/bahy/Documents/playground/capstone_project/server/projects/linkedin_life_saver/project/tests/e2e/real-time-ui.spec.ts:71:31
-
-    Error Context: test-results/tests-e2e-real-time-ui-Rea-06cf5-ogress-view-on-STATE-UPDATE/error-context.md
-
-  4) tests/e2e/real-time-ui.spec.ts:141:3 › Real-time UI Updates › should add new entries to the logs panel on LOG_ENTRY 
-
-    Error: [2mexpect([22m[31mlocator[39m[2m).[22mtoBeVisible[2m()[22m failed
-
-    Locator:  locator('div.lea-sidebar-host')
-    Expected: visible
-    Received: <element(s) not found>
-    Timeout:  15000ms
-
-    Call log:
-    [2m  - Expect "toBeVisible" with timeout 15000ms[22m
-    [2m  - waiting for locator('div.lea-sidebar-host')[22m
-
-
-      69 |     // Wait for the UI to be injected by looking for the sidebar host element.
-      70 |     const sidebarHost = page.locator('div.lea-sidebar-host');
-    > 71 |     await expect(sidebarHost).toBeVisible({ timeout: 15000 });
-         |                               ^
-      72 |
-      73 |     // Then, wait for the main header to be visible inside the shadow DOM.
-      74 |     await expect(
-        at /Users/bahy/Documents/playground/capstone_project/server/projects/linkedin_life_saver/project/tests/e2e/real-time-ui.spec.ts:71:31
-
-    Error Context: test-results/tests-e2e-real-time-ui-Rea-faefa-the-logs-panel-on-LOG-ENTRY/error-context.md
+    Error: page.evaluate: TypeError: window.__E2E_TEST_DISPATCH_MESSAGE__ is not a function
+        at eval (eval at evaluate (:291:30), <anonymous>:5:12)
+        at UtilityScript.evaluate (<anonymous>:293:16)
+        at UtilityScript.<anonymous> (<anonymous>:1:44)
+        at eval (eval at evaluate (:291:30), <anonymous>:5:12)
+        at UtilityScript.evaluate (<anonymous>:293:16)
+        at UtilityScript.<anonymous> (<anonymous>:1:44)
+        at dispatchMessage (/Users/bahy/Documents/playground/capstone_project/server/projects/linkedin_life_saver/project/tests/e2e/real-time-ui.spec.ts:13:14)
+        at /Users/bahy/Documents/playground/capstone_project/server/projects/linkedin_life_saver/project/tests/e2e/real-time-ui.spec.ts:163:11
 
   5) tests/e2e/settings-persistence.spec.ts:11:3 › AI Settings Persistence › should save and restore settings after page reload 
 
-    Error: [2mexpect([22m[31mlocator[39m[2m).[22mtoBeVisible[2m()[22m failed
+    [31mTest timeout of 30000ms exceeded.[39m
 
-    Locator:  locator('div.lea-sidebar-host')
-    Expected: visible
-    Received: <element(s) not found>
-    Timeout:  10000ms
+    Error: page.waitForResponse: Target page, context or browser has been closed
+    =========================== logs ===========================
+    waiting for response "https://openrouter.ai/api/v1/models"
+    ============================================================
 
-    Call log:
-    [2m  - Expect "toBeVisible" with timeout 10000ms[22m
-    [2m  - waiting for locator('div.lea-sidebar-host')[22m
+      66 |
+      67 |     // 6. Test the connection to fetch models.
+    > 68 |     const modelsResponse = page.waitForResponse(
+         |                                 ^
+      69 |       'https://openrouter.ai/api/v1/models'
+      70 |     );
+      71 |     await testButton.click();
+        at /Users/bahy/Documents/playground/capstone_project/server/projects/linkedin_life_saver/project/tests/e2e/settings-persistence.spec.ts:68:33
 
-
-      55 |     // 3. Wait for the sidebar to be injected and visible.
-      56 |     const sidebar = page.locator('div.lea-sidebar-host');
-    > 57 |     await expect(sidebar).toBeVisible({ timeout: 10000 });
-         |                           ^
-      58 |
-      59 |     // --- PHASE 1: INPUT AND SAVE SETTINGS ---
-      60 |
-        at /Users/bahy/Documents/playground/capstone_project/server/projects/linkedin_life_saver/project/tests/e2e/settings-persistence.spec.ts:57:27
-
-    Error Context: test-results/tests-e2e-settings-persist-1b697--settings-after-page-reload/error-context.md
-
-  6) tests/e2e/setup.spec.ts:4:3 › Extension E2E Setup › should load the extension and inject the content script on linkedin.com 
-
-    Error: [2mexpect([22m[31mlocator[39m[2m).[22mtoBeVisible[2m()[22m failed
-
-    Locator:  locator('.sidebar')
-    Expected: visible
-    Received: <element(s) not found>
-    Timeout:  10000ms
-
-    Call log:
-    [2m  - Expect "toBeVisible" with timeout 10000ms[22m
-    [2m  - waiting for locator('.sidebar')[22m
-
-
-      11 |
-      12 |     // Assert that the sidebar is visible, which confirms the content script is active.
-    > 13 |     await expect(sidebarLocator).toBeVisible({ timeout: 10000 });
-         |                                  ^
-      14 |   });
-      15 | });
-        at /Users/bahy/Documents/playground/capstone_project/server/projects/linkedin_life_saver/project/tests/e2e/setup.spec.ts:13:34
-
-    Error Context: test-results/tests-e2e-setup-Extension--01071-tent-script-on-linkedin-com/error-context.md
-
-  7) tests/e2e/ui-injection.spec.ts:4:3 › Extension UI Injection and Initial State › should inject the sidebar with default components on a LinkedIn post page 
-
-    Error: [2mexpect([22m[31mlocator[39m[2m).[22mtoBeVisible[2m()[22m failed
-
-    Locator:  locator('div.sidebar')
-    Expected: visible
-    Received: <element(s) not found>
-    Timeout:  10000ms
-
-    Call log:
-    [2m  - Expect "toBeVisible" with timeout 10000ms[22m
-    [2m  - waiting for locator('div.sidebar')[22m
-
-
-      15 |
-      16 |     // 3. Assert that the sidebar host is visible. This confirms the content script ran.
-    > 17 |     await expect(sidebarHost).toBeVisible({ timeout: 10000 }); // Increased timeout for stability
-         |                               ^
-      18 |
-      19 |     // 4. Verify the main title of the app is rendered inside the shadow DOM.
-      20 |     const title = sidebarHost.locator('h1');
-        at /Users/bahy/Documents/playground/capstone_project/server/projects/linkedin_life_saver/project/tests/e2e/ui-injection.spec.ts:17:31
-
-    Error Context: test-results/tests-e2e-ui-injection-Ext-09024-nts-on-a-LinkedIn-post-page/error-context.md
-
-  7 failed
+  5 failed
     tests/e2e/pipeline-controls.spec.ts:7:3 › Pipeline Controls E2E Test › should correctly cycle through Start, Stop, and Resume states 
-    tests/e2e/real-time-ui.spec.ts:79:3 › Real-time UI Updates › should update live counters on STATE_UPDATE 
-    tests/e2e/real-time-ui.spec.ts:105:3 › Real-time UI Updates › should update pipeline progress view on STATE_UPDATE 
-    tests/e2e/real-time-ui.spec.ts:141:3 › Real-time UI Updates › should add new entries to the logs panel on LOG_ENTRY 
+    tests/e2e/real-time-ui.spec.ts:80:3 › Real-time UI Updates › should update live counters on STATE_UPDATE 
+    tests/e2e/real-time-ui.spec.ts:106:3 › Real-time UI Updates › should update pipeline progress view on STATE_UPDATE 
+    tests/e2e/real-time-ui.spec.ts:142:3 › Real-time UI Updates › should add new entries to the logs panel on LOG_ENTRY 
     tests/e2e/settings-persistence.spec.ts:11:3 › AI Settings Persistence › should save and restore settings after page reload 
-    tests/e2e/setup.spec.ts:4:3 › Extension E2E Setup › should load the extension and inject the content script on linkedin.com 
-    tests/e2e/ui-injection.spec.ts:4:3 › Extension UI Injection and Initial State › should inject the sidebar with default components on a LinkedIn post page 
+  2 passed (30.7s)

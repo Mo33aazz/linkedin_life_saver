@@ -66,15 +66,15 @@ export const updateConfig = async (
     ...newConfig,
     reply: {
       ...existingConfig.reply,
-      ...newConfig.reply,
+      ...(newConfig.reply || {}),
     },
     dm: {
       ...existingConfig.dm,
-      ...newConfig.dm,
+      ...(newConfig.dm || {}),
     },
     attribution: {
       ...existingConfig.attribution,
-      ...newConfig.attribution,
+      ...(newConfig.attribution || {}),
     },
     modelFilters: {
       onlyTextOutput:

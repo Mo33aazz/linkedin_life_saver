@@ -15,7 +15,6 @@ test.describe('AI Settings Persistence', () => {
     // This makes the test independent of the actual OpenRouter API.
     await page.addInitScript(() => {
       const originalSendMessage = chrome.runtime.sendMessage;
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
       (window.chrome.runtime as any).sendMessage = function (...args: any[]) {
         const message = args[0];
         const callback =
