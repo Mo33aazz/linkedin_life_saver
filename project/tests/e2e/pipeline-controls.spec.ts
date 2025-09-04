@@ -46,25 +46,27 @@ test.describe('Pipeline Control E2E Tests', () => {
     // Inject mock state into the service worker's storage before navigating.
     // This is crucial for creating a predictable test environment.
     await background.evaluate(
-      ([postUrn, state]) => {
+      async ({ postUrn, state }: { postUrn: string; state: PostState }) => {
         // This function runs in the service worker's context.
-        // It uses a test hook exposed on `self` to save the state.
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        return (self as any).__E2E_TEST_SAVE_POST_STATE(postUrn, state);
+        // We directly manipulate chrome.storage.local. The stateManager uses
+        // the post URN itself as the key.
+        await chrome.storage.local.set({ [postUrn]: state });
       },
-      [TEST_POST_URN, mockPostState]
+      { postUrn: TEST_POST_URN, state: mockPostState }
     );
 
     // Navigate to a LinkedIn post page
     await page.goto(TEST_POST_URL, { waitUntil: 'domcontentloaded' });
 
-    // Inject a mock DOM for the content script to interact with. This is necessary
-    // because the default mocked page from fixtures.ts is empty. This allows
-    // the pipeline's 'like' action to succeed, which is a prerequisite for
-    // testing the start/stop/resume controls.
+    // Inject a mock DOM for the content script to interact with. This is done
+    // by appending to the body rather than replacing its content, which avoids
+    // breaking the host page's own scripts. This allows the pipeline's 'like'
+    // action to succeed on a predictable element.
     await page.evaluate((commentId) => {
-      document.body.innerHTML = `
-        <h1>Mock LinkedIn Post</h1>
+      const mockContainer = document.createElement('div');
+      mockContainer.id = 'e2e-mock-container';
+      mockContainer.style.display = 'none'; // Hide from view to not interfere with layout
+      mockContainer.innerHTML = `
         <div id="comments-container">
           <article class="comments-comment-entity" data-id="${commentId}">
             <div class="comments-comment-item">
@@ -74,6 +76,7 @@ test.describe('Pipeline Control E2E Tests', () => {
           </article>
         </div>
       `;
+      document.body.appendChild(mockContainer);
     }, mockComment.commentId);
 
     // Wait for the sidebar to be attached to the DOM.

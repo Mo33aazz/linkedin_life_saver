@@ -676,28 +676,29 @@ export const startPipeline = async (
       'No state found for post. Creating a new one for pipeline to start.',
       { postUrn }
     );
-    sendMessageToTab<CapturedPostState>(tabId, {
-      type: 'CAPTURE_POST_STATE',
-    })
-      .then(async (response) => {
-        console.log('Response from CAPTURE_POST_STATE:', response);
-        if (response && response.postUrn) {
-          const { postUrn, comments } = response;
-          const newPostState: PostState = {
-            _meta: {
-              postId: postUrn,
-              postUrl: `https://www.linkedin.com/feed/update/${postUrn}`,
-              runState: 'idle',
-              lastUpdated: new Date().toISOString(),
-              userProfileUrl: '', // Not critical for this test
-            },
-            comments: comments as Comment[],
-          };
-          await savePostState(postUrn, newPostState);
-          postState = newPostState;
-        }
-      })
-
+    try {
+      const response = await sendMessageToTab<CapturedPostState>(tabId, {
+        type: 'CAPTURE_POST_STATE',
+      });
+      console.log('Response from CAPTURE_POST_STATE:', response);
+      if (response && response.postUrn) {
+        const { postUrn, comments } = response;
+        const newPostState: PostState = {
+          _meta: {
+            postId: postUrn,
+            postUrl: `https://www.linkedin.com/feed/update/${postUrn}`,
+            runState: 'idle',
+            lastUpdated: new Date().toISOString(),
+            userProfileUrl: '', // Not critical for this test
+          },
+          comments: comments as Comment[],
+        };
+        await savePostState(postUrn, newPostState);
+        postState = newPostState;
+      }
+    } catch (error) {
+      logger.error('Failed to capture initial post state', error, { postUrn });
+    }
   }
   if (!postState) {
     logger.error('Cannot start pipeline, failed to obtain post state.', {

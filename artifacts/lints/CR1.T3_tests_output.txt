@@ -2,15 +2,29 @@
 > linkedin-engagement-assistant@0.0.0 build
 > tsc && vite build && vite build --config vite.config.content.js
 
-src/background/services/pipelineManager.ts(294,40): error TS2322: Type 'string | null' is not assignable to type 'string | undefined'.
-  Type 'null' is not assignable to type 'string | undefined'.
-src/background/services/pipelineManager.ts(350,40): error TS2322: Type 'string | null' is not assignable to type 'string | undefined'.
-  Type 'null' is not assignable to type 'string | undefined'.
-src/background/services/pipelineManager.ts(376,44): error TS2322: Type 'string | null' is not assignable to type 'string | undefined'.
-  Type 'null' is not assignable to type 'string | undefined'.
-src/background/services/pipelineManager.ts(433,40): error TS2322: Type 'string | null' is not assignable to type 'string | undefined'.
-  Type 'null' is not assignable to type 'string | undefined'.
-src/background/services/pipelineManager.ts(540,40): error TS2322: Type 'string | null' is not assignable to type 'string | undefined'.
-  Type 'null' is not assignable to type 'string | undefined'.
-src/background/services/pipelineManager.ts(556,38): error TS2322: Type 'string | null' is not assignable to type 'string | undefined'.
-  Type 'null' is not assignable to type 'string | undefined'.
+vite v5.4.19 building for production...
+transforming...
+✓ 6 modules transformed.
+rendering chunks...
+computing gzip size...
+dist/background.js  162.28 kB │ gzip: 43.31 kB │ map: 87.15 kB
+✓ built in 68ms
+vite v5.4.19 building for production...
+transforming...
+✓ 21 modules transformed.
+rendering chunks...
+computing gzip size...
+dist/content.js  270.93 kB │ gzip: 78.11 kB │ map: 139.64 kB
+✓ built in 122ms
+
+> linkedin-engagement-assistant@0.0.0 test
+> playwright test
+
+
+Running 3 tests using 3 workers
+
+  ✓  1 tests/e2e/setup.spec.ts:4:3 › Extension E2E Setup › should load the extension and inject the content script on linkedin.com (3.9s)
+  ✓  3 tests/e2e/pipeline-controls.spec.ts:90:3 › Pipeline Control E2E Tests › should successfully control pipeline lifecycle: start, stop, and resume (4.7s)
+  ✓  2 tests/e2e/ui-injection.spec.ts:4:3 › Extension UI Injection and Initial State › should inject the sidebar with default components on a LinkedIn post page (7.8s)
+
+  3 passed (8.2s)
