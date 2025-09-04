@@ -90,7 +90,7 @@ test.describe('Pipeline Controls (Start, Stop, Resume)', () => {
           globalWithMocks.originalTabsCreate = chrome.tabs.create;
         }
         chrome.tabs.create = (
-          _: chrome.tabs.CreateProperties
+          _properties: chrome.tabs.CreateProperties
         ): Promise<chrome.tabs.Tab> => {
           console.log('[MOCK] Intercepted chrome.tabs.create');
           return new Promise(() => {
@@ -127,7 +127,7 @@ test.describe('Pipeline Controls (Start, Stop, Resume)', () => {
     await page.goto(
       `https://www.linkedin.com/feed/update/${MOCK_POST_URN}/`
     );
-    const sidebarHost = page.locator('div#linkedin-life-saver-sidebar');
+    const sidebarHost = page.locator('div.sidebar');
     await expect(sidebarHost).toBeVisible({ timeout: 10000 });
 
     // --- START FLOW ---

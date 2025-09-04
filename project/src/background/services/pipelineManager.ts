@@ -7,7 +7,7 @@ import {
   ChatMessage,
   UIState,
 } from '../../shared/types';
-import { getPostState, savePostState } from './stateManager';
+import { getPostState, savePostState, loadPostState } from './stateManager';
 import { getConfig } from './configManager';
 import { OpenRouterClient } from './openRouterClient';
 
@@ -614,7 +614,7 @@ const processQueue = async (): Promise<void> => {
     postUrn: activePostUrn,
     step: 'PROCESS_QUEUE_END',
   });
-  const finalPostState = activePostUrn ? getPostState(activePostUrn) : null;
+  const finalPostState = activePostUrn ? getPostState(activePostUrn) : undefined;
   broadcastState({
     pipelineStatus,
     comments: finalPostState?.comments,
@@ -636,11 +636,13 @@ export const startPipeline = async (
   // HACK: If state is not in the cache, try loading from storage.
   // This suggests a potential issue in stateManager's initialization, where
   // it doesn't rehydrate the cache from storage on service worker startup.
+  // HACK: This is a temporary fix to address a race condition where the state
+  // might not be in the cache if the service worker was recently activated.
+  // A better solution would involve ensuring stateManager is fully hydrated
+  // before any pipeline operations can start.
   if (!postState) {
-    const data = await chrome.storage.local.get(postUrn);
-    if (data[postUrn]) {
-      postState = data[postUrn] as PostState;
-    }
+    const loadedState = await loadPostState(postUrn);
+    postState = loadedState || undefined;
   }
 
   if (!postState) {
@@ -680,14 +682,7 @@ export const stopPipeline = async (): Promise<void> => {
   });
   pipelineStatus = 'paused';
 
-  let postState = getPostState(activePostUrn);
-  // HACK: Ensure state is loaded for saving metadata updates.
-  if (!postState) {
-    const data = await chrome.storage.local.get(activePostUrn);
-    if (data[activePostUrn]) {
-      postState = data[activePostUrn] as PostState;
-    }
-  }
+  const postState = getPostState(activePostUrn);
 
   if (postState) {
     postState._meta.runState = 'paused';
@@ -708,14 +703,7 @@ export const resumePipeline = async (): Promise<void> => {
     return;
   }
 
-  let postState = getPostState(activePostUrn);
-  // HACK: Ensure state is loaded for resuming.
-  if (!postState) {
-    const data = await chrome.storage.local.get(activePostUrn);
-    if (data[activePostUrn]) {
-      postState = data[activePostUrn] as PostState;
-    }
-  }
+  const postState = getPostState(activePostUrn);
 
   if (!postState) {
     logger.error('Cannot resume, no state found for post', undefined, {

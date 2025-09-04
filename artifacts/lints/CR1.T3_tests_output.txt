@@ -9,16 +9,16 @@ rendering chunks...
 computing gzip size...
 dist/index.html          0.44 kB │ gzip:  0.28 kB
 dist/assets/popup.css    7.91 kB │ gzip:  2.19 kB
-dist/background.js     146.91 kB │ gzip: 39.45 kB │ map:  78.64 kB
+dist/background.js     144.79 kB │ gzip: 39.08 kB │ map:  77.54 kB
 dist/popup.js          201.04 kB │ gzip: 61.05 kB │ map: 107.01 kB
-✓ built in 157ms
+✓ built in 145ms
 vite v5.4.19 building for production...
 transforming...
 ✓ 20 modules transformed.
 rendering chunks...
 computing gzip size...
 dist/content.js  215.96 kB │ gzip: 64.19 kB │ map: 110.38 kB
-✓ built in 118ms
+✓ built in 107ms
 
 > linkedin-engagement-assistant@0.0.0 test
 > playwright test
@@ -26,11 +26,8 @@ dist/content.js  215.96 kB │ gzip: 64.19 kB │ map: 110.38 kB
 
 Running 3 tests using 3 workers
 
-Successfully added authentication cookie.
-Successfully added authentication cookie.
-Successfully added authentication cookie.
-  ✓  1 tests/e2e/setup.spec.ts:4:3 › Extension E2E Setup › should load the extension and inject the content script on linkedin.com (3.8s)
-  ✓  2 tests/e2e/ui-injection.spec.ts:4:3 › Extension UI Injection and Initial State › should inject the sidebar with default components on a LinkedIn post page (3.9s)
+  ✓  1 tests/e2e/setup.spec.ts:4:3 › Extension E2E Setup › should load the extension and inject the content script on linkedin.com (4.1s)
+  ✓  2 tests/e2e/ui-injection.spec.ts:4:3 › Extension UI Injection and Initial State › should inject the sidebar with default components on a LinkedIn post page (4.5s)
 
 --- PAGE & CONTENT SCRIPT LOGS ON FAILURE ---
 [WARNING] quill Overwriting modules/clipboard with class extends n{onPaste(t){var e
@@ -50,9 +47,26 @@ this.quill.setSelection(s,o,"silent")}return super.onPaste(t)}}
 -------------------------------------------------
 
 --- BACKGROUND SERVICE WORKER LOGS ON FAILURE ---
-No logs captured.
+[2025-09-04T13:39:52.221Z] [BG_LOG] "Loaded 0 post states into memory."
+[2025-09-04T13:39:52.227Z] [BG_UNHANDLED_REJECTION] Error: Could not establish connection. Receiving end does not exist.
+[2025-09-04T13:39:52.229Z] [BG_UNHANDLED_REJECTION] Error: Could not establish connection. Receiving end does not exist.
+[2025-09-04T13:39:52.230Z] [BG_UNHANDLED_REJECTION] Error: Could not establish connection. Receiving end does not exist.
+[2025-09-04T13:39:52.230Z] [BG_LOG] "No AI config found in storage. Saving and loading defaults."
+[2025-09-04T13:39:52.230Z] [BG_LOG] "State saved for post URN: urn:li:activity:7368619407989760000"
+[2025-09-04T13:39:52.230Z] [BG_LOG] "[MOCK] Injected mock post state for" "urn:li:activity:7368619407989760000"
+[2025-09-04T13:39:54.353Z] [BG_UNHANDLED_REJECTION] Error: Could not establish connection. Receiving end does not exist.
+[2025-09-04T13:39:54.353Z] [BG_UNHANDLED_REJECTION] Error: Could not establish connection. Receiving end does not exist.
+[2025-09-04T13:39:56.315Z] [BG_UNHANDLED_REJECTION] Error: Could not establish connection. Receiving end does not exist.
+[2025-09-04T13:39:56.316Z] [BG_UNHANDLED_REJECTION] Error: Could not establish connection. Receiving end does not exist.
+[2025-09-04T13:39:56.316Z] [BG_LOG] "State saved for post URN: urn:li:activity:7368619407989760000"
+[2025-09-04T13:39:56.317Z] [BG_LOG] "[MOCK] Intercepted chrome.tabs.create"
+[2025-09-04T13:39:56.317Z] [BG_UNHANDLED_REJECTION] Error: Could not establish connection. Receiving end does not exist.
+[2025-09-04T13:39:56.317Z] [BG_UNHANDLED_REJECTION] Error: Could not establish connection. Receiving end does not exist.
+[2025-09-04T13:39:56.317Z] [BG_UNHANDLED_REJECTION] Error: Could not establish connection. Receiving end does not exist.
+[2025-09-04T13:39:56.317Z] [BG_UNHANDLED_REJECTION] Error: Could not establish connection. Receiving end does not exist.
+[2025-09-04T13:39:56.317Z] [BG_UNHANDLED_REJECTION] Error: Could not establish connection. Receiving end does not exist.
 --------------------------------------------------
-  ✘  3 tests/e2e/pipeline-controls.spec.ts:123:3 › Pipeline Controls (Start, Stop, Resume) › should correctly cycle through start, stop, and resume states (9.1s)
+  ✘  3 tests/e2e/pipeline-controls.spec.ts:123:3 › Pipeline Controls (Start, Stop, Resume) › should correctly cycle through start, stop, and resume states (10.6s)
 
 
   1) tests/e2e/pipeline-controls.spec.ts:123:3 › Pipeline Controls (Start, Stop, Resume) › should correctly cycle through start, stop, and resume states 
@@ -80,4 +94,4 @@ No logs captured.
 
   1 failed
     tests/e2e/pipeline-controls.spec.ts:123:3 › Pipeline Controls (Start, Stop, Resume) › should correctly cycle through start, stop, and resume states 
-  2 passed (9.5s)
+  2 passed (11.0s)

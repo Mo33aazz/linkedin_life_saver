@@ -1,6 +1,6 @@
 /// <reference types="chrome" />
 
-import { Comment, CommentType, Post, PostState } from '../../shared/types';
+import { CommentType, PostState } from '../../shared/types';
 
 // A minimal interface for the data required by the stats calculation.
 // This decouples the function from the full state-managed `Comment` object.
@@ -99,11 +99,7 @@ export const savePostState = async (
       },
     };
 
-    const storableState = {
-      _meta: stateToSave._meta,
-      [stateToSave._meta.postUrl]: stateToSave.comments,
-    };
-    await chrome.storage.local.set({ [postUrn]: storableState });
+    await chrome.storage.local.set({ [postUrn]: stateToSave });
     stateCache.set(postUrn, stateToSave);
     console.log(`State saved for post URN: ${postUrn}`);
   } catch (error) {
@@ -125,14 +121,8 @@ export const loadPostState = async (
     const storageResult = await chrome.storage.local.get(postUrn);
     const storedData = storageResult?.[postUrn];
 
-    if (storedData && storedData._meta && storedData._meta.postUrl) {
-      const meta = storedData._meta as Post;
-      const comments = (storedData[meta.postUrl] || []) as Comment[];
-
-      const state: PostState = {
-        _meta: meta,
-        comments,
-      };
+    if (storedData) {
+      const state = storedData as PostState;
       stateCache.set(postUrn, state);
       console.log(`State loaded for post URN: ${postUrn}`);
       return state;
