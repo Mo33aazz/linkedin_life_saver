@@ -5,6 +5,7 @@ import {
   savePostState,
   loadAllStates,
   getPostState,
+  mergeCapturedState,
 } from './services/stateManager';
 import {
   initPipelineManager,
@@ -336,6 +337,14 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
       }
     })();
     return true;
+  }
+
+  if (message.type === 'PROCESS_CAPTURED_STATE') {
+    const { postUrn, comments } = message.payload;
+    logger.info('Received captured state from content script', { postUrn, commentCount: comments.length });
+    mergeCapturedState(postUrn, { comments });
+    // This is a fire-and-forget operation, no response needed.
+    return false;
   }
 
   return true;

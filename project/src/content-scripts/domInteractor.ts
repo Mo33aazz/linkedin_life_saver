@@ -339,3 +339,26 @@ export const sendDm = async (dmText: string): Promise<boolean> => {
   console.log('Successfully sent DM.');
   return true;
 };
+
+/**
+ * Captures the current state of the post from the DOM, including all comments.
+ * This is intended to be called after the extension has performed actions to
+ * ensure the captured state is up-to-date.
+ * @returns An object containing the latest comments, post URN, and post URL.
+ */
+export const capturePostStateFromDOM = (): {
+  comments: ParsedComment[];
+  postUrn: string | null;
+  postUrl: string;
+} => {
+  console.log('Capturing post-state from the DOM...');
+  const comments = extractComments();
+
+  const postUrnRegex = /(urn:li:activity:\d+)/;
+  const match = window.location.href.match(postUrnRegex);
+  const postUrn = match && match[1] ? match[1] : null;
+  const postUrl = window.location.href;
+
+  console.log(`Capture complete. Found ${comments.length} comments.`);
+  return { comments, postUrn, postUrl };
+};

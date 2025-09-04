@@ -1,4 +1,9 @@
-import { likeComment, replyToComment, sendDm } from './domInteractor';
+import {
+  likeComment,
+  replyToComment,
+  sendDm,
+  capturePostStateFromDOM,
+} from './domInteractor';
 import { mountApp } from '../ui';
 import css from '../index.css?inline';
 
@@ -32,6 +37,17 @@ chrome.runtime.onMessage.addListener((message, _sender, sendResponse) => {
     sendDm(message.payload.dmText)
       .then(success => sendResponse({ status: 'success', payload: success }))
       .catch(error => sendResponse({ status: 'error', message: error.message }));
+    return true; // Indicates async response
+  }
+
+  if (message.type === 'CAPTURE_POST_STATE') {
+    console.log('Content script received CAPTURE_POST_STATE');
+    try {
+      const postStateData = capturePostStateFromDOM();
+      sendResponse({ status: 'success', payload: postStateData });
+    } catch (error) {
+      sendResponse({ status: 'error', message: (error as Error).message });
+    }
     return true; // Indicates async response
   }
 

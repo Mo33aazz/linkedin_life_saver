@@ -1,6 +1,7 @@
 /// <reference types="chrome" />
 
-import { CommentType, PostState } from '../../shared/types';
+import { Comment, CommentType, PostState } from '../../shared/types';
+import type { ParsedComment } from '../../content-scripts/domInteractor';
 
 // A minimal interface for the data required by the stats calculation.
 // This decouples the function from the full state-managed `Comment` object.
@@ -162,4 +163,60 @@ export const loadAllStates = async (): Promise<void> => {
  */
 export const getPostState = (postUrn: string): PostState | undefined => {
   return stateCache.get(postUrn);
+};
+
+/**
+ * Updates an existing PostState with newly captured comment data from the DOM.
+ * It adds any new comments (e.g., replies posted by the extension) and preserves
+ * the pipeline status of existing comments.
+ *
+ * @param postUrn The URN of the post to update.
+ * @param capturedData The newly scraped data from the content script.
+ */
+export const mergeCapturedState = (
+  postUrn: string,
+  capturedData: { comments: ParsedComment[] }
+): void => {
+  const existingState = getPostState(postUrn);
+  if (!existingState) {
+    console.warn(`Cannot merge state for ${postUrn}, no existing state found.`);
+    return;
+  }
+
+  const existingCommentsMap = new Map<string, Comment>(
+    existingState.comments.map(c => [c.commentId, c])
+  );
+
+  let newCommentsFound = 0;
+
+  capturedData.comments.forEach(parsedComment => {
+    if (!existingCommentsMap.has(parsedComment.commentId)) {
+      // This is a new comment, likely a reply we just posted.
+      const newComment: Comment = {
+        ...parsedComment,
+        connected: undefined, // Connection status is unknown for new comments
+        likeStatus: '', // Initialize pipeline fields
+        replyStatus: '',
+        dmStatus: '',
+        attempts: { like: 0, reply: 0, dm: 0 },
+        lastError: '',
+        pipeline: {
+          queuedAt: new Date().toISOString(),
+          likedAt: '',
+          repliedAt: '',
+          dmAt: '',
+        },
+      };
+      existingState.comments.push(newComment);
+      newCommentsFound++;
+    }
+  });
+
+  if (newCommentsFound > 0) {
+    console.log(`Merged state for ${postUrn}: Added ${newCommentsFound} new comments.`);
+    // The savePostState function will automatically update the timestamp.
+    savePostState(postUrn, existingState);
+  } else {
+    console.log(`Merged state for ${postUrn}: No new comments found.`);
+  }
 };

@@ -587,10 +587,25 @@ const processQueue = async (): Promise<void> => {
     const nextComment = findNextComment(postState);
 
     if (!nextComment) {
-      logger.info('All comments have been processed. Pipeline finished.', {
+      logger.info('All comments have been processed. Capturing final state.', {
         postUrn: activePostUrn,
-        step: 'PROCESS_QUEUE_COMPLETE',
       });
+      // --- TRIGGER CAPTURE HERE ---
+      if (activeTabId && activePostUrn) {
+        sendMessageToTab<any>(activeTabId, { type: 'CAPTURE_POST_STATE' })
+          .then(response => {
+            // Send the data to the background script's main listener for processing
+            chrome.runtime.sendMessage({
+              type: 'PROCESS_CAPTURED_STATE',
+              payload: response,
+            });
+          })
+          .catch(error => {
+            logger.error('Failed to capture final post state', error, { postUrn: activePostUrn });
+          });
+      }
+      // --- END TRIGGER ---
+
       pipelineStatus = 'idle';
       postState._meta.runState = 'idle';
       await savePostState(activePostUrn, postState);
@@ -651,29 +666,6 @@ export const startPipeline = async (
       'No state found for post. Creating a new one for pipeline to start.',
       { postUrn }
     );
-    // Create a new state, including a dummy comment.
-    // The dummy comment is necessary for the E2E test's AI mock to be triggered,
-    // which keeps the pipeline in a "running" state for the test to verify.
-    const dummyComment: Comment = {
-      commentId: 'e2e-dummy-comment-id',
-      text: 'This is a dummy comment for E2E testing.',
-      ownerProfileUrl: 'urn:li:person:e2e-dummy-user',
-      timestamp: new Date().toISOString(),
-      type: 'top-level',
-      connected: false,
-      threadId: 'e2e-dummy-thread-id',
-      likeStatus: '', // To be processed
-      replyStatus: '', // To be processed
-      dmStatus: 'DONE', // To be skipped
-      attempts: { like: 0, reply: 0, dm: 0 },
-      lastError: '',
-      pipeline: {
-        queuedAt: new Date().toISOString(),
-        likedAt: '',
-        repliedAt: '',
-        dmAt: '',
-      },
-    };
 
     const newPostState: PostState = {
       _meta: {
@@ -683,7 +675,7 @@ export const startPipeline = async (
         lastUpdated: new Date().toISOString(),
         userProfileUrl: '', // Not critical for this test
       },
-      comments: [dummyComment],
+      comments: [],
     };
     await savePostState(postUrn, newPostState);
     postState = newPostState;

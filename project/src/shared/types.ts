@@ -1,3 +1,5 @@
+import { ParsedComment } from '../content-scripts/domInteractor';
+
 export type LogLevel = 'INFO' | 'WARN' | 'ERROR' | 'DEBUG';
 
 export interface LogEntry {
@@ -109,4 +111,13 @@ export type ExtensionMessage =
   | { type: 'GET_AI_CONFIG'; payload?: never }
   | { type: 'UPDATE_AI_CONFIG'; payload: Partial<AIConfig> }
   | { type: 'GET_MODELS'; payload?: never }
-  | { type: 'REQUEST_POST_STATE_FOR_EXPORT'; payload?: never };
+  | { type: 'REQUEST_POST_STATE_FOR_EXPORT'; payload?: never }
+  | { type: 'CAPTURE_POST_STATE'; payload?: never }
+  | {
+      type: 'PROCESS_CAPTURED_STATE';
+      payload: {
+        comments: ParsedComment[];
+        postUrn: string;
+        postUrl: string;
+      };
+    };
