@@ -4,6 +4,7 @@ import { UIState, LogEntry } from '../../shared/types';
 // 1. Define the store's interface, including actions.
 interface Store extends UIState {
   logs: LogEntry[];
+  postUrn?: string;
   updateState: (newState: Partial<UIState>) => void;
   addLog: (logEntry: LogEntry) => void;
 }
@@ -18,6 +19,7 @@ export const useStore = create<Store>((set) => ({
   },
   comments: [],
   logs: [],
+  postUrn: undefined,
   updateState: (newState) => set((state) => ({ ...state, ...newState })),
   addLog: (newLog) => set(state => ({
     logs: [...state.logs, newLog].slice(-500) // Cap at 500 logs for performance

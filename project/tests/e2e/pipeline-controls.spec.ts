@@ -1,5 +1,5 @@
 import { test, expect } from './fixtures';
-import type { Page, Frame, Locator } from '@playwright/test';
+import type { Page, Frame } from '@playwright/test';
 
 /**
  * Helper to wait for the sidebar to be injected and return its shadow root frame
@@ -137,7 +137,7 @@ test.describe('Pipeline Controls E2E', () => {
     testPostUrl = 'https://www.linkedin.com/feed/update/urn:li:activity:7368611162063671296/';
   });
   
-  test.beforeEach(async ({ page, context }) => {
+  test.beforeEach(async ({ context }) => {
     // Ensure we start fresh for each test
     await context.clearCookies();
     
@@ -156,7 +156,7 @@ test.describe('Pipeline Controls E2E', () => {
     }
   });
   
-  test('should handle Start → Stop → Resume flow correctly', async ({ page, background }) => {
+  test('should handle Start → Stop → Resume flow correctly', async ({ page }) => {
     // Step 1: Navigate to LinkedIn post
     await page.goto(testPostUrl, { waitUntil: 'networkidle' });
     
@@ -309,7 +309,7 @@ test.describe('Pipeline Controls E2E', () => {
 
 // Additional test for error scenarios
 test.describe('Pipeline Controls Error Handling', () => {
-  test('should handle service worker communication failures gracefully', async ({ page, context }) => {
+  test('should handle service worker communication failures gracefully', async ({ page }) => {
     const testPostUrl = 'https://www.linkedin.com/feed/update/urn:li:activity:7368611162063671296/';
     
     await page.goto(testPostUrl, { waitUntil: 'networkidle' });
@@ -320,7 +320,7 @@ test.describe('Pipeline Controls Error Handling', () => {
     await page.evaluate(() => {
       // Override chrome.runtime.sendMessage to simulate failure
       const originalSendMessage = chrome.runtime.sendMessage;
-      chrome.runtime.sendMessage = (message: any, callback?: any) => {
+      (chrome.runtime as any).sendMessage = ((message: { type: string }, callback?: (response: { error?: string }) => void) => {
         if (message.type === 'START_PIPELINE') {
           // Simulate a timeout/error
           setTimeout(() => {
@@ -330,8 +330,8 @@ test.describe('Pipeline Controls Error Handling', () => {
           }, 100);
           return;
         }
-        return originalSendMessage(message, callback);
-      };
+        return (originalSendMessage as any)(message, callback);
+      }) as typeof chrome.runtime.sendMessage;
     });
     
     // Try to start pipeline - should handle error gracefully
