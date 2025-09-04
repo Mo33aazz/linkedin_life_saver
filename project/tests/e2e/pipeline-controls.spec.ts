@@ -40,6 +40,22 @@ const mockPostState: PostState = {
 test.describe('Pipeline Controls (Start, Stop, Resume)', () => {
   // Before each test, set up mocks and state inside the service worker
   test.beforeEach(async ({ background }) => {
+    // Wait for the E2E test hook to be available on the service worker,
+    // which indicates that the background script is fully loaded and ready.
+    await expect
+      .poll(
+        () =>
+          background.evaluate(
+            () =>
+              typeof (globalThis as any).__E2E_TEST_SAVE_POST_STATE === 'function'
+          ),
+        {
+          message: 'E2E test hook not available on service worker',
+          timeout: 10000,
+        }
+      )
+      .toBe(true);
+
     await background.evaluate(
       async ({ state, postUrn }) => {
         // Define types for our custom properties on globalThis

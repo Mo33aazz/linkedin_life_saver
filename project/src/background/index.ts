@@ -329,5 +329,6 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
 // In a real-world scenario, a dedicated 'test' build mode would be preferable.
 // if (import.meta.env.MODE !== 'production') {
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  (globalThis as any).__E2E_TEST_SAVE_POST_STATE = savePostState;
+  (self as any).__E2E_TEST_SAVE_POST_STATE = savePostState;
+  console.log('[BACKGROUND SCRIPT] E2E test hook `__E2E_TEST_SAVE_POST_STATE` installed.');
 // }
