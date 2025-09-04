@@ -3,7 +3,7 @@
     "type": "@typescript-eslint/no-unused-vars",
     "path": "/Users/bahy/Documents/playground/capstone_project/server/projects/linkedin_life_saver/project/tests/e2e/pipeline-controls.spec.ts",
     "obj": "N/A",
-    "message": "'_createProperties' is defined but never used.",
+    "message": "'_' is defined but never used.",
     "line": 93,
     "column": 11
   },
@@ -11,7 +11,7 @@
     "type": "no-unused-vars",
     "path": "/Users/bahy/Documents/playground/capstone_project/server/projects/linkedin_life_saver/project/tests/e2e/pipeline-controls.spec.ts",
     "obj": "Identifier",
-    "message": "'_createProperties' is defined but never used.",
+    "message": "'_' is defined but never used.",
     "line": 93,
     "column": 11
   }

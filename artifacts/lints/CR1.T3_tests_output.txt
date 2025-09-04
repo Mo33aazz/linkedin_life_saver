@@ -9,16 +9,16 @@ rendering chunks...
 computing gzip size...
 dist/index.html          0.44 kB │ gzip:  0.28 kB
 dist/assets/popup.css    7.91 kB │ gzip:  2.19 kB
-dist/background.js     144.75 kB │ gzip: 38.92 kB │ map:  77.37 kB
+dist/background.js     146.91 kB │ gzip: 39.45 kB │ map:  78.64 kB
 dist/popup.js          201.04 kB │ gzip: 61.05 kB │ map: 107.01 kB
-✓ built in 165ms
+✓ built in 157ms
 vite v5.4.19 building for production...
 transforming...
 ✓ 20 modules transformed.
 rendering chunks...
 computing gzip size...
 dist/content.js  215.96 kB │ gzip: 64.19 kB │ map: 110.38 kB
-✓ built in 113ms
+✓ built in 118ms
 
 > linkedin-engagement-assistant@0.0.0 test
 > playwright test
@@ -29,8 +29,8 @@ Running 3 tests using 3 workers
 Successfully added authentication cookie.
 Successfully added authentication cookie.
 Successfully added authentication cookie.
-  ✓  2 tests/e2e/ui-injection.spec.ts:4:3 › Extension UI Injection and Initial State › should inject the sidebar with default components on a LinkedIn post page (3.6s)
   ✓  1 tests/e2e/setup.spec.ts:4:3 › Extension E2E Setup › should load the extension and inject the content script on linkedin.com (3.8s)
+  ✓  2 tests/e2e/ui-injection.spec.ts:4:3 › Extension UI Injection and Initial State › should inject the sidebar with default components on a LinkedIn post page (3.9s)
 
 --- PAGE & CONTENT SCRIPT LOGS ON FAILURE ---
 [WARNING] quill Overwriting modules/clipboard with class extends n{onPaste(t){var e
@@ -52,7 +52,7 @@ this.quill.setSelection(s,o,"silent")}return super.onPaste(t)}}
 --- BACKGROUND SERVICE WORKER LOGS ON FAILURE ---
 No logs captured.
 --------------------------------------------------
-  ✘  3 tests/e2e/pipeline-controls.spec.ts:123:3 › Pipeline Controls (Start, Stop, Resume) › should correctly cycle through start, stop, and resume states (8.8s)
+  ✘  3 tests/e2e/pipeline-controls.spec.ts:123:3 › Pipeline Controls (Start, Stop, Resume) › should correctly cycle through start, stop, and resume states (9.1s)
 
 
   1) tests/e2e/pipeline-controls.spec.ts:123:3 › Pipeline Controls (Start, Stop, Resume) › should correctly cycle through start, stop, and resume states 
@@ -80,4 +80,4 @@ No logs captured.
 
   1 failed
     tests/e2e/pipeline-controls.spec.ts:123:3 › Pipeline Controls (Start, Stop, Resume) › should correctly cycle through start, stop, and resume states 
-  2 passed (9.2s)
+  2 passed (9.5s)

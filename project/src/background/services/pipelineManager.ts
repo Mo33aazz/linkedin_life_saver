@@ -632,7 +632,17 @@ export const startPipeline = async (
     });
     return;
   }
-  const postState = getPostState(postUrn);
+  let postState = getPostState(postUrn);
+  // HACK: If state is not in the cache, try loading from storage.
+  // This suggests a potential issue in stateManager's initialization, where
+  // it doesn't rehydrate the cache from storage on service worker startup.
+  if (!postState) {
+    const data = await chrome.storage.local.get(postUrn);
+    if (data[postUrn]) {
+      postState = data[postUrn] as PostState;
+    }
+  }
+
   if (!postState) {
     logger.error('Cannot start pipeline, no state found for post', undefined, {
       postUrn,
@@ -670,7 +680,15 @@ export const stopPipeline = async (): Promise<void> => {
   });
   pipelineStatus = 'paused';
 
-  const postState = getPostState(activePostUrn);
+  let postState = getPostState(activePostUrn);
+  // HACK: Ensure state is loaded for saving metadata updates.
+  if (!postState) {
+    const data = await chrome.storage.local.get(activePostUrn);
+    if (data[activePostUrn]) {
+      postState = data[activePostUrn] as PostState;
+    }
+  }
+
   if (postState) {
     postState._meta.runState = 'paused';
     await savePostState(activePostUrn, postState);
@@ -690,7 +708,15 @@ export const resumePipeline = async (): Promise<void> => {
     return;
   }
 
-  const postState = getPostState(activePostUrn);
+  let postState = getPostState(activePostUrn);
+  // HACK: Ensure state is loaded for resuming.
+  if (!postState) {
+    const data = await chrome.storage.local.get(activePostUrn);
+    if (data[activePostUrn]) {
+      postState = data[activePostUrn] as PostState;
+    }
+  }
+
   if (!postState) {
     logger.error('Cannot resume, no state found for post', undefined, {
       postUrn: activePostUrn,
