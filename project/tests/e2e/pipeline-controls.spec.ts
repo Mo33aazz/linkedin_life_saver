@@ -21,10 +21,11 @@ const mockPostState: PostState = {
       timestamp: '1d',
       type: 'top-level',
       threadId: 'comment-1',
-      likeStatus: '', // This empty status means it needs processing
+      likeStatus: '',
       replyStatus: '',
       dmStatus: '',
-      connected: false,
+      // `connected` is omitted, making it `undefined`. This will trigger the
+      // connection check step in the pipeline first.
       attempts: { like: 0, reply: 0, dm: 0 },
       lastError: '',
       pipeline: {
@@ -47,7 +48,9 @@ test.describe('Pipeline Controls (Start, Stop, Resume)', () => {
         () =>
           background.evaluate(
             () =>
-              typeof (globalThis as any).__E2E_TEST_SAVE_POST_STATE === 'function'
+              typeof (
+                globalThis as { __E2E_TEST_SAVE_POST_STATE?: unknown }
+              ).__E2E_TEST_SAVE_POST_STATE === 'function'
           ),
         {
           message: 'E2E test hook not available on service worker',
@@ -64,13 +67,11 @@ test.describe('Pipeline Controls (Start, Stop, Resume)', () => {
             urn: string,
             state: unknown
           ) => Promise<void>;
-          originalSendMessage?: typeof chrome.tabs.sendMessage;
+          originalTabsCreate?: typeof chrome.tabs.create;
         }
         const globalWithMocks = globalThis as GlobalThisWithMocks;
 
         // 1. Use the test hook to inject the mock state directly.
-        // This populates both the in-memory state and chrome.storage.local,
-        // ensuring the pipelineManager finds the state when started.
         if (globalWithMocks.__E2E_TEST_SAVE_POST_STATE) {
           await globalWithMocks.__E2E_TEST_SAVE_POST_STATE(postUrn, state);
           console.log('[MOCK] Injected mock post state for', postUrn);
@@ -78,28 +79,23 @@ test.describe('Pipeline Controls (Start, Stop, Resume)', () => {
           console.error(
             '[MOCK] Test hook __E2E_TEST_SAVE_POST_STATE not found.'
           );
-          // Fail fast if the hook isn't there
           throw new Error('__E2E_TEST_SAVE_POST_STATE is not available.');
         }
 
-        // 2. Mock `chrome.tabs.sendMessage` to prevent real DOM actions.
-        // We make it return a promise that never resolves for the 'LIKE_COMMENT' action.
-        // This effectively pauses the pipeline, keeping it in a "running" state indefinitely
-        // so we can test the Stop/Resume controls.
-        if (!globalWithMocks.originalSendMessage) {
-          globalWithMocks.originalSendMessage = chrome.tabs.sendMessage;
+        // 2. Mock `chrome.tabs.create`. The pipeline uses this to check a user's
+        // connection status. By making it return a promise that never resolves,
+        // we effectively pause the pipeline, keeping it in a "running" state
+        // indefinitely so we can test the Stop/Resume controls.
+        if (!globalWithMocks.originalTabsCreate) {
+          globalWithMocks.originalTabsCreate = chrome.tabs.create;
         }
-        chrome.tabs.sendMessage = (
-          _tabId: number,
-          message: { type: string }
-        ): Promise<unknown> => {
-          console.log('[MOCK] Intercepted chrome.tabs.sendMessage', message);
-          if (message.type === 'LIKE_COMMENT') {
-            return new Promise(() => {
-              /* Never resolves, pipeline "hangs" here */
-            });
-          }
-          return Promise.resolve(true); // Other messages succeed immediately
+        chrome.tabs.create = (
+          _createProperties: chrome.tabs.CreateProperties
+        ): Promise<chrome.tabs.Tab> => {
+          console.log('[MOCK] Intercepted chrome.tabs.create');
+          return new Promise(() => {
+            /* Never resolves, pipeline "hangs" here */
+          });
         };
       },
       { state: mockPostState, postUrn: MOCK_POST_URN }
@@ -110,14 +106,14 @@ test.describe('Pipeline Controls (Start, Stop, Resume)', () => {
   test.afterEach(async ({ background }) => {
     await background.evaluate(() => {
       interface GlobalThisWithMocks {
-        originalSendMessage?: typeof chrome.tabs.sendMessage;
+        originalTabsCreate?: typeof chrome.tabs.create;
       }
       const globalWithMocks = globalThis as GlobalThisWithMocks;
 
-      // Restore original sendMessage
-      if (globalWithMocks.originalSendMessage) {
-        chrome.tabs.sendMessage = globalWithMocks.originalSendMessage;
-        delete globalWithMocks.originalSendMessage;
+      // Restore original chrome.tabs.create
+      if (globalWithMocks.originalTabsCreate) {
+        chrome.tabs.create = globalWithMocks.originalTabsCreate;
+        delete globalWithMocks.originalTabsCreate;
       }
       // Clear storage to prevent state from leaking between tests
       void chrome.storage.local.clear();

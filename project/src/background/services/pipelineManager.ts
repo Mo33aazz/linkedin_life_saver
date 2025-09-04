@@ -290,7 +290,7 @@ const processComment = async (
         }
       }
 
-      await savePostState(postState._meta.postId, postState);
+      await savePostState(activePostUrn!, postState);
       broadcastState({ comments: postState.comments });
       return; // Atomic step complete
     }
@@ -346,7 +346,7 @@ const processComment = async (
         comment.lastError = (error as Error).message;
       }
 
-      await savePostState(postState._meta.postId, postState);
+      await savePostState(activePostUrn!, postState);
       broadcastState({ comments: postState.comments });
       return; // Atomic step complete
     }
@@ -372,7 +372,7 @@ const processComment = async (
           comment.replyStatus = 'DONE'; // Mark as done to skip
           comment.lastError = 'Skipped by AI';
           comment.pipeline.repliedAt = new Date().toISOString();
-          await savePostState(postState._meta.postId, postState);
+          await savePostState(activePostUrn!, postState);
           broadcastState({ comments: postState.comments });
           return;
         }
@@ -429,7 +429,7 @@ const processComment = async (
         comment.lastError = (error as Error).message;
       }
 
-      await savePostState(postState._meta.postId, postState);
+      await savePostState(activePostUrn!, postState);
       broadcastState({ comments: postState.comments });
       return;
     }
@@ -536,7 +536,7 @@ const processComment = async (
         comment.lastError = (error as Error).message;
       }
 
-      await savePostState(postState._meta.postId, postState);
+      await savePostState(activePostUrn!, postState);
       broadcastState({ comments: postState.comments });
       return;
     }
@@ -552,7 +552,7 @@ const processComment = async (
       comment.dmStatus = 'FAILED';
 
     comment.lastError = `Unexpected error: ${(error as Error).message}`;
-    await savePostState(postState._meta.postId, postState);
+    await savePostState(activePostUrn!, postState);
     broadcastState({ comments: postState.comments });
   }
 };
@@ -593,7 +593,7 @@ const processQueue = async (): Promise<void> => {
       });
       pipelineStatus = 'idle';
       postState._meta.runState = 'idle';
-      await savePostState(postState._meta.postId, postState);
+      await savePostState(activePostUrn, postState);
       break; // Exit the loop
     }
 

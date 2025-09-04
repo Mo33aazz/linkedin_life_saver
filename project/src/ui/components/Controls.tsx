@@ -1,18 +1,10 @@
 import { AiSettings } from './AiSettings';
 import { useStore } from '../store'; // Assuming a Zustand store is set up
 
-const getPostUrnFromCurrentTab = async (): Promise<string | null> => {
-  return new Promise((resolve) => {
-    chrome.tabs.query({ active: true, currentWindow: true }, (tabs) => {
-      if (tabs[0]?.url) {
-        const postUrnRegex = /(urn:li:activity:\d+)/;
-        const match = tabs[0].url.match(postUrnRegex);
-        resolve(match && match[1] ? match[1] : null);
-      } else {
-        resolve(null);
-      }
-    });
-  });
+const getPostUrnFromCurrentTab = (): string | null => {
+  const postUrnRegex = /(urn:li:activity:\d+)/;
+  const match = window.location.href.match(postUrnRegex);
+  return match && match[1] ? match[1] : null;
 };
 
 export const Controls = () => {
@@ -49,8 +41,8 @@ export const Controls = () => {
     }
   };
 
-  const handleStart = async () => {
-    const postUrn = await getPostUrnFromCurrentTab();
+  const handleStart = () => {
+    const postUrn = getPostUrnFromCurrentTab();
     if (postUrn) {
       chrome.runtime.sendMessage({
         type: 'START_PIPELINE',
