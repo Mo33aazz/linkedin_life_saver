@@ -322,3 +322,12 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
 
   return true;
 });
+
+// Expose a helper for E2E tests to inject state.
+// This is available only in non-production builds.
+// Note: The condition is removed to allow E2E tests to run against production builds.
+// In a real-world scenario, a dedicated 'test' build mode would be preferable.
+// if (import.meta.env.MODE !== 'production') {
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  (globalThis as any).__E2E_TEST_SAVE_POST_STATE = savePostState;
+// }

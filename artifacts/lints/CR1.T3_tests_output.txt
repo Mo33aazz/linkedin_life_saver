@@ -1,0 +1,78 @@
+
+> linkedin-engagement-assistant@0.0.0 build
+> tsc && vite build && vite build --config vite.config.content.js
+
+vite v5.4.19 building for production...
+transforming...
+✓ 27 modules transformed.
+rendering chunks...
+computing gzip size...
+dist/index.html         0.44 kB │ gzip:  0.28 kB
+dist/assets/popup.css   5.70 kB │ gzip:  1.52 kB
+dist/background.js     20.65 kB │ gzip:  6.89 kB
+dist/popup.js          36.07 kB │ gzip: 13.49 kB
+✓ built in 136ms
+vite v5.4.19 building for production...
+transforming...
+✓ 20 modules transformed.
+rendering chunks...
+computing gzip size...
+dist/content.js  41.79 kB │ gzip: 14.86 kB
+✓ built in 100ms
+
+> linkedin-engagement-assistant@0.0.0 test
+> playwright test
+
+
+Running 3 tests using 3 workers
+
+  ✓  3 tests/e2e/setup.spec.ts:4:3 › Extension E2E Setup › should load the extension and inject the content script on linkedin.com (2.0s)
+  ✓  1 tests/e2e/ui-injection.spec.ts:4:3 › Extension UI Injection and Initial State › should inject the sidebar with default components on a LinkedIn post page (2.7s)
+
+--- PAGE & CONTENT SCRIPT LOGS ON FAILURE ---
+[VERBOSE] [DOM] Input elements should have autocomplete attributes (suggested: "username"): (More info: https://goo.gl/9p2vKq) %o
+[LOG] Content script starting...
+[LOG] Initializing content script...
+[LOG] Successfully mounted UI into shadow DOM
+[WARNING] Element with id: speedBumpOnTabCloseIsEnabled not found
+[LOG] UI App component mounted. Sending ping to service worker.
+[WARNING] Canvas2D: Multiple readback operations using getImageData are faster with the willReadFrequently attribute set to true. See: https://html.spec.whatwg.org/multipage/canvas.html#concept-canvas-will-read-frequently
+[LOG] Received response from service worker: {payload: pong}
+[PAGE_ERROR] Cannot read properties of undefined (reading 'query')
+[ERROR] [Report Only] Refused to frame 'https://accounts.google.com/' because an ancestor violates the following Content Security Policy directive: "frame-ancestors 'self'".
+
+[DEBUG] Error
+-------------------------------------------------
+
+--- BACKGROUND SERVICE WORKER LOGS ON FAILURE ---
+No logs captured.
+--------------------------------------------------
+  ✘  2 tests/e2e/pipeline-controls.spec.ts:111:3 › Pipeline Controls (Start, Stop, Resume) › should correctly cycle through start, stop, and resume states (7.9s)
+
+
+  1) tests/e2e/pipeline-controls.spec.ts:111:3 › Pipeline Controls (Start, Stop, Resume) › should correctly cycle through start, stop, and resume states 
+
+    Error: [2mexpect([22m[31mlocator[39m[2m).[22mtoBeVisible[2m()[22m failed
+
+    Locator:  locator('div.sidebar').locator('button').filter({ hasText: 'Stop' })
+    Expected: visible
+    Received: <element(s) not found>
+    Timeout:  5000ms
+
+    Call log:
+    [2m  - Expect "toBeVisible" with timeout 5000ms[22m
+    [2m  - waiting for locator('div.sidebar').locator('button').filter({ hasText: 'Stop' })[22m
+
+
+      129 |     //    and the UI reacts.
+      130 |     const stopButton = sidebarHost.locator('button', { hasText: 'Stop' });
+    > 131 |     await expect(stopButton).toBeVisible({ timeout: 5000 });
+          |                              ^
+      132 |     await expect(startButton).not.toBeVisible();
+      133 |
+      134 |     // --- STOP FLOW ---
+        at /Users/bahy/Documents/playground/capstone_project/server/projects/linkedin_life_saver/project/tests/e2e/pipeline-controls.spec.ts:131:30
+
+  1 failed
+    tests/e2e/pipeline-controls.spec.ts:111:3 › Pipeline Controls (Start, Stop, Resume) › should correctly cycle through start, stop, and resume states 
+  2 passed (8.2s)

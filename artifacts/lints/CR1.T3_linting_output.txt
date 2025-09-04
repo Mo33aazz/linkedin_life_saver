@@ -1,10 +1,1 @@
-[
-  {
-    "type": null,
-    "path": "/Users/bahy/Documents/playground/capstone_project/server/projects/linkedin_life_saver/project/src/content-scripts/index.ts",
-    "obj": "N/A",
-    "message": "Parsing error: An unary expression with the '~' operator is not allowed in the left-hand side of an exponentiation expression. Consider enclosing the expression in parentheses.",
-    "line": 1,
-    "column": 0
-  }
-]
+[]

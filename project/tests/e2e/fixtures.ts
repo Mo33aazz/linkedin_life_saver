@@ -1,4 +1,4 @@
-import { test as base, chromium, type BrowserContext } from '@playwright/test';
+import { test as base, chromium, type BrowserContext, type Worker } from '@playwright/test';
 import path from 'path';
 import { fileURLToPath } from 'url';
 
@@ -9,7 +9,16 @@ const __dirname = path.dirname(__filename);
 export const test = base.extend<{
   context: BrowserContext;
   extensionId: string;
+  background: Worker;
 }>({
+  background: async ({ context }, use) => {
+    let [background] = context.serviceWorkers();
+    if (!background) {
+      background = await context.waitForEvent('serviceworker');
+    }
+    await use(background);
+  },
+
   context: async ({}, use, testInfo) => {
     const pathToExtension = path.resolve(__dirname, '../../dist');
     const context = await chromium.launchPersistentContext('', {

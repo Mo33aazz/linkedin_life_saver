@@ -36,7 +36,9 @@ chrome.runtime.onMessage.addListener((message: ExtensionMessage) => {
 
 // Expose a helper for E2E tests to simulate messages from the background script.
 // This avoids the complexity of trying to mock chrome.runtime.onMessage events.
-if (import.meta.env.DEV) {
+// NOTE: This test-only helper is exposed when not in a production build.
+// This allows Playwright to simulate messages from the service worker.
+if (import.meta.env.MODE !== 'production') {
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   (window as any).__E2E_TEST_DISPATCH_MESSAGE__ = (message: ExtensionMessage) => {
     if (message.type === 'STATE_UPDATE') {
