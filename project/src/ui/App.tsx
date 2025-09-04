@@ -4,6 +4,7 @@ import { Counters } from './components/Counters';
 import { PipelineProgress } from './components/PipelineProgress';
 import { Controls } from './components/Controls';
 import { LogsPanel } from './components/LogsPanel';
+import { AiSettings } from './components/AiSettings';
 
 export const App = () => {
   useEffect(() => {
@@ -24,6 +25,7 @@ export const App = () => {
       <Counters />
       <PipelineProgress />
       <Controls />
+      <AiSettings />
       <LogsPanel />
     </div>
   );

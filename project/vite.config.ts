@@ -18,7 +18,6 @@ export default defineConfig({
     rollupOptions: {
       // Define entry points for popup and background
       input: {
-        popup: resolve(__dirname, 'index.html'),
         background: resolve(__dirname, 'src/background/index.ts'),
       },
       output: {

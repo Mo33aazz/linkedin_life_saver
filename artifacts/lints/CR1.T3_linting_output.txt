@@ -1,90 +1,18 @@
 [
   {
-    "type": "@typescript-eslint/no-explicit-any",
-    "path": "/Users/bahy/Documents/playground/capstone_project/server/projects/linkedin_life_saver/project/src/ui/components/Controls.tsx",
-    "obj": "TSAnyKeyword",
-    "message": "Unexpected any. Specify a different type.",
-    "line": 60,
-    "column": 38
-  },
-  {
-    "type": "@typescript-eslint/no-unused-vars",
-    "path": "/Users/bahy/Documents/playground/capstone_project/server/projects/linkedin_life_saver/project/tests/e2e/pipeline-controls.spec.ts",
+    "type": null,
+    "path": "/Users/bahy/Documents/playground/capstone_project/server/projects/linkedin_life_saver/project/src/content-scripts/index.ts",
     "obj": "N/A",
-    "message": "'Locator' is defined but never used.",
-    "line": 2,
-    "column": 28
+    "message": "Parsing error: '>' expected.",
+    "line": 125,
+    "column": 21
   },
   {
-    "type": "no-unused-vars",
-    "path": "/Users/bahy/Documents/playground/capstone_project/server/projects/linkedin_life_saver/project/tests/e2e/pipeline-controls.spec.ts",
-    "obj": "Identifier",
-    "message": "'Locator' is defined but never used.",
-    "line": 2,
-    "column": 28
-  },
-  {
-    "type": "@typescript-eslint/no-unused-vars",
-    "path": "/Users/bahy/Documents/playground/capstone_project/server/projects/linkedin_life_saver/project/tests/e2e/pipeline-controls.spec.ts",
-    "obj": "N/A",
-    "message": "'page' is defined but never used.",
-    "line": 140,
-    "column": 28
-  },
-  {
-    "type": "no-unused-vars",
-    "path": "/Users/bahy/Documents/playground/capstone_project/server/projects/linkedin_life_saver/project/tests/e2e/pipeline-controls.spec.ts",
-    "obj": "Identifier",
-    "message": "'page' is defined but never used.",
-    "line": 140,
-    "column": 28
-  },
-  {
-    "type": "@typescript-eslint/no-unused-vars",
-    "path": "/Users/bahy/Documents/playground/capstone_project/server/projects/linkedin_life_saver/project/tests/e2e/pipeline-controls.spec.ts",
-    "obj": "N/A",
-    "message": "'background' is defined but never used.",
-    "line": 159,
-    "column": 77
-  },
-  {
-    "type": "no-unused-vars",
-    "path": "/Users/bahy/Documents/playground/capstone_project/server/projects/linkedin_life_saver/project/tests/e2e/pipeline-controls.spec.ts",
-    "obj": "Identifier",
-    "message": "'background' is defined but never used.",
-    "line": 159,
-    "column": 77
-  },
-  {
-    "type": "@typescript-eslint/no-unused-vars",
-    "path": "/Users/bahy/Documents/playground/capstone_project/server/projects/linkedin_life_saver/project/tests/e2e/pipeline-controls.spec.ts",
-    "obj": "N/A",
-    "message": "'context' is defined but never used.",
-    "line": 312,
-    "column": 89
-  },
-  {
-    "type": "no-unused-vars",
-    "path": "/Users/bahy/Documents/playground/capstone_project/server/projects/linkedin_life_saver/project/tests/e2e/pipeline-controls.spec.ts",
-    "obj": "Identifier",
-    "message": "'context' is defined but never used.",
-    "line": 312,
-    "column": 89
-  },
-  {
-    "type": "@typescript-eslint/no-explicit-any",
-    "path": "/Users/bahy/Documents/playground/capstone_project/server/projects/linkedin_life_saver/project/tests/e2e/pipeline-controls.spec.ts",
-    "obj": "TSAnyKeyword",
-    "message": "Unexpected any. Specify a different type.",
-    "line": 323,
-    "column": 46
-  },
-  {
-    "type": "@typescript-eslint/no-explicit-any",
-    "path": "/Users/bahy/Documents/playground/capstone_project/server/projects/linkedin_life_saver/project/tests/e2e/pipeline-controls.spec.ts",
-    "obj": "TSAnyKeyword",
-    "message": "Unexpected any. Specify a different type.",
-    "line": 323,
-    "column": 62
+    "type": "radix",
+    "path": "/Users/bahy/Documents/playground/capstone_project/server/projects/linkedin_life_saver/project/tests/e2e/ui-injection.spec.ts",
+    "obj": "CallExpression",
+    "message": "Missing radix parameter.",
+    "line": 76,
+    "column": 12
   }
 ]

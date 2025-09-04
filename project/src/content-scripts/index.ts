@@ -8,6 +8,9 @@ console.log('Content script starting...');
 
 
 chrome.runtime.onMessage.addListener((message, _sender, sendResponse) => {
+
+    console.log('[Content Script] Message received:', message.type);
+
   // --- NEW: Handle State and Log Updates ---
   if (message.type === 'STATE_UPDATE') {
     console.log('Content script received STATE_UPDATE:', message.payload);
@@ -69,6 +72,7 @@ const initializeContentScript = () => {
     // Create a host element for the shadow DOM
     console.log('Attempting to create host element...');
     const host = document.createElement('div');
+    host.id = 'linkedin-engagement-assistant-root';
     host.className = 'sidebar';
 
     console.log('Attempting to append to document.body...');

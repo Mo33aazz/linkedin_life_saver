@@ -1,7 +1,15 @@
-import React, { useState, useEffect } from 'react';
+import { useState, useEffect } from 'preact/hooks';
 import { useStore } from '../store';
+import type { LogEntry } from '../../shared/types';
 
-export const Controls: React.FC = () => {
+const getPostUrnFromCurrentTab = (): string | null => {
+  const postUrnRegex = /(urn:li:activity:\d+)/;
+  const match = window.location.href.match(postUrnRegex);
+  return match && match[1] ? match[1] : null;
+};
+
+
+export const Controls = () => {
   const { pipelineStatus, postUrn } = useStore();
   const [maxReplies, setMaxReplies] = useState(10);
   const [delayMin, setDelayMin] = useState(2000);
@@ -13,8 +21,10 @@ export const Controls: React.FC = () => {
   const handleStart = () => {
     chrome.runtime.sendMessage({
       type: 'START_PIPELINE',
-      postUrn,
-      tabId: chrome.devtools?.inspectedWindow?.tabId || 0,
+      payload: {
+        postUrn: getPostUrnFromCurrentTab(),
+        tabId: chrome.devtools?.inspectedWindow?.tabId || 0,
+      }
     });
   };
 
@@ -57,7 +67,7 @@ export const Controls: React.FC = () => {
       (response) => {
         if (response?.logs) {
           const blob = new Blob(
-            [response.logs.map((log: any) => JSON.stringify(log)).join('\n')],
+            [response.logs.map((log: LogEntry) => JSON.stringify(log)).join('\n')],
             { type: 'application/x-ndjson' }
           );
           const url = URL.createObjectURL(blob);
@@ -98,33 +108,36 @@ export const Controls: React.FC = () => {
   return (
     <div className="sidebar-section controls">
       <h3>Controls</h3>
-      
+
       <div className="control-buttons">
         {pipelineStatus === 'idle' && (
           <button
             onClick={handleStart}
             className="control-button start-button"
             data-testid="start-button"
+            aria-label="Start pipeline"
           >
             Start
           </button>
         )}
-        
+
         {pipelineStatus === 'running' && (
           <button
             onClick={handleStop}
             className="control-button stop-button"
             data-testid="stop-button"
+            aria-label="Stop pipeline"
           >
             Stop
           </button>
         )}
-        
+
         {pipelineStatus === 'paused' && (
           <button
             onClick={handleResume}
             className="control-button resume-button"
             data-testid="resume-button"
+            aria-label="Resume pipeline"
           >
             Resume
           </button>
@@ -140,7 +153,7 @@ export const Controls: React.FC = () => {
             min="1"
             max="100"
             value={maxReplies}
-            onChange={(e) => setMaxReplies(parseInt(e.target.value, 10))}
+            onChange={(e) => setMaxReplies(parseInt((e.target as HTMLInputElement).value, 10))}
           />
         </div>
 
@@ -153,7 +166,7 @@ export const Controls: React.FC = () => {
               max="60000"
               step="1000"
               value={delayMin}
-              onChange={(e) => setDelayMin(parseInt(e.target.value, 10))}
+              onChange={(e) => setDelayMin(parseInt((e.target as HTMLInputElement).value, 10))}
               placeholder="Min (ms)"
             />
             <span>-</span>
@@ -163,7 +176,7 @@ export const Controls: React.FC = () => {
               max="60000"
               step="1000"
               value={delayMax}
-              onChange={(e) => setDelayMax(parseInt(e.target.value, 10))}
+              onChange={(e) => setDelayMax(parseInt((e.target as HTMLInputElement).value, 10))}
               placeholder="Max (ms)"
             />
           </div>
@@ -177,7 +190,7 @@ export const Controls: React.FC = () => {
             min="1"
             max="10"
             value={maxOpenTabs}
-            onChange={(e) => setMaxOpenTabs(parseInt(e.target.value, 10))}
+            onChange={(e) => setMaxOpenTabs(parseInt((e.target as HTMLInputElement).value, 10))}
           />
         </div>
 
@@ -189,7 +202,7 @@ export const Controls: React.FC = () => {
             min="1"
             max="50"
             value={maxScrolls}
-            onChange={(e) => setMaxScrolls(parseInt(e.target.value, 10))}
+            onChange={(e) => setMaxScrolls(parseInt((e.target as HTMLSelectElement).value, 10))}
           />
         </div>
 
@@ -198,7 +211,7 @@ export const Controls: React.FC = () => {
           <select
             id="rate-profile"
             value={rateProfile}
-            onChange={(e) => setRateProfile(e.target.value as 'normal' | 'conservative' | 'aggressive')}
+            onChange={(e) => setRateProfile((e.target as HTMLSelectElement).value as 'normal' | 'conservative' | 'aggressive')}
           >
             <option value="normal">Normal</option>
             <option value="conservative">Conservative</option>

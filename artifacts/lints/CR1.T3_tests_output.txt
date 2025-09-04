@@ -2,23 +2,4 @@
 > linkedin-engagement-assistant@0.0.0 build
 > tsc && vite build && vite build --config vite.config.content.js
 
-src/ui/components/Controls.tsx(1,44): error TS2307: Cannot find module 'react' or its corresponding type declarations.
-src/ui/components/Controls.tsx(5,27): error TS2339: Property 'postUrn' does not exist on type 'Store'.
-src/ui/components/Controls.tsx(143,53): error TS18047: 'e.target' is possibly 'null'.
-src/ui/components/Controls.tsx(143,62): error TS2339: Property 'value' does not exist on type 'EventTarget'.
-src/ui/components/Controls.tsx(156,53): error TS18047: 'e.target' is possibly 'null'.
-src/ui/components/Controls.tsx(156,62): error TS2339: Property 'value' does not exist on type 'EventTarget'.
-src/ui/components/Controls.tsx(166,53): error TS18047: 'e.target' is possibly 'null'.
-src/ui/components/Controls.tsx(166,62): error TS2339: Property 'value' does not exist on type 'EventTarget'.
-src/ui/components/Controls.tsx(180,54): error TS18047: 'e.target' is possibly 'null'.
-src/ui/components/Controls.tsx(180,63): error TS2339: Property 'value' does not exist on type 'EventTarget'.
-src/ui/components/Controls.tsx(192,53): error TS18047: 'e.target' is possibly 'null'.
-src/ui/components/Controls.tsx(192,62): error TS2339: Property 'value' does not exist on type 'EventTarget'.
-src/ui/components/Controls.tsx(201,45): error TS18047: 'e.target' is possibly 'null'.
-src/ui/components/Controls.tsx(201,54): error TS2339: Property 'value' does not exist on type 'EventTarget'.
-tests/e2e/pipeline-controls.spec.ts(2,28): error TS6196: 'Locator' is declared but never used.
-tests/e2e/pipeline-controls.spec.ts(140,28): error TS6133: 'page' is declared but its value is never read.
-tests/e2e/pipeline-controls.spec.ts(159,77): error TS6133: 'background' is declared but its value is never read.
-tests/e2e/pipeline-controls.spec.ts(312,89): error TS6133: 'context' is declared but its value is never read.
-tests/e2e/pipeline-controls.spec.ts(323,7): error TS2322: Type '(message: any, callback?: any) => void' is not assignable to type '{ <M = any, R = any>(message: M, responseCallback: (response: R) => void): void; <M = any, R = any>(message: M, options: MessageOptions, responseCallback: (response: R) => void): void; <M = any, R = any>(extensionId: string | ... 1 more ... | undefined, message: M, responseCallback: (response: R) => void): void; <Me...'.
-  Type 'void' is not assignable to type 'Promise<any>'.
+src/content-scripts/index.ts(125,22): error TS1005: '>' expected.
