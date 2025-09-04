@@ -127,7 +127,7 @@ test.describe('Pipeline Controls (Start, Stop, Resume)', () => {
     await page.goto(
       `https://www.linkedin.com/feed/update/${MOCK_POST_URN}/`
     );
-    const sidebarHost = page.locator('div.sidebar');
+    const sidebarHost = page.locator('div#linkedin-life-saver-sidebar');
     await expect(sidebarHost).toBeVisible({ timeout: 10000 });
 
     // --- START FLOW ---
