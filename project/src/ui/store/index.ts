@@ -29,19 +29,25 @@ export const useStore = create<Store>((set) => ({
 // Expose a helper for E2E tests to simulate messages from the background script.
 // This avoids the complexity of trying to mock chrome.runtime.onMessage events.
 // NOTE: This test-only helper is exposed when not in a production build.
-// This allows Playwright to simulate messages from the service worker.
 if (import.meta.env.MODE !== 'production') {
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  (window as any).__E2E_TEST_DISPATCH_MESSAGE__ = (message: { type: string, payload: unknown }) => {
-    if (message.type === 'STATE_UPDATE') {
-      console.log('E2E Test: Dispatching STATE_UPDATE message:', message.payload);
-      useStore.setState(message.payload as Partial<UIState>);
-    } else if (message.type === 'LOG_ENTRY') {
-      console.log('E2E Test: Dispatching LOG_ENTRY message:', message.payload);
-      const newLog = message.payload as LogEntry;
-      useStore.setState(state => ({
-        logs: [...state.logs, newLog].slice(-500)
-      }));
+  // The content script runs in an isolated world, so we can't directly
+  // call a function on `window` from the test's `page.evaluate`.
+  // Instead, we use `postMessage` to bridge the gap. The test will post a
+  // message to the main window, and this listener (in the content script's
+  // world) will pick it up and dispatch the action to the store.
+  window.addEventListener('message', (event) => {
+    // We only accept messages from ourselves and with a specific source identifier.
+    if (event.source !== window || event.data.source !== '__E2E_TEST__') {
+      return;
     }
-  };
+
+    const message = event.data;
+    if (message.type === 'STATE_UPDATE') {
+      console.log('E2E Test: Dispatching STATE_UPDATE message via postMessage:', message.payload);
+      useStore.getState().updateState(message.payload as Partial<UIState>);
+    } else if (message.type === 'LOG_ENTRY') {
+      console.log('E2E Test: Dispatching LOG_ENTRY message via postMessage:', message.payload);
+      useStore.getState().addLog(message.payload as LogEntry);
+    }
+  });
 }

@@ -1,11 +1,14 @@
 import { test, expect } from './fixtures';
+import type { Page } from '@playwright/test';
 import type { UIState, LogEntry, Comment, ExtensionMessage } from '../../src/shared/types';
 
-// Helper function to dispatch messages to the UI's store via the E2E test hook
-const dispatchMessage = async (page, message: ExtensionMessage) => {
-  await page.evaluate((msg) => {
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    (window as any).__E2E_TEST_DISPATCH_MESSAGE__(msg);
+// Helper function to dispatch messages to the UI's store via postMessage
+const dispatchMessage = async (page: Page, message: ExtensionMessage) => {
+  await page.evaluate((msg: ExtensionMessage) => {
+    // Post message to the window. The content script, running in an isolated world,
+    // will be listening for these messages to update its state.
+    // We add a source to identify that it's from our E2E test.
+    window.postMessage({ ...msg, source: '__E2E_TEST__' }, '*');
   }, message);
 };
 
@@ -16,8 +19,9 @@ test.describe('Real-time UI Updates', () => {
     await page.goto(postUrl, { waitUntil: 'domcontentloaded' });
     // Wait for the sidebar root element to be injected into the DOM
     await page.waitForSelector('#linkedin-engagement-assistant-root', { timeout: 30000 });
-    // Wait for the Preact app container inside the shadow root to be visible and ready
-    await expect(page.locator('div#sidebar-app')).toBeVisible();
+    // Wait for the Preact app container inside the shadow root to be visible and ready.
+    // This ensures the UI and its message listeners are active.
+    await expect(page.locator('#sidebar-app')).toBeVisible();
   });
 
   test('should update Live Counters on STATE_UPDATE event', async ({ page }) => {
@@ -33,9 +37,9 @@ test.describe('Real-time UI Updates', () => {
     // 2. Dispatch the STATE_UPDATE message to the UI
     await dispatchMessage(page, { type: 'STATE_UPDATE', payload: mockState });
 
-    // 3. Locate the counter value elements within the sidebar
-    const totalCounter = page.locator('.counter-grid .counter-item:first-child .counter-value');
-    const userCounter = page.locator('.counter-grid .counter-item:last-child .counter-value');
+    // 3. Locate the counter value elements within the sidebar using data-testid
+    const totalCounter = page.locator('[data-testid="total-counter"]');
+    const userCounter = page.locator('[data-testid="user-counter"]');
 
     // 4. Assert that the text content has been updated to match the mock data
     await expect(totalCounter).toHaveText('42');
@@ -86,7 +90,7 @@ test.describe('Real-time UI Updates', () => {
   test('should add new entry to Logs Panel on LOG_ENTRY event', async ({ page }) => {
     // 1. Define a mock log entry
     const mockLog: LogEntry = {
-      timestamp: 1678886400000, // A fixed timestamp: 2023-03-15T12:00:00.000Z
+      timestamp: new Date(1678886400000).toISOString(), // '2023-03-15T12:00:00.000Z'
       level: 'INFO',
       message: 'This is a simulated log message from the test.',
     };

@@ -50,7 +50,10 @@ test.describe('Pipeline Control E2E Tests', () => {
         // This function runs in the service worker's context.
         // We directly manipulate chrome.storage.local. The stateManager uses
         // the post URN itself as the key.
-        await chrome.storage.local.set({ [postUrn]: state });
+        // Using self.chrome to be explicit about accessing the global scope
+        // in the service worker, which can help avoid potential scope resolution
+        // issues within Playwright's evaluate context.
+        await self.chrome.storage.local.set({ [postUrn]: state });
       },
       { postUrn: TEST_POST_URN, state: mockPostState }
     );

@@ -68,8 +68,8 @@ const Stepper = ({ likeStatus, replyStatus, dmStatus }: StepperProps) => {
     <div className="stepper-container">
       {steps.map((step, index) => (
         <div key={step} className={`step-item step-${statuses[index]}`}>
-          <div className="step-indicator" data-testid="status-indicator" />
-          <p className="step-label" data-testid="status-indicator">{step}</p>
+          <div className={`step-indicator step-${statuses[index]}`} data-testid="status-indicator" />
+          <p className="step-label">{step}</p>
         </div>
       ))}
     </div>

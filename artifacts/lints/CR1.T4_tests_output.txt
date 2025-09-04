@@ -1,16 +1,33 @@
 
-> linkedin-engagement-assistant@0.0.0 build
-> tsc && vite build
+> linkedin-engagement-assistant@0.0.0 build:test
+> tsc && vite build --mode test && vite build --config vite.config.content.js --mode test
 
-vite v5.4.19 building for production...
+vite v5.4.19 building for test...
 transforming...
-✓ 30 modules transformed.
+✓ 6 modules transformed.
 rendering chunks...
 computing gzip size...
-dist/index.html         0.50 kB │ gzip:  0.30 kB
-dist/assets/popup.css   4.95 kB │ gzip:  1.45 kB
-dist/popup.js           0.80 kB │ gzip:  0.46 kB
-dist/content.js         5.73 kB │ gzip:  1.85 kB
-dist/background.js     20.31 kB │ gzip:  6.85 kB
-dist/chunks/App.js     35.25 kB │ gzip: 13.13 kB
-✓ built in 129ms
+dist/background.js  162.28 kB │ gzip: 43.31 kB │ map: 87.15 kB
+✓ built in 68ms
+vite v5.4.19 building for test...
+transforming...
+✓ 21 modules transformed.
+rendering chunks...
+computing gzip size...
+dist/content.js  272.62 kB │ gzip: 78.56 kB │ map: 140.41 kB
+✓ built in 116ms
+
+> linkedin-engagement-assistant@0.0.0 test
+> playwright test
+
+
+Running 6 tests using 4 workers
+
+  ✓  4 tests/e2e/setup.spec.ts:4:3 › Extension E2E Setup › should load the extension and inject the content script on linkedin.com (3.7s)
+  ✓  3 tests/e2e/real-time-ui.spec.ts:27:3 › Real-time UI Updates › should update Live Counters on STATE_UPDATE event (4.6s)
+  ✓  2 tests/e2e/pipeline-controls.spec.ts:93:3 › Pipeline Control E2E Tests › should successfully control pipeline lifecycle: start, stop, and resume (5.3s)
+  ✓  5 tests/e2e/real-time-ui.spec.ts:49:3 › Real-time UI Updates › should update Pipeline Progress on STATE_UPDATE event (2.9s)
+  ✓  1 tests/e2e/ui-injection.spec.ts:4:3 › Extension UI Injection and Initial State › should inject the sidebar with default components on a LinkedIn post page (7.6s)
+  ✓  6 tests/e2e/real-time-ui.spec.ts:90:3 › Real-time UI Updates › should add new entry to Logs Panel on LOG_ENTRY event (2.8s)
+
+  6 passed (10.6s)
