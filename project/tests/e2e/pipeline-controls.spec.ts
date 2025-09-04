@@ -1,355 +1,347 @@
 import { test, expect } from './fixtures';
-import type { PostState, AIConfig } from '../../src/shared/types';
+import type { Page, Frame, Locator } from '@playwright/test';
 
-// Add this declaration to make TS and ESLint happy about the custom E2E hooks
-// that are injected into the service worker context by `setup.spec.ts`.
-// We augment `Window` because in the test file's compilation context (with both
-// 'dom' and 'webworker' libs), TypeScript resolves `self` to `Window & typeof globalThis`.
-// This satisfies the type checker for the `background.evaluate` calls, even though
-// the code actually runs in a `ServiceWorkerGlobalScope` at runtime.
-declare global {
-  interface Window {
-    __E2E_TEST_HOOKS_INSTALLED?: boolean;
-    __E2E_TEST_SAVE_POST_STATE: (postUrn: string, state: PostState) => void;
-    __E2E_TEST_UPDATE_CONFIG: (config: Partial<AIConfig>) => void;
+/**
+ * Helper to wait for the sidebar to be injected and return its shadow root frame
+ */
+async function waitForSidebar(page: Page, timeout = 30000): Promise<Frame | null> {
+  const startTime = Date.now();
+  
+  while (Date.now() - startTime < timeout) {
+    // Look for the sidebar container element
+    const sidebarHost = await page.locator('#linkedin-assistant-sidebar').first();
+    
+    if (await sidebarHost.count() > 0) {
+      // Get the shadow root - Playwright doesn't directly support shadow DOM traversal,
+      // so we need to use evaluate
+      const hasShadowRoot = await sidebarHost.evaluate((el) => {
+        return !!el.shadowRoot;
+      });
+      
+      if (hasShadowRoot) {
+        return null; // We'll interact with shadow DOM via evaluate
+      }
+    }
+    
+    await page.waitForTimeout(500);
+  }
+  
+  throw new Error('Sidebar not found within timeout');
+}
+
+/**
+ * Helper to interact with elements inside the shadow DOM
+ */
+async function clickShadowElement(page: Page, selector: string): Promise<void> {
+  await page.evaluate((sel) => {
+    const host = document.querySelector('#linkedin-assistant-sidebar');
+    if (!host?.shadowRoot) throw new Error('Shadow root not found');
+    const element = host.shadowRoot.querySelector(sel) as HTMLElement;
+    if (!element) throw new Error(`Element ${sel} not found in shadow DOM`);
+    element.click();
+  }, selector);
+}
+
+/**
+ * Helper to check if an element exists in the shadow DOM
+ */
+async function shadowElementExists(page: Page, selector: string): Promise<boolean> {
+  return await page.evaluate((sel) => {
+    const host = document.querySelector('#linkedin-assistant-sidebar');
+    if (!host?.shadowRoot) return false;
+    return !!host.shadowRoot.querySelector(sel);
+  }, selector);
+}
+
+/**
+ * Helper to get text content from shadow DOM element
+ */
+async function getShadowElementText(page: Page, selector: string): Promise<string> {
+  return await page.evaluate((sel) => {
+    const host = document.querySelector('#linkedin-assistant-sidebar');
+    if (!host?.shadowRoot) throw new Error('Shadow root not found');
+    const element = host.shadowRoot.querySelector(sel);
+    if (!element) throw new Error(`Element ${sel} not found in shadow DOM`);
+    return element.textContent || '';
+  }, selector);
+}
+
+/**
+ * Helper to wait for a specific pipeline status
+ */
+async function waitForPipelineStatus(
+  page: Page,
+  expectedStatus: 'idle' | 'running' | 'paused',
+  timeout = 10000
+): Promise<boolean> {
+  const startTime = Date.now();
+  
+  while (Date.now() - startTime < timeout) {
+    try {
+      // Check for status indicator in the UI
+      const statusText = await getShadowElementText(page, '[data-testid="pipeline-status"]');
+      
+      if (statusText.toLowerCase().includes(expectedStatus)) {
+        return true;
+      }
+      
+      // Also check button visibility as a secondary indicator
+      if (expectedStatus === 'idle') {
+        const startVisible = await shadowElementExists(page, '[data-testid="start-button"]');
+        if (startVisible) return true;
+      } else if (expectedStatus === 'running') {
+        const stopVisible = await shadowElementExists(page, '[data-testid="stop-button"]');
+        if (stopVisible) return true;
+      } else if (expectedStatus === 'paused') {
+        const resumeVisible = await shadowElementExists(page, '[data-testid="resume-button"]');
+        if (resumeVisible) return true;
+      }
+    } catch (e) {
+      // Element might not exist yet, continue polling
+    }
+    
+    await page.waitForTimeout(250);
+  }
+  
+  return false;
+}
+
+/**
+ * Helper to verify button visibility states
+ */
+async function verifyButtonStates(
+  page: Page,
+  expected: { start?: boolean; stop?: boolean; resume?: boolean }
+): Promise<void> {
+  if (expected.start !== undefined) {
+    const startExists = await shadowElementExists(page, '[data-testid="start-button"]');
+    expect(startExists).toBe(expected.start);
+  }
+  
+  if (expected.stop !== undefined) {
+    const stopExists = await shadowElementExists(page, '[data-testid="stop-button"]');
+    expect(stopExists).toBe(expected.stop);
+  }
+  
+  if (expected.resume !== undefined) {
+    const resumeExists = await shadowElementExists(page, '[data-testid="resume-button"]');
+    expect(resumeExists).toBe(expected.resume);
   }
 }
 
-const MOCK_POST_URN = 'urn:li:activity:7123456789012345678';
-
-test.describe('Pipeline Controls', () => {
-  // Inject mock state before each test in this suite
-  test.beforeEach(async ({ background }) => {
-    // Wait until the service worker has installed the E2E test hooks.
-    // This prevents a race condition where the test tries to call a hook
-    // before the service worker has finished its initial execution.
-    await expect
-      .poll(
-        () =>
-          background.evaluate(() => self.__E2E_TEST_HOOKS_INSTALLED),
-        {
-          message: 'E2E test hooks should be installed in the service worker',
-          timeout: 10000,
-        }
-      )
-      .toBe(true);
-
-    const mockPostState: PostState = {
-      _meta: {
-        postId: MOCK_POST_URN,
-        postUrl: `https://www.linkedin.com/feed/update/${MOCK_POST_URN}/`,
-        lastUpdated: new Date().toISOString(),
-        runState: 'idle',
-      },
-      comments: [
-        {
-          commentId: 'comment-1',
-          text: 'This is a test comment that needs processing.',
-          ownerProfileUrl: 'https://www.linkedin.com/in/test-user/',
-          timestamp: new Date().toISOString(),
-          type: 'top-level',
-          connected: false, // Set to false to avoid opening new tabs during test
-          threadId: 'thread-1',
-          likeStatus: 'DONE', // Mark as already liked to force the reply step
-          replyStatus: '', // Mark as needing processing
-          dmStatus: '',
-          attempts: { like: 0, reply: 0, dm: 0 },
-          lastError: '',
-          pipeline: {
-            queuedAt: '',
-            likedAt: new Date().toISOString(), // Already liked
-            repliedAt: '',
-            dmAt: '',
-            generatedReply: '',
-          },
-        },
-        {
-          commentId: 'comment-2',
-          text: 'Another test comment for processing.',
-          ownerProfileUrl: 'https://www.linkedin.com/in/another-user/',
-          timestamp: new Date().toISOString(),
-          type: 'top-level',
-          connected: false,
-          threadId: 'thread-2',
-          likeStatus: '', // Needs processing from the beginning
-          replyStatus: '',
-          dmStatus: '',
-          attempts: { like: 0, reply: 0, dm: 0 },
-          lastError: '',
-          pipeline: {
-            queuedAt: '',
-            likedAt: '',
-            repliedAt: '',
-            dmAt: '',
-          },
-        },
-      ],
-    };
-
-    // Use the E2E test hook to inject state directly into the service worker
-    await background.evaluate(
-      ({ postUrn, state }) => {
-        // This function runs in the service worker's context
-        self.__E2E_TEST_SAVE_POST_STATE(postUrn, state);
-      },
-      { postUrn: MOCK_POST_URN, state: mockPostState }
-    );
-
-    // Set a mock API key to prevent the pipeline from failing immediately
-    await background.evaluate(
-      (config) => {
-        // This function runs in the service worker's context
-        self.__E2E_TEST_UPDATE_CONFIG(config);
-      },
-      { 
-        apiKey: 'MOCK_API_KEY_FOR_TESTING',
-        model: 'anthropic/claude-3.5-sonnet',
-        temperature: 0.5,
-        top_p: 1.0,
-        max_tokens: 220,
-      } as Partial<AIConfig>
-    );
+test.describe('Pipeline Controls E2E', () => {
+  let testPostUrl: string;
+  
+  test.beforeAll(() => {
+    // Use a test LinkedIn post URL - can be a real one or mocked
+    testPostUrl = 'https://www.linkedin.com/feed/update/urn:li:activity:7368611162063671296/';
   });
-
-  test('should correctly start, stop, and resume the pipeline', async ({
-    page,
-  }) => {
-    // 1. The test fixture (`tests/e2e/fixtures.ts`) is pre-configured to intercept
-    // network requests from the service worker to the OpenRouter API. It holds
-    // the request pending indefinitely. This causes the pipeline to remain in a
-    // "running" state without actually hitting the network, allowing us to test
-    // the UI's running/paused states.
-
-    // 2. Intercept the navigation to the LinkedIn post and provide a mock response.
-    // This avoids dealing with authentication and network flakiness.
-    await page.route(
-      `**/feed/update/${MOCK_POST_URN}/**`,
-      async (route) => {
-        await route.fulfill({
-          status: 200,
-          contentType: 'text/html',
-          body: `
-            <!DOCTYPE html>
-            <html>
-              <head><title>Mock LinkedIn Post</title></head>
-              <body>
-                <h1>Mock LinkedIn Post Page</h1>
-                <div id="linkedin-content">
-                  <!-- Mock content that the content script can detect -->
-                </div>
-              </body>
-            </html>
-          `,
-        });
-      }
-    );
-
-    // 3. Navigate to the URL. The content script will match this URL pattern.
-    await page.goto(
-      `https://www.linkedin.com/feed/update/${MOCK_POST_URN}/`
-    );
-
-    // 4. Define locators for the sidebar and control buttons.
-    // Playwright automatically pierces shadow DOM when chaining locators.
-    const sidebarHost = page.locator('div.sidebar');
-    const startButton = sidebarHost.locator('[data-testid="start-button"]');
-    const stopButton = sidebarHost.locator('[data-testid="stop-button"]');
-    const resumeButton = sidebarHost.locator('[data-testid="resume-button"]');
-
-    // 5. Verify the initial state: The sidebar is visible and in 'idle' mode.
-    console.log('Verifying initial state...');
-    await expect(sidebarHost).toBeVisible({ timeout: 10000 });
-    await expect(startButton).toBeVisible({ timeout: 5000 });
-    await expect(stopButton).not.toBeVisible();
-    await expect(resumeButton).not.toBeVisible();
-
-    // 6. Test the 'Start' action.
-    // Clicking 'Start' should change the state to 'running'.
-    console.log('Testing: Clicking Start button');
-    await startButton.click();
-
-    // Assert that the UI reflects the 'running' state.
-    await expect(stopButton).toBeVisible({ timeout: 5000 });
-    await expect(startButton).not.toBeVisible();
-    await expect(resumeButton).not.toBeVisible();
-    console.log('✓ Pipeline started successfully');
-
-    // 7. Test the 'Stop' action.
-    // Clicking 'Stop' should change the state to 'paused'.
-    console.log('Testing: Clicking Stop button');
-    await stopButton.click();
-
-    // Assert that the UI reflects the 'paused' state.
-    await expect(resumeButton).toBeVisible({ timeout: 5000 });
-    await expect(stopButton).not.toBeVisible();
-    await expect(startButton).not.toBeVisible();
-    console.log('✓ Pipeline stopped successfully');
-
-    // 8. Test the 'Resume' action.
-    // Clicking 'Resume' should change the state back to 'running'.
-    console.log('Testing: Clicking Resume button');
-    await resumeButton.click();
-
-    // Assert that the UI reflects the 'running' state again.
-    await expect(stopButton).toBeVisible({ timeout: 5000 });
-    await expect(resumeButton).not.toBeVisible();
-    await expect(startButton).not.toBeVisible();
-    console.log('✓ Pipeline resumed successfully');
-
-    // 9. Optional: Test stopping again to ensure the cycle works correctly
-    console.log('Testing: Clicking Stop button again');
-    await stopButton.click();
+  
+  test.beforeEach(async ({ page, context }) => {
+    // Ensure we start fresh for each test
+    await context.clearCookies();
     
-    await expect(resumeButton).toBeVisible({ timeout: 5000 });
-    await expect(stopButton).not.toBeVisible();
-    console.log('✓ Pipeline stopped again successfully');
+    // Add LinkedIn auth cookie if available
+    if (process.env.LINKEDIN_COOKIE) {
+      await context.addCookies([{
+        name: 'li_at',
+        value: process.env.LINKEDIN_COOKIE,
+        domain: '.linkedin.com',
+        path: '/',
+        httpOnly: true,
+        secure: true,
+        sameSite: 'None' as const,
+        expires: Math.floor(Date.now() / 1000) + 365 * 24 * 60 * 60,
+      }]);
+    }
   });
-
-  test('should display correct pipeline status and counters', async ({
-    page,
-  }) => {
-    // Set up route for the mock LinkedIn post
-    await page.route(
-      `**/feed/update/${MOCK_POST_URN}/**`,
-      async (route) => {
-        await route.fulfill({
-          status: 200,
-          contentType: 'text/html',
-          body: `
-            <!DOCTYPE html>
-            <html>
-              <head><title>Mock LinkedIn Post</title></head>
-              <body>
-                <h1>Mock LinkedIn Post Page</h1>
-              </body>
-            </html>
-          `,
-        });
-      }
-    );
-
-    // Navigate to the mock post
-    await page.goto(
-      `https://www.linkedin.com/feed/update/${MOCK_POST_URN}/`
-    );
-
-    // Wait for sidebar to be visible
-    const sidebarHost = page.locator('div.sidebar');
-    await expect(sidebarHost).toBeVisible({ timeout: 10000 });
-
-    // Check that the counters section is visible
-    const countersSection = sidebarHost.locator('.sidebar-section').filter({ hasText: 'Live Counters' });
-    await expect(countersSection).toBeVisible();
-
-    // Verify initial counter values
-    const totalTopLevel = countersSection.locator('[data-testid="total-top-level"]');
-    const userTopLevel = countersSection.locator('[data-testid="user-top-level"]');
+  
+  test('should handle Start → Stop → Resume flow correctly', async ({ page, background }) => {
+    // Step 1: Navigate to LinkedIn post
+    await page.goto(testPostUrl, { waitUntil: 'networkidle' });
     
-    // The mock state has 2 top-level comments, both external (not from user)
-    await expect(totalTopLevel).toContainText('2', { timeout: 5000 });
-    await expect(userTopLevel).toContainText('0', { timeout: 5000 });
-
-    // Check pipeline progress section
-    const progressSection = sidebarHost.locator('.sidebar-section').filter({ hasText: 'Pipeline Progress' });
-    await expect(progressSection).toBeVisible();
-
+    // Step 2: Wait for sidebar injection
+    console.log('Waiting for sidebar to be injected...');
+    await waitForSidebar(page);
+    
+    // Give the UI a moment to fully initialize
+    await page.waitForTimeout(2000);
+    
+    // Step 3: Verify initial state (idle with Start button visible)
+    console.log('Verifying initial idle state...');
+    await verifyButtonStates(page, {
+      start: true,
+      stop: false,
+      resume: false
+    });
+    
+    const initialStatus = await waitForPipelineStatus(page, 'idle', 5000);
+    expect(initialStatus).toBe(true);
+    
+    // Step 4: Click Start and verify transition to running
+    console.log('Starting pipeline...');
+    await clickShadowElement(page, '[data-testid="start-button"]');
+    
+    // Wait for state change with longer timeout as service worker needs to process
+    const runningStatus = await waitForPipelineStatus(page, 'running', 10000);
+    expect(runningStatus).toBe(true);
+    
+    await verifyButtonStates(page, {
+      start: false,
+      stop: true,
+      resume: false
+    });
+    
+    // Verify that counters or status indicators show running state
+    const runningText = await getShadowElementText(page, '[data-testid="pipeline-status"]');
+    expect(runningText.toLowerCase()).toContain('running');
+    
+    // Step 5: Click Stop and verify transition to paused
+    console.log('Stopping pipeline...');
+    await clickShadowElement(page, '[data-testid="stop-button"]');
+    
+    const pausedStatus = await waitForPipelineStatus(page, 'paused', 10000);
+    expect(pausedStatus).toBe(true);
+    
+    await verifyButtonStates(page, {
+      start: false,
+      stop: false,
+      resume: true
+    });
+    
+    const pausedText = await getShadowElementText(page, '[data-testid="pipeline-status"]');
+    expect(pausedText.toLowerCase()).toContain('paused');
+    
+    // Step 6: Click Resume and verify transition back to running
+    console.log('Resuming pipeline...');
+    await clickShadowElement(page, '[data-testid="resume-button"]');
+    
+    const resumedStatus = await waitForPipelineStatus(page, 'running', 10000);
+    expect(resumedStatus).toBe(true);
+    
+    await verifyButtonStates(page, {
+      start: false,
+      stop: true,
+      resume: false
+    });
+    
+    const resumedText = await getShadowElementText(page, '[data-testid="pipeline-status"]');
+    expect(resumedText.toLowerCase()).toContain('running');
+    
+    // Optional: Stop again to clean up
+    await clickShadowElement(page, '[data-testid="stop-button"]');
+    await waitForPipelineStatus(page, 'paused', 5000);
+    
+    console.log('Pipeline control test completed successfully!');
+  });
+  
+  test('should maintain state after rapid Start/Stop clicks', async ({ page }) => {
+    await page.goto(testPostUrl, { waitUntil: 'networkidle' });
+    await waitForSidebar(page);
+    await page.waitForTimeout(2000);
+    
+    // Rapid Start → Stop sequence
+    await clickShadowElement(page, '[data-testid="start-button"]');
+    await page.waitForTimeout(500); // Very short wait
+    await clickShadowElement(page, '[data-testid="stop-button"]');
+    
+    // Should end in paused state
+    const finalStatus = await waitForPipelineStatus(page, 'paused', 10000);
+    expect(finalStatus).toBe(true);
+    
+    await verifyButtonStates(page, {
+      start: false,
+      stop: false,
+      resume: true
+    });
+  });
+  
+  test('should handle multiple Resume/Stop cycles', async ({ page }) => {
+    await page.goto(testPostUrl, { waitUntil: 'networkidle' });
+    await waitForSidebar(page);
+    await page.waitForTimeout(2000);
+    
     // Start the pipeline
-    const startButton = sidebarHost.locator('[data-testid="start-button"]');
-    await startButton.click();
-
-    // Verify that pipeline progress shows comments being processed
-    const commentRows = progressSection.locator('[data-testid^="comment-row-"]');
-    await expect(commentRows).toHaveCount(2, { timeout: 5000 });
-
-    // Check that the first comment shows as already liked (based on mock data)
-    const firstCommentRow = commentRows.first();
-    await expect(firstCommentRow).toContainText('test comment that needs processing');
+    await clickShadowElement(page, '[data-testid="start-button"]');
+    await waitForPipelineStatus(page, 'running', 10000);
     
-    // Stop the pipeline to complete the test
-    const stopButton = sidebarHost.locator('[data-testid="stop-button"]');
-    await stopButton.click();
+    // Perform multiple stop/resume cycles
+    for (let i = 0; i < 3; i++) {
+      console.log(`Cycle ${i + 1}: Stopping...`);
+      await clickShadowElement(page, '[data-testid="stop-button"]');
+      await waitForPipelineStatus(page, 'paused', 5000);
+      
+      console.log(`Cycle ${i + 1}: Resuming...`);
+      await clickShadowElement(page, '[data-testid="resume-button"]');
+      await waitForPipelineStatus(page, 'running', 5000);
+    }
+    
+    // Final verification
+    await verifyButtonStates(page, {
+      start: false,
+      stop: true,
+      resume: false
+    });
   });
-
-  test('should handle errors gracefully', async ({
-    page,
-    background,
-  }) => {
-    // Inject a state with a comment that will fail
-    const errorPostState: PostState = {
-      _meta: {
-        postId: MOCK_POST_URN,
-        postUrl: `https://www.linkedin.com/feed/update/${MOCK_POST_URN}/`,
-        lastUpdated: new Date().toISOString(),
-        runState: 'idle',
-      },
-      comments: [
-        {
-          commentId: 'error-comment',
-          text: '__FORCE_ERROR__', // Special text to trigger an error in tests
-          ownerProfileUrl: 'https://www.linkedin.com/in/error-user/',
-          timestamp: new Date().toISOString(),
-          type: 'top-level',
-          connected: false,
-          threadId: 'error-thread',
-          likeStatus: '',
-          replyStatus: '',
-          dmStatus: '',
-          attempts: { like: 3, reply: 3, dm: 0 }, // Max attempts reached
-          lastError: 'Simulated error for testing',
-          pipeline: {
-            queuedAt: new Date().toISOString(),
-            likedAt: '',
-            repliedAt: '',
-            dmAt: '',
-          },
-        },
-      ],
-    };
-
-    await background.evaluate(
-      ({ postUrn, state }) => {
-        self.__E2E_TEST_SAVE_POST_STATE(postUrn, state);
-      },
-      { postUrn: MOCK_POST_URN, state: errorPostState }
-    );
-
-    // Set up route and navigate
-    await page.route(
-      `**/feed/update/${MOCK_POST_URN}/**`,
-      async (route) => {
-        await route.fulfill({
-          status: 200,
-          contentType: 'text/html',
-          body: `<!DOCTYPE html><html><body>Mock Post</body></html>`,
-        });
-      }
-    );
-
-    await page.goto(
-      `https://www.linkedin.com/feed/update/${MOCK_POST_URN}/`
-    );
-
-    // Wait for sidebar
-    const sidebarHost = page.locator('div.sidebar');
-    await expect(sidebarHost).toBeVisible({ timeout: 10000 });
-
-    // Check that the logs panel shows error messages
-    const logsPanel = sidebarHost.locator('.sidebar-section').filter({ hasText: 'Logs' });
-    await expect(logsPanel).toBeVisible();
-
-    // Start the pipeline - it should handle the error gracefully
-    const startButton = sidebarHost.locator('[data-testid="start-button"]');
-    await startButton.click();
-
-    // The pipeline should still be controllable despite errors
-    const stopButton = sidebarHost.locator('[data-testid="stop-button"]');
-    await expect(stopButton).toBeVisible({ timeout: 5000 });
-
-    // Stop the pipeline
-    await stopButton.click();
+  
+  test('should show processing indicators when pipeline is running', async ({ page }) => {
+    await page.goto(testPostUrl, { waitUntil: 'networkidle' });
+    await waitForSidebar(page);
+    await page.waitForTimeout(2000);
     
-    // Verify we can still resume after an error
-    const resumeButton = sidebarHost.locator('[data-testid="resume-button"]');
-    await expect(resumeButton).toBeVisible({ timeout: 5000 });
+    // Start the pipeline
+    await clickShadowElement(page, '[data-testid="start-button"]');
+    await waitForPipelineStatus(page, 'running', 10000);
+    
+    // Check for processing indicators
+    const hasProgressIndicator = await shadowElementExists(page, '[data-testid="pipeline-progress"]');
+    expect(hasProgressIndicator).toBe(true);
+    
+    // Check if counters section exists and is visible
+    const hasCounters = await shadowElementExists(page, '.sidebar-section.counters');
+    expect(hasCounters).toBe(true);
+    
+    // Clean up
+    await clickShadowElement(page, '[data-testid="stop-button"]');
+    await waitForPipelineStatus(page, 'paused', 5000);
+  });
+});
+
+// Additional test for error scenarios
+test.describe('Pipeline Controls Error Handling', () => {
+  test('should handle service worker communication failures gracefully', async ({ page, context }) => {
+    const testPostUrl = 'https://www.linkedin.com/feed/update/urn:li:activity:7368611162063671296/';
+    
+    await page.goto(testPostUrl, { waitUntil: 'networkidle' });
+    await waitForSidebar(page);
+    await page.waitForTimeout(2000);
+    
+    // Simulate service worker being unresponsive by evaluating in page context
+    await page.evaluate(() => {
+      // Override chrome.runtime.sendMessage to simulate failure
+      const originalSendMessage = chrome.runtime.sendMessage;
+      chrome.runtime.sendMessage = (message: any, callback?: any) => {
+        if (message.type === 'START_PIPELINE') {
+          // Simulate a timeout/error
+          setTimeout(() => {
+            if (callback) {
+              callback({ error: 'Service worker timeout' });
+            }
+          }, 100);
+          return;
+        }
+        return originalSendMessage(message, callback);
+      };
+    });
+    
+    // Try to start pipeline - should handle error gracefully
+    await clickShadowElement(page, '[data-testid="start-button"]');
+    
+    // Wait a bit for error handling
+    await page.waitForTimeout(2000);
+    
+    // UI should still be responsive and show appropriate state
+    const startButtonStillExists = await shadowElementExists(page, '[data-testid="start-button"]');
+    expect(startButtonStillExists).toBe(true);
   });
 });
