@@ -1,11 +1,39 @@
 import { test, expect } from './fixtures';
-import type { PostState } from '../../src/shared/types';
+import type { PostState, AIConfig } from '../../src/shared/types';
+
+// Add this declaration to make TS and ESLint happy about the custom E2E hooks
+// that are injected into the service worker context by `setup.spec.ts`.
+// We augment `Window` because in the test file's compilation context (with both
+// 'dom' and 'webworker' libs), TypeScript resolves `self` to `Window & typeof globalThis`.
+// This satisfies the type checker for the `background.evaluate` calls, even though
+// the code actually runs in a `ServiceWorkerGlobalScope` at runtime.
+declare global {
+  interface Window {
+    __E2E_TEST_HOOKS_INSTALLED?: boolean;
+    __E2E_TEST_SAVE_POST_STATE: (postUrn: string, state: PostState) => void;
+    __E2E_TEST_UPDATE_CONFIG: (config: Partial<AIConfig>) => void;
+  }
+}
 
 const MOCK_POST_URN = 'urn:li:activity:7123456789012345678';
 
 test.describe('Pipeline Controls', () => {
   // Inject mock state before each test in this suite
   test.beforeEach(async ({ background }) => {
+    // Wait until the service worker has installed the E2E test hooks.
+    // This prevents a race condition where the test tries to call a hook
+    // before the service worker has finished its initial execution.
+    await expect
+      .poll(
+        () =>
+          background.evaluate(() => self.__E2E_TEST_HOOKS_INSTALLED),
+        {
+          message: 'E2E test hooks should be installed in the service worker',
+          timeout: 10000,
+        }
+      )
+      .toBe(true);
+
     const mockPostState: PostState = {
       _meta: {
         postId: MOCK_POST_URN,
@@ -20,6 +48,7 @@ test.describe('Pipeline Controls', () => {
           ownerProfileUrl: 'https://www.linkedin.com/in/test-user/',
           timestamp: new Date().toISOString(),
           type: 'top-level',
+          connected: false, // FIX: Skip connection check to avoid opening new tabs
           threadId: 'thread-1',
           likeStatus: 'DONE', // Mark as already liked to force the reply step
           replyStatus: '', // Mark as needing processing
@@ -40,8 +69,7 @@ test.describe('Pipeline Controls', () => {
     await background.evaluate(
       ({ postUrn, state }) => {
         // This function runs in the service worker's context
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        return (self as any).__E2E_TEST_SAVE_POST_STATE(postUrn, state);
+        self.__E2E_TEST_SAVE_POST_STATE(postUrn, state);
       },
       { postUrn: MOCK_POST_URN, state: mockPostState }
     );
@@ -50,8 +78,7 @@ test.describe('Pipeline Controls', () => {
     await background.evaluate(
       (config) => {
         // This function runs in the service worker's context
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        return (self as any).__E2E_TEST_UPDATE_CONFIG(config);
+        self.__E2E_TEST_UPDATE_CONFIG(config);
       },
       { apiKey: 'MOCK_API_KEY_FOR_TESTING' }
     );

@@ -69,6 +69,8 @@ export class Logger {
       case 'DEBUG':
         console.debug(...consoleArgs);
         break;
+      default:
+        console.log(...consoleArgs);
     }
 
     // Broadcast the structured log

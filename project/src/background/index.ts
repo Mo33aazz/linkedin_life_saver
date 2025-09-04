@@ -30,7 +30,16 @@ import { logger } from './logger';
 
 // Define the broadcaster function
 const broadcastLog = (logEntry: LogEntry) => {
-  chrome.runtime.sendMessage({ type: 'LOG_ENTRY', payload: logEntry });
+  // Fire-and-forget broadcast for logs.
+  chrome.runtime.sendMessage({ type: 'LOG_ENTRY', payload: logEntry })
+    .catch(error => {
+      if (error.message.includes('Receiving end does not exist')) {
+        // Expected error when no UI is listening. Safe to ignore.
+      } else {
+        // Use console.warn directly to avoid recursive logging loop if logger is broken.
+        console.warn('An unexpected error occurred during log broadcast', error);
+      }
+    });
 };
 
 // Initialize the logger
@@ -52,9 +61,18 @@ const configInitializationPromise = initializeConfig();
  */
 const broadcastStateUpdate = (state: Partial<UIState>) => {
   logger.info('Broadcasting state update', { state });
+  // This is a fire-and-forget broadcast. The promise it returns may be
+  // rejected if no UI component is open to receive it. We can safely
+  // ignore this rejection as it's an expected condition.
   chrome.runtime.sendMessage({
     type: 'STATE_UPDATE',
     payload: state,
+  }).catch(error => {
+    if (error.message.includes('Receiving end does not exist')) {
+      // Expected error when no UI is listening. Safe to ignore.
+    } else {
+      logger.warn('An unexpected error occurred during state broadcast', error);
+    }
   });
 };
 
@@ -332,5 +350,7 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
   (self as any).__E2E_TEST_SAVE_POST_STATE = savePostState;
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   (self as any).__E2E_TEST_UPDATE_CONFIG = updateConfig;
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  (self as any).__E2E_TEST_HOOKS_INSTALLED = true;
   console.log('[BACKGROUND SCRIPT] E2E test hooks installed.');
 // }

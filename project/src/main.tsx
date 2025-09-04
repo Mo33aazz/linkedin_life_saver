@@ -1,6 +1,9 @@
 import { render } from 'preact';
-import './index.css';
-import { App } from './ui/App';
 
+// empty div with id 'app' in index.html
+function App() {
+    return <h1>Nothing to see</h1>;
+
+}
 
 render(<App />, document.getElementById('app')!);

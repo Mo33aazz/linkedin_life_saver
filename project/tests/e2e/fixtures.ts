@@ -50,6 +50,8 @@ const instrumentServiceWorker = async (sw: Worker) => {
         console.log = (...args) => captureLog('LOG', ...args);
         console.warn = (...args) => captureLog('WARN', ...args);
         console.error = (...args) => captureLog('ERROR', ...args);
+        console.info = (...args) => captureLog('INFO', ...args);
+        console.debug = (...args) => captureLog('DEBUG', ...args);
         // Capture uncaught exceptions and unhandled promise rejections
         self.addEventListener('error', (event) => captureLog('EXCEPTION', event.error || event.message));
         self.addEventListener('unhandledrejection', (event) => captureLog('UNHANDLED_REJECTION', event.reason));
@@ -73,7 +75,7 @@ const instrumentServiceWorker = async (sw: Worker) => {
             // ===           YOUR MOCKING LOGIC HERE               ===
             // =======================================================
             // This logic runs inside the service worker.
-            
+
             // Example: Mock a specific API endpoint for user data
             if (requestUrl.includes('/api/user/profile')) {
                 console.log('[Playwright Mock] Responding with mocked user profile.');
@@ -83,7 +85,7 @@ const instrumentServiceWorker = async (sw: Worker) => {
                     headers: { 'Content-Type': 'application/json' }
                 });
             }
-            
+
             // Example: Block requests to analytics services
             if (requestUrl.includes('google-analytics.com')) {
                 console.log(`[Playwright Mock] Blocking request to ${requestUrl}`);
@@ -101,7 +103,7 @@ export const test = base.extend<{
     extensionId: string;
     background: Worker;
 }>({
-    context: async ({}, use, testInfo) => {
+    context: async ({ }, use, testInfo) => {
         const pathToExtension = path.resolve(__dirname, '../../dist');
         const context = await chromium.launchPersistentContext('', {
             headless: false,
@@ -110,7 +112,7 @@ export const test = base.extend<{
                 `--load-extension=${pathToExtension}`,
             ],
         });
-        
+
         // --- PROACTIVE INSTRUMENTATION FOR THE SERVICE WORKER ---
         // This is the core of the solution. We set up a listener that instruments
         // the service worker as soon as Playwright detects its creation.

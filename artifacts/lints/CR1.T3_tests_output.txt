@@ -9,16 +9,16 @@ rendering chunks...
 computing gzip size...
 dist/index.html          0.44 kB │ gzip:  0.28 kB
 dist/assets/popup.css    7.92 kB │ gzip:  2.19 kB
-dist/background.js     144.96 kB │ gzip: 39.16 kB │ map:  77.66 kB
-dist/popup.js          201.81 kB │ gzip: 61.10 kB │ map: 107.45 kB
-✓ built in 158ms
+dist/background.js     147.22 kB │ gzip: 39.86 kB │ map:  79.00 kB
+dist/popup.js          202.57 kB │ gzip: 61.30 kB │ map: 107.89 kB
+✓ built in 157ms
 vite v5.4.19 building for production...
 transforming...
 ✓ 21 modules transformed.
 rendering chunks...
 computing gzip size...
-dist/content.js  246.23 kB │ gzip: 72.54 kB │ map: 128.21 kB
-✓ built in 124ms
+dist/content.js  246.99 kB │ gzip: 72.74 kB │ map: 128.65 kB
+✓ built in 123ms
 
 > linkedin-engagement-assistant@0.0.0 test
 > playwright test
@@ -26,26 +26,78 @@ dist/content.js  246.23 kB │ gzip: 72.54 kB │ map: 128.21 kB
 
 Running 3 tests using 3 workers
 
+Testing: Clicking Start
+  ✓  2 tests/e2e/setup.spec.ts:4:3 › Extension E2E Setup › should load the extension and inject the content script on linkedin.com (6.7s)
+  ✓  3 tests/e2e/ui-injection.spec.ts:4:3 › Extension UI Injection and Initial State › should inject the sidebar with default components on a LinkedIn post page (7.3s)
+
+--- PAGE & CONTENT SCRIPT LOGS ON FAILURE ---
+[LOG] Content script starting...
+[LOG] Document is already loaded, initializing immediately...
+[LOG] Initializing content script...
+[LOG] Attempting to create host element...
+[LOG] Attempting to append to document.body...
+[LOG] Successfully appended host element
+[LOG] Attempting to create shadow DOM...
+[LOG] Successfully created shadow DOM
+[LOG] Successfully mounted UI into shadow DOM
+[LOG] UI App component mounted. Sending ping to service worker.
+[LOG] Received response from service worker: {payload: pong}
+-------------------------------------------------
 
 --- BACKGROUND SERVICE WORKER LOGS ON FAILURE ---
-[2025-09-04T15:55:51.113Z] [BG_LOG] "[BACKGROUND SCRIPT] E2E test hooks installed."
+[2025-09-04T16:53:21.379Z] [BG_INFO] "[INFO] Logger initialized." ""
+[2025-09-04T16:53:21.380Z] [BG_INFO] "[INFO] LinkedIn Engagement Assistant Service Worker loaded." ""
+[2025-09-04T16:53:21.380Z] [BG_INFO] "[INFO] PipelineManager initialized." ""
+[2025-09-04T16:53:21.381Z] [BG_LOG] "[BACKGROUND SCRIPT] E2E test hooks installed."
+[2025-09-04T16:53:21.384Z] [BG_LOG] "Loaded 0 post states into memory."
+[2025-09-04T16:53:21.386Z] [BG_LOG] "No AI config found in storage. Saving and loading defaults."
+[2025-09-04T16:53:21.386Z] [BG_LOG] "State saved for post URN: urn:li:activity:7123456789012345678"
+[2025-09-04T16:53:21.387Z] [BG_LOG] "AI Config updated and saved:" {"provider":"openrouter","apiKey":"MOCK_API_KEY_FOR_TESTING","model":"anthropic/claude-3.5-sonnet","temperature":0.7,"top_p":1,"max_tokens":256,"stream":true,"reply":{"customPrompt":"Keep it warm, brief, specific; acknowledge their point; avoid salesy tone; 0–1 emoji."},"dm":{"customPrompt":"Thank them, reference comment, offer short helpful resource; soft opt-in; no pressure."},"attribution":{"httpReferer":"https://github.com/your-repo/linkedin-engagement-assistant","xTitle":"LinkedIn Engagement Assistant"},"modelFilters":{"onlyTextOutput":true,"minContext":8000}}
+[2025-09-04T16:53:21.574Z] [BG_INFO] "[INFO] Received request for AI config." ""
+[2025-09-04T16:53:21.574Z] [BG_INFO] "[INFO] Received ping from UI, sending pong back." ""
+[2025-09-04T16:53:21.575Z] [BG_INFO] "[INFO] Received request to get models from OpenRouter." ""
+[2025-09-04T16:53:21.575Z] [BG_INFO] "[INFO] Fetching models from OpenRouter." ""
+[2025-09-04T16:53:21.575Z] [BG_LOG] "[Playwright Mock] Intercepting fetch: https://openrouter.ai/api/v1/models"
+[2025-09-04T16:53:21.615Z] [BG_INFO] "[INFO] Received START_PIPELINE message" {"postUrn":"urn:li:activity:7123456789012345678","tabId":271925298}
+[2025-09-04T16:53:21.615Z] [BG_INFO] "[INFO] Starting pipeline" {"postUrn":"urn:li:activity:7123456789012345678","tabId":271925298,"step":"PIPELINE_START"}
+[2025-09-04T16:53:21.615Z] [BG_LOG] "State saved for post URN: urn:li:activity:7123456789012345678"
+[2025-09-04T16:53:21.616Z] [BG_INFO] "[INFO] Broadcasting state update" {"state":{"pipelineStatus":"running","comments":[{"commentId":"comment-1","text":"This is a test comment that needs processing.","ownerProfileUrl":"https://www.linkedin.com/in/test-user/","timestamp":"2025-09-04T16:53:21.383Z","type":"top-level","connected":false,"threadId":"thread-1","likeStatus":"DONE","replyStatus":"","dmStatus":"","attempts":{"like":0,"reply":0,"dm":0},"lastError":"","pipeline":{"queuedAt":"","likedAt":"","repliedAt":"","dmAt":""}}]}}
+[2025-09-04T16:53:21.616Z] [BG_INFO] "[INFO] Starting processing queue." {"postUrn":"urn:li:activity:7123456789012345678","step":"PROCESS_QUEUE_START"}
+[2025-09-04T16:53:21.616Z] [BG_INFO] "[INFO] Processing next comment" {"postId":"urn:li:activity:7123456789012345678","commentId":"comment-1","step":"PROCESS_COMMENT_START"}
+[2025-09-04T16:53:21.616Z] [BG_INFO] "[INFO] Attempting to reply to comment" {"postId":"urn:li:activity:7123456789012345678","commentId":"comment-1","step":"REPLY_ATTEMPT"}
+[2025-09-04T16:53:21.616Z] [BG_INFO] "[INFO] Generating AI reply" {"postId":"urn:li:activity:7123456789012345678","commentId":"comment-1","step":"GENERATE_REPLY"}
+[2025-09-04T16:53:21.616Z] [BG_INFO] "[INFO] Requesting chat completion from OpenRouter" {"model":"anthropic/claude-3.5-sonnet"}
+[2025-09-04T16:53:21.616Z] [BG_LOG] "[Playwright Mock] Intercepting fetch: https://openrouter.ai/api/v1/chat/completions"
+[2025-09-04T16:53:21.616Z] [BG_LOG] "[Playwright Mock] Holding OpenRouter request indefinitely for pipeline test."
+[2025-09-04T16:53:21.789Z] [BG_INFO] "[INFO] Successfully fetched models from OpenRouter." ""
 --------------------------------------------------
-  ✘  1 tests/e2e/pipeline-controls.spec.ts:60:3 › Pipeline Controls › should correctly start, stop, and resume the pipeline (1.6s)
-  ✓  2 tests/e2e/ui-injection.spec.ts:4:3 › Extension UI Injection and Initial State › should inject the sidebar with default components on a LinkedIn post page (7.9s)
-  ✓  3 tests/e2e/setup.spec.ts:4:3 › Extension E2E Setup › should load the extension and inject the content script on linkedin.com (8.5s)
+  ✘  1 tests/e2e/pipeline-controls.spec.ts:87:3 › Pipeline Controls › should correctly start, stop, and resume the pipeline (30.2s)
 
 
-  1) tests/e2e/pipeline-controls.spec.ts:60:3 › Pipeline Controls › should correctly start, stop, and resume the pipeline 
+  1) tests/e2e/pipeline-controls.spec.ts:87:3 › Pipeline Controls › should correctly start, stop, and resume the pipeline 
 
-    Error: worker.evaluate: TypeError: self.__E2E_TEST_SAVE_POST_STATE is not a function
-        at eval (eval at evaluate (:291:30), <anonymous>:7:19)
-        at UtilityScript.evaluate (<anonymous>:293:16)
-        at UtilityScript.<anonymous> (<anonymous>:1:44)
-        at eval (eval at evaluate (:291:30), <anonymous>:7:19)
-        at UtilityScript.evaluate (<anonymous>:293:16)
-        at UtilityScript.<anonymous> (<anonymous>:1:44)
-        at /Users/bahy/Documents/playground/capstone_project/server/projects/linkedin_life_saver/project/tests/e2e/pipeline-controls.spec.ts:40:22
+    [31mTest timeout of 30000ms exceeded.[39m
+
+    Error: [2mexpect([22m[31mlocator[39m[2m).[22mtoBeVisible[2m()[22m failed
+
+    Locator:  locator('div.sidebar').locator('[data-testid="stop-button"]')
+    Expected: visible
+    Received: <element(s) not found>
+
+    Call log:
+    [2m  - Expect "toBeVisible" with timeout 30000ms[22m
+    [2m  - waiting for locator('div.sidebar').locator('[data-testid="stop-button"]')[22m
+
+
+      137 |
+      138 |     // Assert that the UI reflects the 'running' state.
+    > 139 |     await expect(stopButton).toBeVisible({ timeout: 30000 });
+          |                              ^
+      140 |     await expect(startButton).not.toBeVisible();
+      141 |
+      142 |     // 7. Test the 'Stop' action.
+        at /Users/bahy/Documents/playground/capstone_project/server/projects/linkedin_life_saver/project/tests/e2e/pipeline-controls.spec.ts:139:30
 
   1 failed
-    tests/e2e/pipeline-controls.spec.ts:60:3 › Pipeline Controls › should correctly start, stop, and resume the pipeline 
-  2 passed (8.9s)
+    tests/e2e/pipeline-controls.spec.ts:87:3 › Pipeline Controls › should correctly start, stop, and resume the pipeline 
+  2 passed (30.5s)

@@ -1,9 +1,59 @@
 import { likeComment, replyToComment, sendDm } from './domInteractor';
 import { mountApp } from '../ui';
 import css from '../index.css?inline';
-
+import { useStore } from '../ui/store';
+import { LogEntry, UIState } from '../shared/types';
 // Check if document is ready
 console.log('Content script starting...');
+
+
+chrome.runtime.onMessage.addListener((message, _sender, sendResponse) => {
+  // --- NEW: Handle State and Log Updates ---
+  if (message.type === 'STATE_UPDATE') {
+    console.log('Content script received STATE_UPDATE:', message.payload);
+    const newState = message.payload as Partial<UIState>;
+    // Directly call the action on the imported store
+    useStore.getState().updateState(newState);
+    // No response needed for broadcast updates
+    return; // This is a fire-and-forget message
+  }
+
+  if (message.type === 'LOG_ENTRY') {
+    console.log('Content script received LOG_ENTRY:', message.payload);
+    const newLog = message.payload as LogEntry;
+    // Directly call the action on the imported store
+    useStore.getState().addLog(newLog);
+    // No response needed for broadcast updates
+    return; // This is a fire-and-forget message
+  }
+
+  // --- EXISTING: Handle DOM Actions ---
+  if (message.type === 'LIKE_COMMENT') {
+    console.log('Content script received LIKE_COMMENT:', message.payload);
+    likeComment(message.payload.commentId)
+      .then(success => sendResponse({ status: 'success', payload: success }))
+      .catch(error => sendResponse({ status: 'error', message: error.message }));
+    return true; // Indicates async response
+  }
+
+  if (message.type === 'REPLY_TO_COMMENT') {
+    console.log('Content script received REPLY_TO_COMMENT:', message.payload);
+    replyToComment(message.payload.commentId, message.payload.replyText)
+      .then(success => sendResponse({ status: 'success', payload: success }))
+      .catch(error => sendResponse({ status: 'error', message: error.message }));
+    return true; // Indicates async response
+  }
+
+  if (message.type === 'SEND_DM') {
+    console.log('Content script received SEND_DM:', message.payload);
+    sendDm(message.payload.dmText)
+      .then(success => sendResponse({ status: 'success', payload: success }))
+      .catch(error => sendResponse({ status: 'error', message: error.message }));
+    return true; // Indicates async response
+  }
+
+  return true; // Keep listener open for other potential async messages
+});
 
 // Function to initialize the content script
 const initializeContentScript = () => {
@@ -57,73 +107,3 @@ if (document.readyState === 'loading') {
   console.log('Document is already loaded, initializing immediately...');
   initializeContentScript();
 }
-
-chrome.runtime.onMessage.addListener((message, _sender, sendResponse) => {
-  if (message.type === 'LIKE_COMMENT') {
-    console.log('Content script received LIKE_COMMENT:', message.payload);
-    const { commentId } = message.payload as { commentId: string };
-    if (!commentId) {
-      sendResponse({ status: 'error', message: 'No commentId provided.' });
-      return true;
-    }
-
-    likeComment(commentId)
-      .then((success: boolean) => {
-        sendResponse({ status: 'success', payload: success });
-      })
-      .catch((error: unknown) => {
-        sendResponse({ status: 'error', message: (error as Error).message });
-      });
-
-    return true; // Indicates async response
-  }
-
-  if (message.type === 'REPLY_TO_COMMENT') {
-    console.log('Content script received REPLY_TO_COMMENT:', message.payload);
-    const { commentId, replyText } = message.payload as {
-      commentId: string;
-      replyText: string;
-    };
-    if (!commentId || replyText === undefined) {
-      sendResponse({
-        status: 'error',
-        message: 'No commentId or replyText provided.',
-      });
-      return true;
-    }
-
-    replyToComment(commentId, replyText)
-      .then((success: boolean) => {
-        sendResponse({ status: 'success', payload: success });
-      })
-      .catch((error: unknown) => {
-        sendResponse({ status: 'error', message: (error as Error).message });
-      });
-
-    return true; // Indicates async response
-  }
-
-  if (message.type === 'SEND_DM') {
-    console.log('Content script received SEND_DM:', message.payload);
-    const { dmText } = message.payload as { dmText: string };
-    if (dmText === undefined) {
-      sendResponse({
-        status: 'error',
-        message: 'No dmText provided.',
-      });
-      return true;
-    }
-
-    sendDm(dmText)
-      .then((success: boolean) => {
-        sendResponse({ status: 'success', payload: success });
-      })
-      .catch((error: unknown) => {
-        sendResponse({ status: 'error', message: (error as Error).message });
-      });
-
-    return true; // Indicates async response
-  }
-  // Keep the listener open for other messages
-  return true;
-});

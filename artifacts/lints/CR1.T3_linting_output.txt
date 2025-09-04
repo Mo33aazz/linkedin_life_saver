@@ -1,1 +1,10 @@
-[]
+[
+  {
+    "type": "@typescript-eslint/no-explicit-any",
+    "path": "/Users/bahy/Documents/playground/capstone_project/server/projects/linkedin_life_saver/project/src/ui/store/index.ts",
+    "obj": "TSAnyKeyword",
+    "message": "Unexpected any. Specify a different type.",
+    "line": 32,
+    "column": 45
+  }
+]
