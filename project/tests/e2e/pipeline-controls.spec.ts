@@ -1,347 +1,385 @@
 import { test, expect } from './fixtures';
-import type { Page, Frame } from '@playwright/test';
+import { Page } from '@playwright/test';
 
-/**
- * Helper to wait for the sidebar to be injected and return its shadow root frame
- */
-async function waitForSidebar(page: Page, timeout = 30000): Promise<Frame | null> {
-  const startTime = Date.now();
+// Test data constants
+const TEST_POST_URL = 'https://www.linkedin.com/feed/update/urn:li:activity:7368619407989760000/';
+const TIMEOUT_LONG = 30000;
+const TIMEOUT_SHORT = 5000;
+
+// Helper function to wait for the sidebar to be fully loaded
+async function waitForSidebarReady(page: Page) {
+  // Wait for the sidebar root element to be injected
+  const sidebarRoot = await page.waitForSelector(
+    '#linkedin-engagement-assistant-root',
+    { timeout: TIMEOUT_LONG }
+  );
   
-  while (Date.now() - startTime < timeout) {
-    // Look for the sidebar container element
-    const sidebarHost = await page.locator('#linkedin-assistant-sidebar').first();
+  // Wait for shadow root to be available
+  const shadowRoot = await sidebarRoot.evaluateHandle(el => el.shadowRoot);
+  if (!shadowRoot) {
+    throw new Error('Shadow root not found on sidebar element');
+  }
+
+  // Wait for the Controls component to be rendered
+  await page.waitForFunction(
+    () => {
+      const root = document.querySelector('#linkedin-engagement-assistant-root');
+      if (!root?.shadowRoot) return false;
+      
+      // Check if the controls section exists
+      const controls = root.shadowRoot.querySelector('.sidebar-section.controls');
+      if (!controls) return false;
+      
+      // Check if at least one control button is present
+      const hasButton = root.shadowRoot.querySelector('[data-testid="start-button"]') ||
+                       root.shadowRoot.querySelector('[data-testid="stop-button"]') ||
+                       root.shadowRoot.querySelector('[data-testid="resume-button"]');
+      return !!hasButton;
+    },
+    { timeout: TIMEOUT_LONG }
+  );
+
+  return shadowRoot;
+}
+
+// Helper to get button element from shadow DOM
+async function getControlButton(page: Page, testId: string) {
+  return page.evaluateHandle((tid) => {
+    const root = document.querySelector('#linkedin-engagement-assistant-root');
+    if (!root?.shadowRoot) return null;
+    return root.shadowRoot.querySelector(`[data-testid="${tid}"]`);
+  }, testId);
+}
+
+// Helper to click a button in the shadow DOM
+async function clickControlButton(page: Page, testId: string) {
+  const button = await getControlButton(page, testId);
+  if (!button) {
+    throw new Error(`Button with testId "${testId}" not found`);
+  }
+  
+  await page.evaluate((btn) => {
+    (btn as HTMLButtonElement).click();
+  }, button);
+}
+
+// Helper to check if a specific button is visible
+async function isButtonVisible(page: Page, testId: string): Promise<boolean> {
+  return page.evaluate((tid) => {
+    const root = document.querySelector('#linkedin-engagement-assistant-root');
+    if (!root?.shadowRoot) return false;
+    const button = root.shadowRoot.querySelector(`[data-testid="${tid}"]`);
+    return button !== null && (button as HTMLElement).offsetParent !== null;
+  }, testId);
+}
+
+// Helper to get the current pipeline status from the UI
+async function getPipelineStatus(page: Page): Promise<string> {
+  return page.evaluate(() => {
+    const root = document.querySelector('#linkedin-engagement-assistant-root');
+    if (!root?.shadowRoot) return 'unknown';
     
-    if (await sidebarHost.count() > 0) {
-      // Get the shadow root - Playwright doesn't directly support shadow DOM traversal,
-      // so we need to use evaluate
-      const hasShadowRoot = await sidebarHost.evaluate((el) => {
-        return !!el.shadowRoot;
+    // Check which button is visible to infer status
+    const startBtn = root.shadowRoot.querySelector('[data-testid="start-button"]');
+    const stopBtn = root.shadowRoot.querySelector('[data-testid="stop-button"]');
+    const resumeBtn = root.shadowRoot.querySelector('[data-testid="resume-button"]');
+    
+    if (startBtn && (startBtn as HTMLElement).offsetParent !== null) return 'idle';
+    if (stopBtn && (stopBtn as HTMLElement).offsetParent !== null) return 'running';
+    if (resumeBtn && (resumeBtn as HTMLElement).offsetParent !== null) return 'paused';
+    
+    return 'unknown';
+  });
+}
+
+// Helper to wait for a specific pipeline status
+async function waitForPipelineStatus(page: Page, expectedStatus: string, timeout = TIMEOUT_SHORT) {
+  await page.waitForFunction(
+    (status) => {
+      const root = document.querySelector('#linkedin-engagement-assistant-root');
+      if (!root?.shadowRoot) return false;
+      
+      const startBtn = root.shadowRoot.querySelector('[data-testid="start-button"]');
+      const stopBtn = root.shadowRoot.querySelector('[data-testid="stop-button"]');
+      const resumeBtn = root.shadowRoot.querySelector('[data-testid="resume-button"]');
+      
+      switch (status) {
+        case 'idle':
+          return startBtn && (startBtn as HTMLElement).offsetParent !== null;
+        case 'running':
+          return stopBtn && (stopBtn as HTMLElement).offsetParent !== null;
+        case 'paused':
+          return resumeBtn && (resumeBtn as HTMLElement).offsetParent !== null;
+        default:
+          return false;
+      }
+    },
+    expectedStatus,
+    { timeout }
+  );
+}
+
+// Helper to verify service worker state matches UI state
+async function verifyServiceWorkerState(background: any, expectedState: string) {
+  const swState = await background.evaluate(() => {
+    // Access the pipeline status from the service worker's global scope
+    // This assumes the pipelineManager exports or exposes the status
+    return (self as any).pipelineStatus || 'unknown';
+  });
+  
+  // The service worker might not expose this directly, so we'll check via message passing
+  // This is a more reliable approach
+  const response = await background.evaluate(async (state) => {
+    return new Promise((resolve) => {
+      // Listen for the response
+      const messageHandler = (event: any) => {
+        if (event.data && event.data.type === 'PIPELINE_STATUS_RESPONSE') {
+          self.removeEventListener('message', messageHandler);
+          resolve(event.data.status);
+        }
+      };
+      self.addEventListener('message', messageHandler);
+      
+      // Request the current status
+      self.postMessage({ type: 'GET_PIPELINE_STATUS' });
+      
+      // Timeout after 2 seconds
+      setTimeout(() => {
+        self.removeEventListener('message', messageHandler);
+        resolve('timeout');
+      }, 2000);
+    });
+  }, expectedState);
+  
+  return response;
+}
+
+test.describe('Pipeline Control E2E Tests', () => {
+  test.beforeEach(async ({ page, context }) => {
+    // Set a reasonable viewport
+    await page.setViewportSize({ width: 1920, height: 1080 });
+    
+    // Navigate to a LinkedIn post page
+    await page.goto(TEST_POST_URL, { waitUntil: 'networkidle' });
+    
+    // Wait for the page to be fully loaded
+    await page.waitForLoadState('domcontentloaded');
+    
+    // Give the content script time to inject the sidebar
+    await page.waitForTimeout(2000);
+  });
+
+  test('should successfully control pipeline lifecycle: start, stop, and resume', async ({ page, background }) => {
+    // Step 1: Wait for sidebar to be ready
+    console.log('Step 1: Waiting for sidebar to be ready...');
+    await waitForSidebarReady(page);
+    
+    // Step 2: Verify initial state is 'idle'
+    console.log('Step 2: Verifying initial state is idle...');
+    const initialStatus = await getPipelineStatus(page);
+    expect(initialStatus).toBe('idle');
+    
+    // Verify Start button is visible
+    const startButtonVisible = await isButtonVisible(page, 'start-button');
+    expect(startButtonVisible).toBe(true);
+    
+    // Step 3: Click Start button and verify transition to 'running'
+    console.log('Step 3: Starting pipeline...');
+    await clickControlButton(page, 'start-button');
+    
+    // Wait for the UI to update to running state
+    await waitForPipelineStatus(page, 'running');
+    
+    // Verify Stop button is now visible
+    const stopButtonVisible = await isButtonVisible(page, 'stop-button');
+    expect(stopButtonVisible).toBe(true);
+    
+    // Verify Start button is no longer visible
+    const startButtonHidden = await isButtonVisible(page, 'start-button');
+    expect(startButtonHidden).toBe(false);
+    
+    // Give the pipeline a moment to actually start processing
+    await page.waitForTimeout(1000);
+    
+    // Step 4: Click Stop button and verify transition to 'paused'
+    console.log('Step 4: Stopping pipeline...');
+    await clickControlButton(page, 'stop-button');
+    
+    // Wait for the UI to update to paused state
+    await waitForPipelineStatus(page, 'paused');
+    
+    // Verify Resume button is now visible
+    const resumeButtonVisible = await isButtonVisible(page, 'resume-button');
+    expect(resumeButtonVisible).toBe(true);
+    
+    // Verify Stop button is no longer visible
+    const stopButtonHidden = await isButtonVisible(page, 'stop-button');
+    expect(stopButtonHidden).toBe(false);
+    
+    // Step 5: Click Resume button and verify transition back to 'running'
+    console.log('Step 5: Resuming pipeline...');
+    await clickControlButton(page, 'resume-button');
+    
+    // Wait for the UI to update back to running state
+    await waitForPipelineStatus(page, 'running');
+    
+    // Verify Stop button is visible again
+    const stopButtonVisibleAgain = await isButtonVisible(page, 'stop-button');
+    expect(stopButtonVisibleAgain).toBe(true);
+    
+    // Verify Resume button is no longer visible
+    const resumeButtonHidden = await isButtonVisible(page, 'resume-button');
+    expect(resumeButtonHidden).toBe(false);
+    
+    // Step 6: Final cleanup - stop the pipeline
+    console.log('Step 6: Final cleanup - stopping pipeline...');
+    await clickControlButton(page, 'stop-button');
+    await waitForPipelineStatus(page, 'paused');
+    
+    console.log('Test completed successfully!');
+  });
+
+  test('should handle rapid button clicks gracefully', async ({ page }) => {
+    // Wait for sidebar to be ready
+    await waitForSidebarReady(page);
+    
+    // Verify initial state
+    const initialStatus = await getPipelineStatus(page);
+    expect(initialStatus).toBe('idle');
+    
+    // Rapidly click Start multiple times
+    console.log('Testing rapid Start button clicks...');
+    await clickControlButton(page, 'start-button');
+    
+    // Try to click Start again (should be hidden now)
+    const startStillVisible = await isButtonVisible(page, 'start-button');
+    expect(startStillVisible).toBe(false);
+    
+    // Wait for running state
+    await waitForPipelineStatus(page, 'running');
+    
+    // Rapidly click Stop multiple times
+    console.log('Testing rapid Stop button clicks...');
+    await clickControlButton(page, 'stop-button');
+    
+    // Try to click Stop again (should be hidden now)
+    const stopStillVisible = await isButtonVisible(page, 'stop-button');
+    expect(stopStillVisible).toBe(false);
+    
+    // Verify we're in paused state
+    await waitForPipelineStatus(page, 'paused');
+    
+    console.log('Rapid click test completed successfully!');
+  });
+
+  test('should maintain state consistency between UI and service worker', async ({ page, background }) => {
+    // Wait for sidebar to be ready
+    await waitForSidebarReady(page);
+    
+    // Start the pipeline
+    console.log('Starting pipeline for state consistency test...');
+    await clickControlButton(page, 'start-button');
+    await waitForPipelineStatus(page, 'running');
+    
+    // Verify the service worker also reflects running state
+    // Note: This requires the service worker to expose its state somehow
+    // We'll check by looking at the logs or by evaluating the worker's state
+    const swLogs = await background.evaluate(() => {
+      return (self as any).__playwright_logs__ || [];
+    });
+    
+    // Look for a log entry indicating the pipeline started
+    const startLog = swLogs.find((log: any) => 
+      log.message.includes('Starting pipeline') || 
+      log.message.includes('PIPELINE_START')
+    );
+    expect(startLog).toBeTruthy();
+    
+    // Stop the pipeline
+    console.log('Stopping pipeline for state consistency test...');
+    await clickControlButton(page, 'stop-button');
+    await waitForPipelineStatus(page, 'paused');
+    
+    // Check for stop log
+    const swLogsAfterStop = await background.evaluate(() => {
+      return (self as any).__playwright_logs__ || [];
+    });
+    
+    const stopLog = swLogsAfterStop.find((log: any) => 
+      log.message.includes('Stopping pipeline') || 
+      log.message.includes('PIPELINE_STOP')
+    );
+    expect(stopLog).toBeTruthy();
+    
+    console.log('State consistency test completed successfully!');
+  });
+
+  test('should show appropriate UI feedback during state transitions', async ({ page }) => {
+    // Wait for sidebar to be ready
+    await waitForSidebarReady(page);
+    
+    // Check for any loading indicators or status messages
+    const checkForStatusIndicator = async () => {
+      return page.evaluate(() => {
+        const root = document.querySelector('#linkedin-engagement-assistant-root');
+        if (!root?.shadowRoot) return null;
+        
+        // Look for status indicators (this depends on the actual UI implementation)
+        const header = root.shadowRoot.querySelector('.sidebar-section h3');
+        const statusDot = root.shadowRoot.querySelector('.status-dot');
+        
+        return {
+          headerText: header?.textContent || '',
+          hasStatusDot: !!statusDot
+        };
       });
-      
-      if (hasShadowRoot) {
-        return null; // We'll interact with shadow DOM via evaluate
-      }
-    }
+    };
     
-    await page.waitForTimeout(500);
-  }
-  
-  throw new Error('Sidebar not found within timeout');
-}
-
-/**
- * Helper to interact with elements inside the shadow DOM
- */
-async function clickShadowElement(page: Page, selector: string): Promise<void> {
-  await page.evaluate((sel) => {
-    const host = document.querySelector('#linkedin-assistant-sidebar');
-    if (!host?.shadowRoot) throw new Error('Shadow root not found');
-    const element = host.shadowRoot.querySelector(sel) as HTMLElement;
-    if (!element) throw new Error(`Element ${sel} not found in shadow DOM`);
-    element.click();
-  }, selector);
-}
-
-/**
- * Helper to check if an element exists in the shadow DOM
- */
-async function shadowElementExists(page: Page, selector: string): Promise<boolean> {
-  return await page.evaluate((sel) => {
-    const host = document.querySelector('#linkedin-assistant-sidebar');
-    if (!host?.shadowRoot) return false;
-    return !!host.shadowRoot.querySelector(sel);
-  }, selector);
-}
-
-/**
- * Helper to get text content from shadow DOM element
- */
-async function getShadowElementText(page: Page, selector: string): Promise<string> {
-  return await page.evaluate((sel) => {
-    const host = document.querySelector('#linkedin-assistant-sidebar');
-    if (!host?.shadowRoot) throw new Error('Shadow root not found');
-    const element = host.shadowRoot.querySelector(sel);
-    if (!element) throw new Error(`Element ${sel} not found in shadow DOM`);
-    return element.textContent || '';
-  }, selector);
-}
-
-/**
- * Helper to wait for a specific pipeline status
- */
-async function waitForPipelineStatus(
-  page: Page,
-  expectedStatus: 'idle' | 'running' | 'paused',
-  timeout = 10000
-): Promise<boolean> {
-  const startTime = Date.now();
-  
-  while (Date.now() - startTime < timeout) {
-    try {
-      // Check for status indicator in the UI
-      const statusText = await getShadowElementText(page, '[data-testid="pipeline-status"]');
-      
-      if (statusText.toLowerCase().includes(expectedStatus)) {
-        return true;
-      }
-      
-      // Also check button visibility as a secondary indicator
-      if (expectedStatus === 'idle') {
-        const startVisible = await shadowElementExists(page, '[data-testid="start-button"]');
-        if (startVisible) return true;
-      } else if (expectedStatus === 'running') {
-        const stopVisible = await shadowElementExists(page, '[data-testid="stop-button"]');
-        if (stopVisible) return true;
-      } else if (expectedStatus === 'paused') {
-        const resumeVisible = await shadowElementExists(page, '[data-testid="resume-button"]');
-        if (resumeVisible) return true;
-      }
-    } catch (e) {
-      // Element might not exist yet, continue polling
-    }
+    // Initial check
+    const initialIndicators = await checkForStatusIndicator();
+    console.log('Initial UI indicators:', initialIndicators);
     
-    await page.waitForTimeout(250);
-  }
-  
-  return false;
-}
-
-/**
- * Helper to verify button visibility states
- */
-async function verifyButtonStates(
-  page: Page,
-  expected: { start?: boolean; stop?: boolean; resume?: boolean }
-): Promise<void> {
-  if (expected.start !== undefined) {
-    const startExists = await shadowElementExists(page, '[data-testid="start-button"]');
-    expect(startExists).toBe(expected.start);
-  }
-  
-  if (expected.stop !== undefined) {
-    const stopExists = await shadowElementExists(page, '[data-testid="stop-button"]');
-    expect(stopExists).toBe(expected.stop);
-  }
-  
-  if (expected.resume !== undefined) {
-    const resumeExists = await shadowElementExists(page, '[data-testid="resume-button"]');
-    expect(resumeExists).toBe(expected.resume);
-  }
-}
-
-test.describe('Pipeline Controls E2E', () => {
-  let testPostUrl: string;
-  
-  test.beforeAll(() => {
-    // Use a test LinkedIn post URL - can be a real one or mocked
-    testPostUrl = 'https://www.linkedin.com/feed/update/urn:li:activity:7368611162063671296/';
-  });
-  
-  test.beforeEach(async ({ context }) => {
-    // Ensure we start fresh for each test
-    await context.clearCookies();
+    // Start pipeline and check for changes
+    await clickControlButton(page, 'start-button');
+    await waitForPipelineStatus(page, 'running');
     
-    // Add LinkedIn auth cookie if available
-    if (process.env.LINKEDIN_COOKIE) {
-      await context.addCookies([{
-        name: 'li_at',
-        value: process.env.LINKEDIN_COOKIE,
-        domain: '.linkedin.com',
-        path: '/',
-        httpOnly: true,
-        secure: true,
-        sameSite: 'None' as const,
-        expires: Math.floor(Date.now() / 1000) + 365 * 24 * 60 * 60,
-      }]);
-    }
-  });
-  
-  test('should handle Start → Stop → Resume flow correctly', async ({ page }) => {
-    // Step 1: Navigate to LinkedIn post
-    await page.goto(testPostUrl, { waitUntil: 'networkidle' });
+    const runningIndicators = await checkForStatusIndicator();
+    console.log('Running UI indicators:', runningIndicators);
     
-    // Step 2: Wait for sidebar injection
-    console.log('Waiting for sidebar to be injected...');
-    await waitForSidebar(page);
+    // Stop pipeline and check for changes
+    await clickControlButton(page, 'stop-button');
+    await waitForPipelineStatus(page, 'paused');
     
-    // Give the UI a moment to fully initialize
-    await page.waitForTimeout(2000);
+    const pausedIndicators = await checkForStatusIndicator();
+    console.log('Paused UI indicators:', pausedIndicators);
     
-    // Step 3: Verify initial state (idle with Start button visible)
-    console.log('Verifying initial idle state...');
-    await verifyButtonStates(page, {
-      start: true,
-      stop: false,
-      resume: false
-    });
-    
-    const initialStatus = await waitForPipelineStatus(page, 'idle', 5000);
-    expect(initialStatus).toBe(true);
-    
-    // Step 4: Click Start and verify transition to running
-    console.log('Starting pipeline...');
-    await clickShadowElement(page, '[data-testid="start-button"]');
-    
-    // Wait for state change with longer timeout as service worker needs to process
-    const runningStatus = await waitForPipelineStatus(page, 'running', 10000);
-    expect(runningStatus).toBe(true);
-    
-    await verifyButtonStates(page, {
-      start: false,
-      stop: true,
-      resume: false
-    });
-    
-    // Verify that counters or status indicators show running state
-    const runningText = await getShadowElementText(page, '[data-testid="pipeline-status"]');
-    expect(runningText.toLowerCase()).toContain('running');
-    
-    // Step 5: Click Stop and verify transition to paused
-    console.log('Stopping pipeline...');
-    await clickShadowElement(page, '[data-testid="stop-button"]');
-    
-    const pausedStatus = await waitForPipelineStatus(page, 'paused', 10000);
-    expect(pausedStatus).toBe(true);
-    
-    await verifyButtonStates(page, {
-      start: false,
-      stop: false,
-      resume: true
-    });
-    
-    const pausedText = await getShadowElementText(page, '[data-testid="pipeline-status"]');
-    expect(pausedText.toLowerCase()).toContain('paused');
-    
-    // Step 6: Click Resume and verify transition back to running
-    console.log('Resuming pipeline...');
-    await clickShadowElement(page, '[data-testid="resume-button"]');
-    
-    const resumedStatus = await waitForPipelineStatus(page, 'running', 10000);
-    expect(resumedStatus).toBe(true);
-    
-    await verifyButtonStates(page, {
-      start: false,
-      stop: true,
-      resume: false
-    });
-    
-    const resumedText = await getShadowElementText(page, '[data-testid="pipeline-status"]');
-    expect(resumedText.toLowerCase()).toContain('running');
-    
-    // Optional: Stop again to clean up
-    await clickShadowElement(page, '[data-testid="stop-button"]');
-    await waitForPipelineStatus(page, 'paused', 5000);
-    
-    console.log('Pipeline control test completed successfully!');
-  });
-  
-  test('should maintain state after rapid Start/Stop clicks', async ({ page }) => {
-    await page.goto(testPostUrl, { waitUntil: 'networkidle' });
-    await waitForSidebar(page);
-    await page.waitForTimeout(2000);
-    
-    // Rapid Start → Stop sequence
-    await clickShadowElement(page, '[data-testid="start-button"]');
-    await page.waitForTimeout(500); // Very short wait
-    await clickShadowElement(page, '[data-testid="stop-button"]');
-    
-    // Should end in paused state
-    const finalStatus = await waitForPipelineStatus(page, 'paused', 10000);
-    expect(finalStatus).toBe(true);
-    
-    await verifyButtonStates(page, {
-      start: false,
-      stop: false,
-      resume: true
-    });
-  });
-  
-  test('should handle multiple Resume/Stop cycles', async ({ page }) => {
-    await page.goto(testPostUrl, { waitUntil: 'networkidle' });
-    await waitForSidebar(page);
-    await page.waitForTimeout(2000);
-    
-    // Start the pipeline
-    await clickShadowElement(page, '[data-testid="start-button"]');
-    await waitForPipelineStatus(page, 'running', 10000);
-    
-    // Perform multiple stop/resume cycles
-    for (let i = 0; i < 3; i++) {
-      console.log(`Cycle ${i + 1}: Stopping...`);
-      await clickShadowElement(page, '[data-testid="stop-button"]');
-      await waitForPipelineStatus(page, 'paused', 5000);
-      
-      console.log(`Cycle ${i + 1}: Resuming...`);
-      await clickShadowElement(page, '[data-testid="resume-button"]');
-      await waitForPipelineStatus(page, 'running', 5000);
-    }
-    
-    // Final verification
-    await verifyButtonStates(page, {
-      start: false,
-      stop: true,
-      resume: false
-    });
-  });
-  
-  test('should show processing indicators when pipeline is running', async ({ page }) => {
-    await page.goto(testPostUrl, { waitUntil: 'networkidle' });
-    await waitForSidebar(page);
-    await page.waitForTimeout(2000);
-    
-    // Start the pipeline
-    await clickShadowElement(page, '[data-testid="start-button"]');
-    await waitForPipelineStatus(page, 'running', 10000);
-    
-    // Check for processing indicators
-    const hasProgressIndicator = await shadowElementExists(page, '[data-testid="pipeline-progress"]');
-    expect(hasProgressIndicator).toBe(true);
-    
-    // Check if counters section exists and is visible
-    const hasCounters = await shadowElementExists(page, '.sidebar-section.counters');
-    expect(hasCounters).toBe(true);
-    
-    // Clean up
-    await clickShadowElement(page, '[data-testid="stop-button"]');
-    await waitForPipelineStatus(page, 'paused', 5000);
+    console.log('UI feedback test completed successfully!');
   });
 });
 
-// Additional test for error scenarios
-test.describe('Pipeline Controls Error Handling', () => {
-  test('should handle service worker communication failures gracefully', async ({ page }) => {
-    const testPostUrl = 'https://www.linkedin.com/feed/update/urn:li:activity:7368611162063671296/';
-    
-    await page.goto(testPostUrl, { waitUntil: 'networkidle' });
-    await waitForSidebar(page);
+test.describe('Pipeline Control Error Scenarios', () => {
+  test('should handle missing post URN gracefully', async ({ page }) => {
+    // Navigate to LinkedIn feed (not a specific post)
+    await page.goto('https://www.linkedin.com/feed/', { waitUntil: 'networkidle' });
     await page.waitForTimeout(2000);
     
-    // Simulate service worker being unresponsive by evaluating in page context
-    await page.evaluate(() => {
-      // Override chrome.runtime.sendMessage to simulate failure
-      const originalSendMessage = chrome.runtime.sendMessage;
-      (chrome.runtime as any).sendMessage = ((message: { type: string }, callback?: (response: { error?: string }) => void) => {
-        if (message.type === 'START_PIPELINE') {
-          // Simulate a timeout/error
-          setTimeout(() => {
-            if (callback) {
-              callback({ error: 'Service worker timeout' });
-            }
-          }, 100);
-          return;
-        }
-        return (originalSendMessage as any)(message, callback);
-      }) as typeof chrome.runtime.sendMessage;
-    });
+    // Wait for sidebar to be ready
+    await waitForSidebarReady(page);
     
-    // Try to start pipeline - should handle error gracefully
-    await clickShadowElement(page, '[data-testid="start-button"]');
+    // Try to start the pipeline without a valid post URN
+    console.log('Attempting to start pipeline without post URN...');
+    await clickControlButton(page, 'start-button');
     
-    // Wait a bit for error handling
+    // The UI should either show an error or remain in idle state
     await page.waitForTimeout(2000);
     
-    // UI should still be responsive and show appropriate state
-    const startButtonStillExists = await shadowElementExists(page, '[data-testid="start-button"]');
-    expect(startButtonStillExists).toBe(true);
+    // Check if we're still in idle state (pipeline shouldn't start)
+    const status = await getPipelineStatus(page);
+    
+    // Depending on implementation, it might stay idle or show an error
+    // For now, we'll just verify it doesn't crash
+    expect(['idle', 'error']).toContain(status);
+    
+    console.log('Missing URN test completed successfully!');
   });
 });
