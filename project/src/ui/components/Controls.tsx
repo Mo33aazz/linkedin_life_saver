@@ -23,7 +23,7 @@ export const Controls = () => {
       type: 'START_PIPELINE',
       payload: {
         postUrn: getPostUrnFromCurrentTab(),
-        tabId: chrome.devtools?.inspectedWindow?.tabId || 0,
+        // The tabId is now sourced from the message sender object in the background script for robustness.
       }
     });
   };

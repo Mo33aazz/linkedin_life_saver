@@ -53,6 +53,7 @@ export interface UIState {
     userTopLevelNoReplies: number;
   };
   comments: Comment[];
+  postUrn?: string;
 }
 
 export interface Post {
@@ -60,6 +61,7 @@ export interface Post {
   postUrl: string;
   lastUpdated: string;
   runState: RunState;
+  userProfileUrl?: string;
 }
 
 export interface PostState {

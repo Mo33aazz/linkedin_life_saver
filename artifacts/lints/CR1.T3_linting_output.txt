@@ -1,18 +1,1 @@
-[
-  {
-    "type": null,
-    "path": "/Users/bahy/Documents/playground/capstone_project/server/projects/linkedin_life_saver/project/src/content-scripts/index.ts",
-    "obj": "N/A",
-    "message": "Parsing error: '>' expected.",
-    "line": 125,
-    "column": 21
-  },
-  {
-    "type": "radix",
-    "path": "/Users/bahy/Documents/playground/capstone_project/server/projects/linkedin_life_saver/project/tests/e2e/ui-injection.spec.ts",
-    "obj": "CallExpression",
-    "message": "Missing radix parameter.",
-    "line": 76,
-    "column": 12
-  }
-]
+[]

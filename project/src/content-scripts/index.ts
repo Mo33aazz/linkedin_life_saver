@@ -1,36 +1,16 @@
 import { likeComment, replyToComment, sendDm } from './domInteractor';
 import { mountApp } from '../ui';
 import css from '../index.css?inline';
-import { useStore } from '../ui/store';
-import { LogEntry, UIState } from '../shared/types';
-// Check if document is ready
+
 console.log('Content script starting...');
 
-
 chrome.runtime.onMessage.addListener((message, _sender, sendResponse) => {
+  console.log('[Content Script] Message received:', message.type);
 
-    console.log('[Content Script] Message received:', message.type);
+  // DOM actions are handled here.
+  // STATE_UPDATE and LOG_ENTRY are handled by the listener in App.tsx
+  // to ensure they are tied to the UI lifecycle.
 
-  // --- NEW: Handle State and Log Updates ---
-  if (message.type === 'STATE_UPDATE') {
-    console.log('Content script received STATE_UPDATE:', message.payload);
-    const newState = message.payload as Partial<UIState>;
-    // Directly call the action on the imported store
-    useStore.getState().updateState(newState);
-    // No response needed for broadcast updates
-    return; // This is a fire-and-forget message
-  }
-
-  if (message.type === 'LOG_ENTRY') {
-    console.log('Content script received LOG_ENTRY:', message.payload);
-    const newLog = message.payload as LogEntry;
-    // Directly call the action on the imported store
-    useStore.getState().addLog(newLog);
-    // No response needed for broadcast updates
-    return; // This is a fire-and-forget message
-  }
-
-  // --- EXISTING: Handle DOM Actions ---
   if (message.type === 'LIKE_COMMENT') {
     console.log('Content script received LIKE_COMMENT:', message.payload);
     likeComment(message.payload.commentId)
@@ -60,9 +40,8 @@ chrome.runtime.onMessage.addListener((message, _sender, sendResponse) => {
 
 // Function to initialize the content script
 const initializeContentScript = () => {
-
-  if (document.querySelector('div.sidebar')) {
-    console.log('Sidebar already injected. Skipping.');
+  if (document.getElementById('linkedin-engagement-assistant-root')) {
+    console.log('Sidebar host element already exists. Skipping injection.');
     return;
   }
 
@@ -74,6 +53,19 @@ const initializeContentScript = () => {
     const host = document.createElement('div');
     host.id = 'linkedin-engagement-assistant-root';
     host.className = 'sidebar';
+    // Style the host element directly. Styles injected via the `css` import
+    // will be scoped to the shadow DOM and won't affect the host.
+    Object.assign(host.style, {
+      position: 'fixed',
+      top: '0',
+      right: '0',
+      width: '380px',
+      height: '100vh',
+      zIndex: '99999',
+      borderLeft: '1px solid #e0e0e0',
+      boxShadow: '-2px 0 8px rgba(0,0,0,0.1)',
+      backgroundColor: '#fff',
+    });
 
     console.log('Attempting to append to document.body...');
     document.body.appendChild(host);

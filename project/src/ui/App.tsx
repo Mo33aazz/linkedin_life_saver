@@ -5,6 +5,8 @@ import { PipelineProgress } from './components/PipelineProgress';
 import { Controls } from './components/Controls';
 import { LogsPanel } from './components/LogsPanel';
 import { AiSettings } from './components/AiSettings';
+import { useStore } from './store';
+import type { ExtensionMessage, UIState, LogEntry } from '../shared/types';
 
 export const App = () => {
   useEffect(() => {
@@ -16,10 +18,24 @@ export const App = () => {
         console.log('Received response from service worker:', response);
       }
     });
+
+    const handleMessage = (message: ExtensionMessage) => {
+      if (message.type === 'STATE_UPDATE' && message.payload) {
+        useStore.getState().updateState(message.payload as Partial<UIState>);
+      } else if (message.type === 'LOG_ENTRY' && message.payload) {
+        useStore.getState().addLog(message.payload as LogEntry);
+      }
+    };
+
+    chrome.runtime.onMessage.addListener(handleMessage);
+
+    return () => {
+      chrome.runtime.onMessage.removeListener(handleMessage);
+    };
   }, []); // Empty dependency array ensures this runs only once on mount
 
   return (
-    <div className="sidebar-container">
+    <div id="sidebar-app" className="sidebar-container">
       <h1>LinkedIn Engagement Assistant</h1>
       <Header />
       <Counters />

@@ -4,7 +4,6 @@ import { UIState, LogEntry } from '../../shared/types';
 // 1. Define the store's interface, including actions.
 interface Store extends UIState {
   logs: LogEntry[];
-  postUrn?: string;
   updateState: (newState: Partial<UIState>) => void;
   addLog: (logEntry: LogEntry) => void;
 }
