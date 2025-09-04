@@ -71,6 +71,20 @@ const instrumentServiceWorker = async (sw: Worker) => {
                 return new Promise(() => { /* This promise never resolves */ });
             }
 
+            // For settings-persistence.spec.ts, we need to return a mock list of models.
+            if (requestUrl.includes('openrouter.ai/api/v1/models')) {
+                console.log('[Playwright Mock] Responding with mocked model list for settings test.');
+                const mockModels = [
+                    { id: 'mock/model-1', name: 'Mock Model One' },
+                    { id: 'mock/model-2', name: 'Mock Model Two (Selected)' },
+                    { id: 'mock/model-3', name: 'Mock Model Three' },
+                ];
+                return new Response(JSON.stringify({ data: mockModels }), {
+                    status: 200,
+                    headers: { 'Content-Type': 'application/json' }
+                });
+            }
+
             // =======================================================
             // ===           YOUR MOCKING LOGIC HERE               ===
             // =======================================================
