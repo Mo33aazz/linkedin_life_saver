@@ -56,10 +56,18 @@ const instrumentServiceWorker = async (sw: Worker) => {
 
         // --- 2. SETUP FETCH MOCKING ---
         const originalFetch = globalScope.fetch;
-        globalScope.fetch = async (url: any, config?: any) => {
+        globalScope.fetch = async (url: Request | string | URL, config?: globalThis.RequestInit): Promise<Response> => {
             const requestUrl = (url instanceof Request) ? url.url : String(url);
             // Log the intercepted call for debugging purposes
             console.log(`[Playwright Mock] Intercepting fetch: ${requestUrl}`);
+
+            // --- TEST-SPECIFIC MOCKING ---
+            // For pipeline-controls.spec.ts, we need to pause the pipeline.
+            // We do this by intercepting the AI call and never resolving the promise.
+            if (requestUrl.includes('openrouter.ai/api/v1/chat/completions')) {
+                console.log('[Playwright Mock] Holding OpenRouter request indefinitely for pipeline test.');
+                return new Promise(() => { /* This promise never resolves */ });
+            }
 
             // =======================================================
             // ===           YOUR MOCKING LOGIC HERE               ===

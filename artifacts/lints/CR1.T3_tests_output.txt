@@ -2,11 +2,50 @@
 > linkedin-engagement-assistant@0.0.0 build
 > tsc && vite build && vite build --config vite.config.content.js
 
-src/background/index.ts(145,28): error TS2740: Type 'CommentStats' is missing the following properties from type 'CommentStats': totalTopLevel, processed, remaining, likes, and 3 more.
-src/background/logger.ts(1,20): error TS2305: Module '"../shared/types"' has no exported member 'LogLevel'.
-src/background/services/stateManager.ts(3,10): error TS2305: Module '"../../shared/types"' has no exported member 'CommentType'.
-src/ui/components/Counters.tsx(23,52): error TS2339: Property 'isInitializing' does not exist on type 'UIState'.
-src/ui/components/Counters.tsx(26,50): error TS2339: Property 'totalTopLevelNoReplies' does not exist on type 'CommentStats'.
-src/ui/components/LogsPanel.tsx(3,20): error TS2305: Module '"../../shared/types"' has no exported member 'LogLevel'.
-src/ui/components/PipelineProgress.tsx(2,19): error TS2305: Module '"../../shared/types"' has no exported member 'ActionStatus'.
-src/ui/components/PipelineProgress.tsx(122,52): error TS2339: Property 'isInitializing' does not exist on type 'UIState'.
+vite v5.4.19 building for production...
+transforming...
+✓ 27 modules transformed.
+rendering chunks...
+computing gzip size...
+dist/index.html          0.44 kB │ gzip:  0.28 kB
+dist/assets/popup.css    7.92 kB │ gzip:  2.19 kB
+dist/background.js     144.96 kB │ gzip: 39.16 kB │ map:  77.66 kB
+dist/popup.js          201.81 kB │ gzip: 61.10 kB │ map: 107.45 kB
+✓ built in 158ms
+vite v5.4.19 building for production...
+transforming...
+✓ 21 modules transformed.
+rendering chunks...
+computing gzip size...
+dist/content.js  246.23 kB │ gzip: 72.54 kB │ map: 128.21 kB
+✓ built in 124ms
+
+> linkedin-engagement-assistant@0.0.0 test
+> playwright test
+
+
+Running 3 tests using 3 workers
+
+
+--- BACKGROUND SERVICE WORKER LOGS ON FAILURE ---
+[2025-09-04T15:55:51.113Z] [BG_LOG] "[BACKGROUND SCRIPT] E2E test hooks installed."
+--------------------------------------------------
+  ✘  1 tests/e2e/pipeline-controls.spec.ts:60:3 › Pipeline Controls › should correctly start, stop, and resume the pipeline (1.6s)
+  ✓  2 tests/e2e/ui-injection.spec.ts:4:3 › Extension UI Injection and Initial State › should inject the sidebar with default components on a LinkedIn post page (7.9s)
+  ✓  3 tests/e2e/setup.spec.ts:4:3 › Extension E2E Setup › should load the extension and inject the content script on linkedin.com (8.5s)
+
+
+  1) tests/e2e/pipeline-controls.spec.ts:60:3 › Pipeline Controls › should correctly start, stop, and resume the pipeline 
+
+    Error: worker.evaluate: TypeError: self.__E2E_TEST_SAVE_POST_STATE is not a function
+        at eval (eval at evaluate (:291:30), <anonymous>:7:19)
+        at UtilityScript.evaluate (<anonymous>:293:16)
+        at UtilityScript.<anonymous> (<anonymous>:1:44)
+        at eval (eval at evaluate (:291:30), <anonymous>:7:19)
+        at UtilityScript.evaluate (<anonymous>:293:16)
+        at UtilityScript.<anonymous> (<anonymous>:1:44)
+        at /Users/bahy/Documents/playground/capstone_project/server/projects/linkedin_life_saver/project/tests/e2e/pipeline-controls.spec.ts:40:22
+
+  1 failed
+    tests/e2e/pipeline-controls.spec.ts:60:3 › Pipeline Controls › should correctly start, stop, and resume the pipeline 
+  2 passed (8.9s)

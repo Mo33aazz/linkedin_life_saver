@@ -330,5 +330,7 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
 // if (import.meta.env.MODE !== 'production') {
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   (self as any).__E2E_TEST_SAVE_POST_STATE = savePostState;
-  console.log('[BACKGROUND SCRIPT] E2E test hook `__E2E_TEST_SAVE_POST_STATE` installed.');
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  (self as any).__E2E_TEST_UPDATE_CONFIG = updateConfig;
+  console.log('[BACKGROUND SCRIPT] E2E test hooks installed.');
 // }

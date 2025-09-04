@@ -66,16 +66,22 @@ export const Controls = () => {
       <h2>Controls</h2>
       <div className="pipeline-controls">
         {pipelineStatus === 'idle' && (
-          <button onClick={handleStart}>Start</button>
+          <button onClick={handleStart} data-testid="start-button">
+            Start
+          </button>
         )}
         {pipelineStatus === 'running' && (
-          <button onClick={handleStop}>Stop</button>
+          <button onClick={handleStop} data-testid="stop-button">
+            Stop
+          </button>
         )}
         {pipelineStatus === 'paused' && (
-          <button onClick={handleResume}>Resume</button>
+          <button onClick={handleResume} data-testid="resume-button">
+            Resume
+          </button>
         )}
         {pipelineStatus === 'error' && (
-          <button onClick={handleStart} disabled>
+          <button onClick={handleStart} disabled data-testid="error-button">
             Error
           </button>
         )}
