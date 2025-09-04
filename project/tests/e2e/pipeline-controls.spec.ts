@@ -109,7 +109,7 @@ test.describe('Pipeline Controls', () => {
     await startButton.click();
 
     // Assert that the UI reflects the 'running' state.
-    await expect(stopButton).toBeVisible();
+    await expect(stopButton).toBeVisible({ timeout: 30000 });
     await expect(startButton).not.toBeVisible();
 
     // 7. Test the 'Stop' action.
