@@ -1,7 +1,11 @@
 /// <reference types="chrome" />
 
-import { Comment, CommentType, PostState } from '../../shared/types';
-import type { ParsedComment } from '../../content-scripts/domInteractor';
+import type {
+  Comment,
+  CommentType,
+  PostState,
+  ParsedComment,
+} from '../../shared/types';
 
 // A minimal interface for the data required by the stats calculation.
 // This decouples the function from the full state-managed `Comment` object.

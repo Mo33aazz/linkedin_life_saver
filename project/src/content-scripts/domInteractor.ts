@@ -1,3 +1,5 @@
+import type { ParsedComment, CapturedPostState } from '../shared/types';
+
 /**
  * A helper function to pause execution for a specified duration.
  * @param ms - The number of milliseconds to wait.
@@ -69,18 +71,6 @@ const SELECTORS = {
 };
 
 /**
- * Represents the structured data extracted for a single comment.
- */
-export interface ParsedComment {
-  commentId: string;
-  ownerProfileUrl: string;
-  text: string;
-  timestamp: string;
-  type: 'top-level' | 'reply';
-  threadId: string;
-}
-
-/**
  * Parses the DOM to find the profile URL of the currently signed-in user.
  * @returns The full profile URL as a string, or null if not found.
  */
@@ -131,7 +121,7 @@ export const extractComments = (): ParsedComment[] => {
       SELECTORS.comment.timestamp
     );
 
-    const commentId = commentElement.getAttribute('data-entity-urn') || '';
+    const commentId = commentElement.getAttribute('data-id') || '';
 
     const isReplyContainer = commentElement.parentElement?.closest(
       SELECTORS.comment.repliesContainer
@@ -143,7 +133,7 @@ export const extractComments = (): ParsedComment[] => {
       const topLevelComment = isReplyContainer.closest(
         SELECTORS.comment.container
       );
-      threadId = topLevelComment?.getAttribute('data-entity-urn') || '';
+      threadId = topLevelComment?.getAttribute('data-id') || '';
     } else {
       threadId = commentId;
     }
@@ -188,13 +178,13 @@ export const extractComments = (): ParsedComment[] => {
 
 /**
  * Finds a specific comment by its ID and clicks the 'Like' button.
- * @param commentId - The 'data-entity-urn' of the target comment.
+ * @param commentId - The 'data-id' of the target comment.
  * @returns A promise that resolves to true if the action was successful, false otherwise.
  */
 export const likeComment = async (commentId: string): Promise<boolean> => {
   console.log(`Attempting to like comment: ${commentId}`);
 
-  const commentSelector = `${SELECTORS.comment.container}[data-entity-urn='${commentId}']`;
+  const commentSelector = `${SELECTORS.comment.container}[data-id='${commentId}']`;
   const commentElement =
     document.querySelector<HTMLElement>(commentSelector);
 
@@ -228,7 +218,7 @@ export const likeComment = async (commentId: string): Promise<boolean> => {
 /**
  * Finds a specific comment, clicks the reply button, types the given text in a
  * human-like manner, and submits the reply.
- * @param commentId - The 'data-entity-urn' of the target comment.
+ * @param commentId - The 'data-id' of the target comment.
  * @param replyText - The AI-generated text to post as a reply.
  * @returns A promise that resolves to true if the action was successful, false otherwise.
  */
@@ -237,7 +227,7 @@ export const replyToComment = async (
   replyText: string
 ): Promise<boolean> => {
   console.log(`Attempting to reply to comment: ${commentId}`);
-  const commentSelector = `${SELECTORS.comment.container}[data-entity-urn='${commentId}']`;
+  const commentSelector = `${SELECTORS.comment.container}[data-id='${commentId}']`;
   const commentElement = document.querySelector<HTMLElement>(commentSelector);
 
   if (!commentElement) {
@@ -346,11 +336,7 @@ export const sendDm = async (dmText: string): Promise<boolean> => {
  * ensure the captured state is up-to-date.
  * @returns An object containing the latest comments, post URN, and post URL.
  */
-export const capturePostStateFromDOM = (): {
-  comments: ParsedComment[];
-  postUrn: string | null;
-  postUrl: string;
-} => {
+export const capturePostStateFromDOM = (): CapturedPostState => {
   console.log('Capturing post-state from the DOM...');
   const comments = extractComments();
 

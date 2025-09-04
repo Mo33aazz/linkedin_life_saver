@@ -51,7 +51,7 @@ chrome.runtime.onMessage.addListener((message, _sender, sendResponse) => {
     return true; // Indicates async response
   }
 
-  return true; // Keep listener open for other potential async messages
+  // return true; // Keep listener open for other potential async messages
 });
 
 // Function to initialize the content script

@@ -6,8 +6,9 @@ import {
   Comment,
   ChatMessage,
   UIState,
+  CapturedPostState,
 } from '../../shared/types';
-import { getPostState, savePostState, loadPostState } from './stateManager';
+import { getPostState, savePostState, loadPostState, mergeCapturedState } from './stateManager';
 import { getConfig } from './configManager';
 import { OpenRouterClient } from './openRouterClient';
 
@@ -592,16 +593,25 @@ const processQueue = async (): Promise<void> => {
       });
       // --- TRIGGER CAPTURE HERE ---
       if (activeTabId && activePostUrn) {
-        sendMessageToTab<any>(activeTabId, { type: 'CAPTURE_POST_STATE' })
+        sendMessageToTab<CapturedPostState>(activeTabId, {
+          type: 'CAPTURE_POST_STATE',
+        })
           .then(response => {
-            // Send the data to the background script's main listener for processing
-            chrome.runtime.sendMessage({
-              type: 'PROCESS_CAPTURED_STATE',
-              payload: response,
-            });
+            if (response && response.postUrn) {
+              // console.log('Response from final CAPTURE_POST_STATE:', response);
+              // Send the data to the background script's main listener for processing
+              const { postUrn, comments } = response;
+              mergeCapturedState(postUrn, { comments });
+            } else {
+              logger.warn('Captured post state but postUrn was missing.', {
+                response,
+              });
+            }
           })
           .catch(error => {
-            logger.error('Failed to capture final post state', error, { postUrn: activePostUrn });
+            logger.error('Failed to capture final post state', error, {
+              postUrn: activePostUrn,
+            });
           });
       }
       // --- END TRIGGER ---
@@ -666,21 +676,35 @@ export const startPipeline = async (
       'No state found for post. Creating a new one for pipeline to start.',
       { postUrn }
     );
+    sendMessageToTab<CapturedPostState>(tabId, {
+      type: 'CAPTURE_POST_STATE',
+    })
+      .then(async (response) => {
+        console.log('Response from CAPTURE_POST_STATE:', response);
+        if (response && response.postUrn) {
+          const { postUrn, comments } = response;
+          const newPostState: PostState = {
+            _meta: {
+              postId: postUrn,
+              postUrl: `https://www.linkedin.com/feed/update/${postUrn}`,
+              runState: 'idle',
+              lastUpdated: new Date().toISOString(),
+              userProfileUrl: '', // Not critical for this test
+            },
+            comments: comments as Comment[],
+          };
+          await savePostState(postUrn, newPostState);
+          postState = newPostState;
+        }
+      })
 
-    const newPostState: PostState = {
-      _meta: {
-        postId: postUrn,
-        postUrl: `https://www.linkedin.com/feed/update/${postUrn}`,
-        runState: 'idle',
-        lastUpdated: new Date().toISOString(),
-        userProfileUrl: '', // Not critical for this test
-      },
-      comments: [],
-    };
-    await savePostState(postUrn, newPostState);
-    postState = newPostState;
   }
-
+  if (!postState) {
+    logger.error('Cannot start pipeline, failed to obtain post state.', {
+      postUrn,
+    });
+    return;
+  }
   logger.info('Starting pipeline', { postUrn, tabId, step: 'PIPELINE_START' });
   pipelineStatus = 'running';
   activePostUrn = postUrn;

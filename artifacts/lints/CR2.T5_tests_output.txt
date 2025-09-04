@@ -1,0 +1,130 @@
+
+> linkedin-engagement-assistant@0.0.0 build
+> tsc && vite build && vite build --config vite.config.content.js
+
+vite v5.4.19 building for production...
+transforming...
+✓ 6 modules transformed.
+rendering chunks...
+computing gzip size...
+dist/background.js  158.25 kB │ gzip: 42.72 kB │ map: 84.92 kB
+✓ built in 65ms
+vite v5.4.19 building for production...
+transforming...
+✓ 21 modules transformed.
+rendering chunks...
+computing gzip size...
+dist/content.js  270.81 kB │ gzip: 78.18 kB │ map: 139.58 kB
+✓ built in 126ms
+
+> linkedin-engagement-assistant@0.0.0 test
+> playwright test
+
+
+Running 3 tests using 3 workers
+
+  ✓  1 tests/e2e/setup.spec.ts:4:3 › Extension E2E Setup › should load the extension and inject the content script on linkedin.com (4.3s)
+  ✓  2 tests/e2e/ui-injection.spec.ts:4:3 › Extension UI Injection and Initial State › should inject the sidebar with default components on a LinkedIn post page (7.7s)
+
+--- PAGE & CONTENT SCRIPT LOGS ON FAILURE ---
+[WARNING] quill Overwriting modules/clipboard with class extends n{onPaste(t){var e
+if(null===(e=t.clipboardData)||void 0===e?void 0:e.getData("text/link-preview")){const e=this.quill.getSelection()
+if(!e)return super.onPaste(t)
+t.preventDefault()
+const n=t.clipboardData.getData("text/plain"),r=(new i).retain(e.index).delete(e.length).insert(n)
+this.quill.updateContents(r,"silent")
+const s=n.length+e.index,o=0
+this.quill.setSelection(s,o,"silent")}return super.onPaste(t)}}
+[PAGE_ERROR] TypeError: Cannot read properties of null (reading 'dataset')
+    at get useScaledIcons (https://static.licdn.com/aero-v1/sc/h/7q9q0zafb2gddej5vg0u86ug0:65788:23)
+    at get assetUrls (https://static.licdn.com/aero-v1/sc/h/7q9q0zafb2gddej5vg0u86ug0:65775:6)
+    at Re (https://static.licdn.com/aero-v1/sc/h/6xit43scc04ns3vx47p7zv81u:1248:59)
+    at https://static.licdn.com/aero-v1/sc/h/6xit43scc04ns3vx47p7zv81u:4506:39
+    at https://static.licdn.com/aero-v1/sc/h/6xit43scc04ns3vx47p7zv81u:4499:41
+    at e.track (https://static.licdn.com/aero-v1/sc/h/6xit43scc04ns3vx47p7zv81u:5840:5)
+    at d (https://static.licdn.com/aero-v1/sc/h/6xit43scc04ns3vx47p7zv81u:4499:20)
+    at https://static.licdn.com/aero-v1/sc/h/6xit43scc04ns3vx47p7zv81u:4505:50
+    at https://static.licdn.com/aero-v1/sc/h/6xit43scc04ns3vx47p7zv81u:4499:41
+    at e.track (https://static.licdn.com/aero-v1/sc/h/6xit43scc04ns3vx47p7zv81u:5840:5)
+    at d (https://static.licdn.com/aero-v1/sc/h/6xit43scc04ns3vx47p7zv81u:4499:20)
+    at f.get (https://static.licdn.com/aero-v1/sc/h/6xit43scc04ns3vx47p7zv81u:3733:46)
+    at Array Iterator.next (<anonymous>)
+    at https://static.licdn.com/aero-v1/sc/h/7q9q0zafb2gddej5vg0u86ug0:65811:31
+    at https://static.licdn.com/aero-v1/sc/h/6xit43scc04ns3vx47p7zv81u:553:13
+    at Object.getValue (https://static.licdn.com/aero-v1/sc/h/6xit43scc04ns3vx47p7zv81u:553:64)
+    at https://static.licdn.com/aero-v1/sc/h/6xit43scc04ns3vx47p7zv81u:3753:46
+    at https://static.licdn.com/aero-v1/sc/h/6xit43scc04ns3vx47p7zv81u:4499:41
+    at e.track (https://static.licdn.com/aero-v1/sc/h/6xit43scc04ns3vx47p7zv81u:5840:5)
+    at d (https://static.licdn.com/aero-v1/sc/h/6xit43scc04ns3vx47p7zv81u:4499:20)
+[LOG] Content script starting...
+[LOG] Document is already loaded, initializing immediately...
+[LOG] Initializing content script...
+[LOG] Attempting to create host element...
+[LOG] Attempting to append to document.body...
+[LOG] Successfully appended host element
+[LOG] Attempting to create shadow DOM...
+[LOG] Successfully created shadow DOM
+[LOG] Successfully mounted UI into shadow DOM
+[LOG] UI App component mounted. Sending ping to service worker.
+[LOG] Received response from service worker: {payload: pong}
+[DEBUG] Error
+[LOG] [Content Script] Message received: LIKE_COMMENT
+[LOG] Content script received LIKE_COMMENT: {commentId: urn:li:comment:(activity:7368619407989760000,87654321)}
+[LOG] Attempting to like comment: urn:li:comment:(activity:7368619407989760000,87654321)
+[LOG] Successfully liked comment: urn:li:comment:(activity:7368619407989760000,87654321)
+-------------------------------------------------
+
+--- BACKGROUND SERVICE WORKER LOGS ON FAILURE ---
+[2025-09-04T21:10:24.193Z] [BG_LOG] "Loaded 0 post states into memory."
+[2025-09-04T21:10:24.195Z] [BG_LOG] "No AI config found in storage. Saving and loading defaults."
+[2025-09-04T21:10:24.257Z] [BG_LOG] "State saved for post URN: urn:li:activity:7368619407989760000"
+[2025-09-04T21:10:25.844Z] [BG_INFO] "[INFO] Received request for AI config." ""
+[2025-09-04T21:10:25.845Z] [BG_INFO] "[INFO] Received ping from UI, sending pong back." ""
+[2025-09-04T21:10:26.990Z] [BG_INFO] "[INFO] Received START_PIPELINE message" {"postUrn":"urn:li:activity:7368619407989760000","tabId":1284931478}
+[2025-09-04T21:10:26.991Z] [BG_INFO] "[INFO] Starting pipeline" {"postUrn":"urn:li:activity:7368619407989760000","tabId":1284931478,"step":"PIPELINE_START"}
+[2025-09-04T21:10:27.002Z] [BG_LOG] "State saved for post URN: urn:li:activity:7368619407989760000"
+[2025-09-04T21:10:27.016Z] [BG_INFO] "[INFO] Broadcasting state update" {"state":{"pipelineStatus":"running","comments":[{"commentId":"urn:li:comment:(activity:7368619407989760000,87654321)","text":"This is a test comment for the pipeline.","ownerProfileUrl":"https://www.linkedin.com/in/test-user/","timestamp":"1d","type":"top-level","connected":false,"threadId":"urn:li:comment:(activity:7368619407989760000,87654321)","likeStatus":"","replyStatus":"","dmStatus":"","attempts":{"like":0,"reply":0,"dm":0},"lastError":"","pipeline":{"queuedAt":"2025-09-04T21:10:23.426Z","likedAt":"","repliedAt":"","dmAt":""}}],"postUrn":"urn:li:activity:7368619407989760000"}}
+[2025-09-04T21:10:27.016Z] [BG_INFO] "[INFO] Starting processing queue." {"postUrn":"urn:li:activity:7368619407989760000","step":"PROCESS_QUEUE_START"}
+[2025-09-04T21:10:27.016Z] [BG_INFO] "[INFO] Processing next comment" {"postId":"urn:li:activity:7368619407989760000","commentId":"urn:li:comment:(activity:7368619407989760000,87654321)","step":"PROCESS_COMMENT_START"}
+[2025-09-04T21:10:27.017Z] [BG_INFO] "[INFO] Attempting to like comment" {"postId":"urn:li:activity:7368619407989760000","commentId":"urn:li:comment:(activity:7368619407989760000,87654321)","step":"LIKE_ATTEMPT"}
+[2025-09-04T21:10:27.519Z] [BG_INFO] "[INFO] Comment liked successfully" {"postId":"urn:li:activity:7368619407989760000","commentId":"urn:li:comment:(activity:7368619407989760000,87654321)","step":"LIKE_SUCCESS"}
+[2025-09-04T21:10:27.659Z] [BG_LOG] "State saved for post URN: urn:li:activity:7368619407989760000"
+[2025-09-04T21:10:27.659Z] [BG_INFO] "[INFO] Broadcasting state update" {"state":{"pipelineStatus":"running","postUrn":"urn:li:activity:7368619407989760000","comments":[{"commentId":"urn:li:comment:(activity:7368619407989760000,87654321)","text":"This is a test comment for the pipeline.","ownerProfileUrl":"https://www.linkedin.com/in/test-user/","timestamp":"1d","type":"top-level","connected":false,"threadId":"urn:li:comment:(activity:7368619407989760000,87654321)","likeStatus":"DONE","replyStatus":"","dmStatus":"","attempts":{"like":1,"reply":0,"dm":0},"lastError":"","pipeline":{"queuedAt":"2025-09-04T21:10:23.426Z","likedAt":"2025-09-04T21:10:27.519Z","repliedAt":"","dmAt":""}}]}}
+[2025-09-04T21:10:29.661Z] [BG_INFO] "[INFO] Processing next comment" {"postId":"urn:li:activity:7368619407989760000","commentId":"urn:li:comment:(activity:7368619407989760000,87654321)","step":"PROCESS_COMMENT_START"}
+[2025-09-04T21:10:29.661Z] [BG_INFO] "[INFO] Attempting to reply to comment" {"postId":"urn:li:activity:7368619407989760000","commentId":"urn:li:comment:(activity:7368619407989760000,87654321)","step":"REPLY_ATTEMPT"}
+[2025-09-04T21:10:29.661Z] [BG_INFO] "[INFO] Generating AI reply" {"postId":"urn:li:activity:7368619407989760000","commentId":"urn:li:comment:(activity:7368619407989760000,87654321)","step":"GENERATE_REPLY"}
+[2025-09-04T21:10:29.661Z] [BG_ERROR] "[ERROR] OpenRouter API key is not set." {"postId":"urn:li:activity:7368619407989760000","commentId":"urn:li:comment:(activity:7368619407989760000,87654321)","step":"GENERATE_REPLY","error":{"name":"UnknownError","message":"undefined"}}
+[2025-09-04T21:10:29.662Z] [BG_ERROR] "[ERROR] Failed to reply to comment" {"postId":"urn:li:activity:7368619407989760000","commentId":"urn:li:comment:(activity:7368619407989760000,87654321)","step":"REPLY_FAILED_FINAL","error":{"name":"Error","message":"AI reply generation failed after all retries.","stack":"Error: AI reply generation failed after all retries.\n    at processComment (chrome-extension://jamgniehpccbkoceomnkcllfoplaiffn/background.js:712:17)\n    at async processQueue (chrome-extension://jamgniehpccbkoceomnkcllfoplaiffn/background.js:948:5)"}}
+[2025-09-04T21:10:29.662Z] [BG_LOG] "State saved for post URN: urn:li:activity:7368619407989760000"
+[2025-09-04T21:10:29.662Z] [BG_INFO] "[INFO] Broadcasting state update" {"state":{"pipelineStatus":"running","postUrn":"urn:li:activity:7368619407989760000","comments":[{"commentId":"urn:li:comment:(activity:7368619407989760000,87654321)","text":"This is a test comment for the pipeline.","ownerProfileUrl":"https://www.linkedin.com/in/test-user/","timestamp":"1d","type":"top-level","connected":false,"threadId":"urn:li:comment:(activity:7368619407989760000,87654321)","likeStatus":"DONE","replyStatus":"FAILED","dmStatus":"","attempts":{"like":1,"reply":0,"dm":0},"lastError":"AI reply generation failed after all retries.","pipeline":{"queuedAt":"2025-09-04T21:10:23.426Z","likedAt":"2025-09-04T21:10:27.519Z","repliedAt":"","dmAt":""}}]}}
+--------------------------------------------------
+  ✘  3 tests/e2e/pipeline-controls.spec.ts:87:3 › Pipeline Control E2E Tests › should successfully control pipeline lifecycle: start, stop, and resume (8.2s)
+
+
+  1) tests/e2e/pipeline-controls.spec.ts:87:3 › Pipeline Control E2E Tests › should successfully control pipeline lifecycle: start, stop, and resume › Start the pipeline and verify state is "running" 
+
+    Error: [2mexpect([22m[31mlocator[39m[2m).[22mtoBeVisible[2m()[22m failed
+
+    Locator:  locator('#linkedin-engagement-assistant-root').locator('[data-testid="stop-button"]')
+    Expected: visible
+    Received: <element(s) not found>
+    Timeout:  5000ms
+
+    Call log:
+    [2m  - Expect "toBeVisible" with timeout 5000ms[22m
+    [2m  - waiting for locator('#linkedin-engagement-assistant-root').locator('[data-testid="stop-button"]')[22m
+
+
+      116 |       // After starting, the Stop button should become visible, and Start should be hidden.
+      117 |       // Web-first assertions automatically wait for the UI to update.
+    > 118 |       await expect(stopButtonLocator).toBeVisible({ timeout: 5000 });
+          |                                       ^
+      119 |       await expect(startButtonLocator).toBeHidden();
+      120 |     });
+      121 |
+        at /Users/bahy/Documents/playground/capstone_project/server/projects/linkedin_life_saver/project/tests/e2e/pipeline-controls.spec.ts:118:39
+        at /Users/bahy/Documents/playground/capstone_project/server/projects/linkedin_life_saver/project/tests/e2e/pipeline-controls.spec.ts:112:5
+
+  1 failed
+    tests/e2e/pipeline-controls.spec.ts:87:3 › Pipeline Control E2E Tests › should successfully control pipeline lifecycle: start, stop, and resume 
+  2 passed (8.7s)

@@ -20,10 +20,13 @@ export const App = () => {
     });
 
     const handleMessage = (message: ExtensionMessage) => {
+      console.log('UI received message:', message);
       if (message.type === 'STATE_UPDATE' && message.payload) {
         useStore.getState().updateState(message.payload as Partial<UIState>);
+        return;
       } else if (message.type === 'LOG_ENTRY' && message.payload) {
         useStore.getState().addLog(message.payload as LogEntry);
+        return;
       }
     };
 

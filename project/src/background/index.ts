@@ -32,15 +32,22 @@ import { logger } from './logger';
 // Define the broadcaster function
 const broadcastLog = (logEntry: LogEntry) => {
   // Fire-and-forget broadcast for logs.
-  chrome.runtime.sendMessage({ type: 'LOG_ENTRY', payload: logEntry })
-    .catch(error => {
-      if (error.message.includes('Receiving end does not exist')) {
-        // Expected error when no UI is listening. Safe to ignore.
-      } else {
-        // Use console.warn directly to avoid recursive logging loop if logger is broken.
-        console.warn('An unexpected error occurred during log broadcast', error);
-      }
-    });
+  (async () => {
+    const [tab] = await chrome.tabs.query({ active: true, lastFocusedWindow: true });
+    if (!tab || !tab.id) {
+      logger.warn('No active tab found to send state update.');
+      return;
+    }
+    chrome.tabs.sendMessage(tab.id, { type: 'LOG_ENTRY', payload: logEntry })
+      .catch(error => {
+        if (error.message.includes('Receiving end does not exist')) {
+          // Expected error when no UI is listening. Safe to ignore.
+        } else {
+          // Use console.warn directly to avoid recursive logging loop if logger is broken.
+          console.warn('An unexpected error occurred during log broadcast', error);
+        }
+      });
+  })();
 };
 
 // Initialize the logger
@@ -48,8 +55,6 @@ logger.initialize(broadcastLog);
 
 logger.info('LinkedIn Engagement Assistant Service Worker loaded.');
 
-// Load all persisted states into memory on startup
-loadAllStates();
 
 // Initialize the configuration on startup. This returns a promise that resolves
 // when the configuration is loaded. We await this promise in message handlers
@@ -65,16 +70,29 @@ const broadcastStateUpdate = (state: Partial<UIState>) => {
   // This is a fire-and-forget broadcast. The promise it returns may be
   // rejected if no UI component is open to receive it. We can safely
   // ignore this rejection as it's an expected condition.
-  chrome.runtime.sendMessage({
-    type: 'STATE_UPDATE',
-    payload: state,
-  }).catch(error => {
-    if (error.message.includes('Receiving end does not exist')) {
-      // Expected error when no UI is listening. Safe to ignore.
-    } else {
-      logger.warn('An unexpected error occurred during state broadcast', error);
+  (async () => {
+    const [tab] = await chrome.tabs.query({ active: true, lastFocusedWindow: true });
+    if (!tab || !tab.id) {
+      logger.warn('No active tab found to send state update.');
+      return;
     }
-  });
+    chrome.tabs.sendMessage(tab.id, {
+      type: 'STATE_UPDATE',
+      payload: state,
+    }).catch(error => {
+      if (error.message.includes('Receiving end does not exist')) {
+        // Expected error when no UI is listening. Safe to ignore.
+      } else {
+        logger.warn('An unexpected error occurred during state broadcast', error);
+      }
+    });
+    // do something with response here, not outside the function
+  })();
+
+  // chrome.runtime.sendMessage({
+  //   type: 'STATE_UPDATE',
+  //   payload: state,
+  // })
 };
 
 const sendMessageToTab = <T>(
@@ -105,6 +123,13 @@ const sendMessageToTab = <T>(
   });
 };
 
+// Load all persisted states into memory on startup
+loadAllStates().then(() => {
+  // broadcastStateUpdate can be called here if needed to inform UI of loaded states
+  logger.info('All post states loaded into memory.');
+}).catch(error => {
+  logger.error('Failed to load post states on startup', error);
+});
 // Initialize the pipeline manager with a broadcaster function.
 initPipelineManager(broadcastStateUpdate, sendMessageToTab);
 
@@ -355,11 +380,11 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
 // Note: The condition is removed to allow E2E tests to run against production builds.
 // In a real-world scenario, a dedicated 'test' build mode would be preferable.
 // if (import.meta.env.MODE !== 'production') {
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  (self as any).__E2E_TEST_SAVE_POST_STATE = savePostState;
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  (self as any).__E2E_TEST_UPDATE_CONFIG = updateConfig;
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  (self as any).__E2E_TEST_HOOKS_INSTALLED = true;
-  console.log('[BACKGROUND SCRIPT] E2E test hooks installed.');
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+(self as any).__E2E_TEST_SAVE_POST_STATE = savePostState;
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+(self as any).__E2E_TEST_UPDATE_CONFIG = updateConfig;
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+(self as any).__E2E_TEST_HOOKS_INSTALLED = true;
+console.log('[BACKGROUND SCRIPT] E2E test hooks installed.');
 // }

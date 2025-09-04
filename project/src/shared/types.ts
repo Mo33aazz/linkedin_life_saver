@@ -1,5 +1,3 @@
-import { ParsedComment } from '../content-scripts/domInteractor';
-
 export type LogLevel = 'INFO' | 'WARN' | 'ERROR' | 'DEBUG';
 
 export interface LogEntry {
@@ -14,6 +12,28 @@ export type ActionStatus = '' | 'DONE' | 'FAILED';
 export type RunState = 'idle' | 'running' | 'paused' | 'error';
 
 export type CommentType = 'top-level' | 'reply';
+
+/**
+ * Represents the structured data extracted for a single comment from the DOM.
+ * This is the raw data before it's merged into the main state.
+ */
+export interface ParsedComment {
+  commentId: string;
+  ownerProfileUrl: string;
+  text: string;
+  timestamp: string;
+  type: CommentType;
+  threadId: string;
+}
+
+/**
+ * Represents the entire state captured from the DOM at a point in time.
+ */
+export interface CapturedPostState {
+  comments: ParsedComment[];
+  postUrn: string | null;
+  postUrl: string;
+}
 
 export interface ChatMessage {
   role: string;
@@ -105,7 +125,7 @@ export type ExtensionMessage =
   | { type: 'STATE_UPDATE'; payload: Partial<UIState> }
   | { type: 'LOG_ENTRY'; payload: LogEntry }
   | { type: 'ping' }
-  | { type: 'START_PIPELINE'; payload: { postUrn: string } }
+  | { type: 'START_PIPELINE'; payload: { postUrn?: string } }
   | { type: 'STOP_PIPELINE' }
   | { type: 'RESUME_PIPELINE' }
   | { type: 'GET_AI_CONFIG'; payload?: never }
@@ -115,9 +135,5 @@ export type ExtensionMessage =
   | { type: 'CAPTURE_POST_STATE'; payload?: never }
   | {
       type: 'PROCESS_CAPTURED_STATE';
-      payload: {
-        comments: ParsedComment[];
-        postUrn: string;
-        postUrl: string;
-      };
+      payload: Omit<CapturedPostState, 'postUrn'> & { postUrn: string };
     };
