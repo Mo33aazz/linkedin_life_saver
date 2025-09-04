@@ -75,9 +75,9 @@ const instrumentServiceWorker = async (sw: Worker) => {
             if (requestUrl.includes('openrouter.ai/api/v1/models')) {
                 console.log('[Playwright Mock] Responding with mocked model list for settings test.');
                 const mockModels = [
-                    { id: 'mock/model-1', name: 'Mock Model One' },
-                    { id: 'mock/model-2', name: 'Mock Model Two (Selected)' },
-                    { id: 'mock/model-3', name: 'Mock Model Three' },
+                    { id: 'mock/model-1', name: 'Mock Model One', context_length: 16000 },
+                    { id: 'mock/model-2', name: 'Mock Model Two (Selected)', context_length: 32000 },
+                    { id: 'mock/model-3', name: 'Mock Model Three', context_length: 8001 },
                 ];
                 return new Response(JSON.stringify({ data: mockModels }), {
                     status: 200,

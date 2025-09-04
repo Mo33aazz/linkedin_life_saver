@@ -37,9 +37,10 @@ test.describe('AI Settings Persistence', () => {
 
       // Wait for the model dropdown to be enabled and populated by the mock.
       await expect(modelSelect).toBeEnabled({ timeout: 5000 });
-      await expect(
-        sidebarLocator.locator('option:text("Mock Model One")')
-      ).toBeVisible();
+
+      // Assert that the options have been added to the DOM.
+      // We check for count because options inside a select are not always "visible".
+      await expect(modelSelect.locator('option')).toHaveCount(4); // 1 disabled placeholder + 3 mock models
 
       // Select a model and fill in the other fields.
       await modelSelect.selectOption({ value: MOCK_MODEL_ID });
@@ -61,8 +62,11 @@ test.describe('AI Settings Persistence', () => {
       // Save the settings.
       await saveButton.click();
 
-      // A quick check to ensure the save message was likely processed before reloading.
-      await expect(apiKeyInput).toHaveValue(MOCK_API_KEY);
+      // Wait for the save operation to complete by looking for the success message.
+      // This makes the test robust by ensuring the async save is finished before reloading.
+      await expect(
+        sidebarLocator.locator('[data-testid="save-success-msg"]')
+      ).toBeVisible();
     });
 
     // 4. RELOAD: Simulate a new session by reloading the page.

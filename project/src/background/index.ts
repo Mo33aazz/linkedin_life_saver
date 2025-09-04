@@ -259,10 +259,12 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
       try {
         await configInitializationPromise;
         const config = getConfig();
-        if (!config.apiKey) {
+        // Use API key from payload for testing, otherwise use saved key.
+        const apiKeyToUse = message.payload?.apiKey || config.apiKey;
+        if (!apiKeyToUse) {
           throw new Error('OpenRouter API key is not set.');
         }
-        const client = new OpenRouterClient(config.apiKey, config.attribution);
+        const client = new OpenRouterClient(apiKeyToUse, config.attribution);
         const models = await client.getModels();
 
         // Filter and sort models before sending to UI
@@ -381,9 +383,9 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
 // In a real-world scenario, a dedicated 'test' build mode would be preferable.
 // if (import.meta.env.MODE !== 'production') {
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
-(self as any).__E2E_TEST_SAVE_POST_STATE = savePostState;
+(self as any).__E2E_TEST_SAVE_POST_STATE = (postUrn: string, state: PostState) => savePostState(postUrn, state);
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
-(self as any).__E2E_TEST_UPDATE_CONFIG = updateConfig;
+(self as any).__E2E_TEST_UPDATE_CONFIG = (config: Partial<AIConfig>) => updateConfig(config);
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 (self as any).__E2E_TEST_HOOKS_INSTALLED = true;
 console.log('[BACKGROUND SCRIPT] E2E test hooks installed.');

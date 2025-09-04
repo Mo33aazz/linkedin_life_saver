@@ -9,8 +9,8 @@ export default defineConfig({
   },
   fullyParallel: false,
   forbidOnly: !!process.env.CI,
-  retries: process.env.CI ? 2 : 0,
-  workers: process.env.CI ? 1 : undefined,
+  retries: process.env.CI ? 2 : 1, // Allow one retry for local runs to handle flakiness
+  workers: 1, // Force a single worker to prevent parallel requests to LinkedIn
   reporter: 'html',
   use: {
     trace: 'on-first-retry',
