@@ -10,6 +10,6 @@ test.describe('Extension E2E Setup', () => {
     const sidebarLocator = page.locator('.sidebar');
 
     // Assert that the sidebar is visible, which confirms the content script is active.
-    await expect(sidebarLocator).toBeVisible({ timeout: 100000 });
+    await expect(sidebarLocator).toBeVisible({ timeout: 10000 });
   });
 });

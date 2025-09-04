@@ -10,6 +10,8 @@ const __dirname = fileURLToPath(new URL('.', import.meta.url));
 export default defineConfig({
   plugins: [preact()],
   build: {
+    minify: false,
+    sourcemap: 'inline',
     outDir: 'dist',
     // This build runs first, so it should empty the directory.
     emptyOutDir: true, 

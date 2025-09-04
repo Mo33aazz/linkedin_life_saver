@@ -1,25 +1,25 @@
 [
   {
-    "type": "no-undef",
+    "type": "@typescript-eslint/no-explicit-any",
     "path": "/Users/bahy/Documents/playground/capstone_project/server/projects/linkedin_life_saver/project/tests/e2e/fixtures.ts",
-    "obj": "Identifier",
-    "message": "'RequestInfo' is not defined.",
+    "obj": "TSAnyKeyword",
+    "message": "Unexpected any. Specify a different type.",
     "line": 59,
     "column": 41
   },
   {
-    "type": "no-undef",
+    "type": "@typescript-eslint/no-explicit-any",
     "path": "/Users/bahy/Documents/playground/capstone_project/server/projects/linkedin_life_saver/project/tests/e2e/fixtures.ts",
-    "obj": "Identifier",
-    "message": "'RequestInit' is not defined.",
+    "obj": "TSAnyKeyword",
+    "message": "Unexpected any. Specify a different type.",
     "line": 59,
-    "column": 69
+    "column": 55
   },
   {
     "type": "@typescript-eslint/no-unused-vars",
     "path": "/Users/bahy/Documents/playground/capstone_project/server/projects/linkedin_life_saver/project/tests/e2e/pipeline-controls.spec.ts",
     "obj": "N/A",
-    "message": "'_properties' is defined but never used.",
+    "message": "'_' is defined but never used.",
     "line": 93,
     "column": 11
   },
@@ -27,7 +27,7 @@
     "type": "no-unused-vars",
     "path": "/Users/bahy/Documents/playground/capstone_project/server/projects/linkedin_life_saver/project/tests/e2e/pipeline-controls.spec.ts",
     "obj": "Identifier",
-    "message": "'_properties' is defined but never used.",
+    "message": "'_' is defined but never used.",
     "line": 93,
     "column": 11
   }

@@ -42,7 +42,7 @@
   right: 0;
   height: 100vh;
   z-index: 9999;
-  width: 350px;
+  width: 420px;
   box-shadow: -2px 0 10px rgba(0, 0, 0, 0.1);
   overflow-y: auto;
 
@@ -58,7 +58,7 @@
   --color-error: #ea4335;
   --border-radius: 6px;
   font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
-  background-color: var(--color-bg-secondary);
+  background-color: var(--color-bg-secondary) !important;
   color: var(--color-text-primary);
 }
 

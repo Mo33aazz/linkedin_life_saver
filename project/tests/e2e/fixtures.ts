@@ -56,7 +56,7 @@ const instrumentServiceWorker = async (sw: Worker) => {
 
         // --- 2. SETUP FETCH MOCKING ---
         const originalFetch = globalScope.fetch;
-        globalScope.fetch = async (url: RequestInfo | URL, config?: RequestInit) => {
+        globalScope.fetch = async (url: any, config?: any) => {
             const requestUrl = (url instanceof Request) ? url.url : String(url);
             // Log the intercepted call for debugging purposes
             console.log(`[Playwright Mock] Intercepting fetch: ${requestUrl}`);

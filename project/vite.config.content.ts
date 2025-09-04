@@ -10,6 +10,8 @@ const __dirname = fileURLToPath(new URL('.', import.meta.url));
 export default defineConfig({
   plugins: [preact()], // <-- 2. ADD THE PLUGIN HERE
   build: {
+    minify: false,
+    sourcemap: 'inline',
     outDir: 'dist',
     emptyOutDir: false,
     rollupOptions: {

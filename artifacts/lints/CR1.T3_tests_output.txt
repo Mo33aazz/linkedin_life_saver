@@ -2,96 +2,11 @@
 > linkedin-engagement-assistant@0.0.0 build
 > tsc && vite build && vite build --config vite.config.content.js
 
-vite v5.4.19 building for production...
-transforming...
-✓ 27 modules transformed.
-rendering chunks...
-computing gzip size...
-dist/index.html          0.44 kB │ gzip:  0.28 kB
-dist/assets/popup.css    7.91 kB │ gzip:  2.19 kB
-dist/background.js     144.79 kB │ gzip: 39.08 kB │ map:  77.54 kB
-dist/popup.js          201.04 kB │ gzip: 61.05 kB │ map: 107.01 kB
-✓ built in 145ms
-vite v5.4.19 building for production...
-transforming...
-✓ 20 modules transformed.
-rendering chunks...
-computing gzip size...
-dist/content.js  215.96 kB │ gzip: 64.19 kB │ map: 110.38 kB
-✓ built in 107ms
-
-> linkedin-engagement-assistant@0.0.0 test
-> playwright test
-
-
-Running 3 tests using 3 workers
-
-  ✓  1 tests/e2e/setup.spec.ts:4:3 › Extension E2E Setup › should load the extension and inject the content script on linkedin.com (4.1s)
-  ✓  2 tests/e2e/ui-injection.spec.ts:4:3 › Extension UI Injection and Initial State › should inject the sidebar with default components on a LinkedIn post page (4.5s)
-
---- PAGE & CONTENT SCRIPT LOGS ON FAILURE ---
-[WARNING] quill Overwriting modules/clipboard with class extends n{onPaste(t){var e
-if(null===(e=t.clipboardData)||void 0===e?void 0:e.getData("text/link-preview")){const e=this.quill.getSelection()
-if(!e)return super.onPaste(t)
-t.preventDefault()
-const n=t.clipboardData.getData("text/plain"),r=(new i).retain(e.index).delete(e.length).insert(n)
-this.quill.updateContents(r,"silent")
-const s=n.length+e.index,o=0
-this.quill.setSelection(s,o,"silent")}return super.onPaste(t)}}
-[LOG] Content script starting...
-[LOG] Initializing content script...
-[LOG] Successfully mounted UI into shadow DOM
-[LOG] UI App component mounted. Sending ping to service worker.
-[LOG] Received response from service worker: {payload: pong}
-[DEBUG] Error
--------------------------------------------------
-
---- BACKGROUND SERVICE WORKER LOGS ON FAILURE ---
-[2025-09-04T13:39:52.221Z] [BG_LOG] "Loaded 0 post states into memory."
-[2025-09-04T13:39:52.227Z] [BG_UNHANDLED_REJECTION] Error: Could not establish connection. Receiving end does not exist.
-[2025-09-04T13:39:52.229Z] [BG_UNHANDLED_REJECTION] Error: Could not establish connection. Receiving end does not exist.
-[2025-09-04T13:39:52.230Z] [BG_UNHANDLED_REJECTION] Error: Could not establish connection. Receiving end does not exist.
-[2025-09-04T13:39:52.230Z] [BG_LOG] "No AI config found in storage. Saving and loading defaults."
-[2025-09-04T13:39:52.230Z] [BG_LOG] "State saved for post URN: urn:li:activity:7368619407989760000"
-[2025-09-04T13:39:52.230Z] [BG_LOG] "[MOCK] Injected mock post state for" "urn:li:activity:7368619407989760000"
-[2025-09-04T13:39:54.353Z] [BG_UNHANDLED_REJECTION] Error: Could not establish connection. Receiving end does not exist.
-[2025-09-04T13:39:54.353Z] [BG_UNHANDLED_REJECTION] Error: Could not establish connection. Receiving end does not exist.
-[2025-09-04T13:39:56.315Z] [BG_UNHANDLED_REJECTION] Error: Could not establish connection. Receiving end does not exist.
-[2025-09-04T13:39:56.316Z] [BG_UNHANDLED_REJECTION] Error: Could not establish connection. Receiving end does not exist.
-[2025-09-04T13:39:56.316Z] [BG_LOG] "State saved for post URN: urn:li:activity:7368619407989760000"
-[2025-09-04T13:39:56.317Z] [BG_LOG] "[MOCK] Intercepted chrome.tabs.create"
-[2025-09-04T13:39:56.317Z] [BG_UNHANDLED_REJECTION] Error: Could not establish connection. Receiving end does not exist.
-[2025-09-04T13:39:56.317Z] [BG_UNHANDLED_REJECTION] Error: Could not establish connection. Receiving end does not exist.
-[2025-09-04T13:39:56.317Z] [BG_UNHANDLED_REJECTION] Error: Could not establish connection. Receiving end does not exist.
-[2025-09-04T13:39:56.317Z] [BG_UNHANDLED_REJECTION] Error: Could not establish connection. Receiving end does not exist.
-[2025-09-04T13:39:56.317Z] [BG_UNHANDLED_REJECTION] Error: Could not establish connection. Receiving end does not exist.
---------------------------------------------------
-  ✘  3 tests/e2e/pipeline-controls.spec.ts:123:3 › Pipeline Controls (Start, Stop, Resume) › should correctly cycle through start, stop, and resume states (10.6s)
-
-
-  1) tests/e2e/pipeline-controls.spec.ts:123:3 › Pipeline Controls (Start, Stop, Resume) › should correctly cycle through start, stop, and resume states 
-
-    Error: [2mexpect([22m[31mlocator[39m[2m).[22mtoBeVisible[2m()[22m failed
-
-    Locator:  locator('div.sidebar').locator('button').filter({ hasText: 'Stop' })
-    Expected: visible
-    Received: <element(s) not found>
-    Timeout:  5000ms
-
-    Call log:
-    [2m  - Expect "toBeVisible" with timeout 5000ms[22m
-    [2m  - waiting for locator('div.sidebar').locator('button').filter({ hasText: 'Stop' })[22m
-
-
-      141 |     //    and the UI reacts.
-      142 |     const stopButton = sidebarHost.locator('button', { hasText: 'Stop' });
-    > 143 |     await expect(stopButton).toBeVisible({ timeout: 5000 });
-          |                              ^
-      144 |     await expect(startButton).not.toBeVisible();
-      145 |
-      146 |     // --- STOP FLOW ---
-        at /Users/bahy/Documents/playground/capstone_project/server/projects/linkedin_life_saver/project/tests/e2e/pipeline-controls.spec.ts:143:30
-
-  1 failed
-    tests/e2e/pipeline-controls.spec.ts:123:3 › Pipeline Controls (Start, Stop, Resume) › should correctly cycle through start, stop, and resume states 
-  2 passed (11.0s)
+src/background/index.ts(145,28): error TS2740: Type 'CommentStats' is missing the following properties from type 'CommentStats': totalTopLevel, processed, remaining, likes, and 3 more.
+src/background/logger.ts(1,20): error TS2305: Module '"../shared/types"' has no exported member 'LogLevel'.
+src/background/services/stateManager.ts(3,10): error TS2305: Module '"../../shared/types"' has no exported member 'CommentType'.
+src/ui/components/Counters.tsx(23,52): error TS2339: Property 'isInitializing' does not exist on type 'UIState'.
+src/ui/components/Counters.tsx(26,50): error TS2339: Property 'totalTopLevelNoReplies' does not exist on type 'CommentStats'.
+src/ui/components/LogsPanel.tsx(3,20): error TS2305: Module '"../../shared/types"' has no exported member 'LogLevel'.
+src/ui/components/PipelineProgress.tsx(2,19): error TS2305: Module '"../../shared/types"' has no exported member 'ActionStatus'.
+src/ui/components/PipelineProgress.tsx(122,52): error TS2339: Property 'isInitializing' does not exist on type 'UIState'.

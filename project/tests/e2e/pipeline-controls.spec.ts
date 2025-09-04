@@ -90,7 +90,7 @@ test.describe('Pipeline Controls (Start, Stop, Resume)', () => {
           globalWithMocks.originalTabsCreate = chrome.tabs.create;
         }
         chrome.tabs.create = (
-          _properties: chrome.tabs.CreateProperties
+          _: chrome.tabs.CreateProperties
         ): Promise<chrome.tabs.Tab> => {
           console.log('[MOCK] Intercepted chrome.tabs.create');
           return new Promise(() => {

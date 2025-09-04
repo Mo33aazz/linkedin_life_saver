@@ -25,6 +25,7 @@ export const useStore = create<Store>((set) => ({
 chrome.runtime.onMessage.addListener((message: ExtensionMessage) => {
   if (message.type === 'STATE_UPDATE') {
     // When a state update is received, call the store's action.
+    console.log('Received STATE_UPDATE message:', message.payload);
     useStore.getState().updateState(message.payload as Partial<UIState>);
   } else if (message.type === 'LOG_ENTRY') {
     const newLog = message.payload as LogEntry;
@@ -42,6 +43,7 @@ if (import.meta.env.MODE !== 'production') {
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   (window as any).__E2E_TEST_DISPATCH_MESSAGE__ = (message: ExtensionMessage) => {
     if (message.type === 'STATE_UPDATE') {
+      console.log('E2E Test: Dispatching STATE_UPDATE message:', message.payload);
       useStore.getState().updateState(message.payload as Partial<UIState>);
     } else if (message.type === 'LOG_ENTRY') {
       const newLog = message.payload as LogEntry;
