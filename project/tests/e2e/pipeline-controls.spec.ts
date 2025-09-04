@@ -207,7 +207,6 @@ test.describe('Pipeline Controls', () => {
 
   test('should display correct pipeline status and counters', async ({
     page,
-    background,
   }) => {
     // Set up route for the mock LinkedIn post
     await page.route(

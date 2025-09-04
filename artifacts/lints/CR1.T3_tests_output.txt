@@ -2,7 +2,221 @@
 > linkedin-engagement-assistant@0.0.0 build
 > tsc && vite build && vite build --config vite.config.content.js
 
-tests/e2e/pipeline-controls.spec.ts(128,34): error TS6133: 'context' is declared but its value is never read.
-tests/e2e/pipeline-controls.spec.ts(128,43): error TS6133: 'extensionId' is declared but its value is never read.
-tests/e2e/pipeline-controls.spec.ts(299,65): error TS6133: 'context' is declared but its value is never read.
-tests/e2e/pipeline-controls.spec.ts(343,61): error TS6133: 'background' is declared but its value is never read.
+vite v5.4.19 building for production...
+transforming...
+✓ 6 modules transformed.
+rendering chunks...
+computing gzip size...
+dist/background.js  147.22 kB │ gzip: 39.86 kB │ map: 79.00 kB
+✓ built in 69ms
+vite v5.4.19 building for production...
+transforming...
+✓ 21 modules transformed.
+rendering chunks...
+computing gzip size...
+dist/content.js  245.83 kB │ gzip: 72.66 kB │ map: 128.00 kB
+✓ built in 123ms
+
+> linkedin-engagement-assistant@0.0.0 test
+> playwright test
+
+
+Running 5 tests using 3 workers
+
+Verifying initial state...
+Testing: Clicking Start button
+  ✓  3 tests/e2e/ui-injection.spec.ts:4:3 › Extension UI Injection and Initial State › should inject the sidebar with default components on a LinkedIn post page (5.2s)
+  ✓  2 tests/e2e/setup.spec.ts:4:3 › Extension E2E Setup › should load the extension and inject the content script on linkedin.com (5.3s)
+
+--- PAGE & CONTENT SCRIPT LOGS ON FAILURE ---
+[LOG] Content script starting...
+[LOG] Document is already loaded, initializing immediately...
+[LOG] Initializing content script...
+[LOG] Attempting to create host element...
+[LOG] Attempting to append to document.body...
+[LOG] Successfully appended host element
+[LOG] Attempting to create shadow DOM...
+[LOG] Successfully created shadow DOM
+[LOG] Successfully mounted UI into shadow DOM
+[LOG] UI App component mounted. Sending ping to service worker.
+[LOG] Received response from service worker: {payload: pong}
+-------------------------------------------------
+
+--- BACKGROUND SERVICE WORKER LOGS ON FAILURE ---
+[2025-09-04T19:17:05.688Z] [BG_LOG] "Loaded 0 post states into memory."
+[2025-09-04T19:17:05.691Z] [BG_LOG] "No AI config found in storage. Saving and loading defaults."
+[2025-09-04T19:17:05.699Z] [BG_LOG] "State saved for post URN: urn:li:activity:7123456789012345678"
+[2025-09-04T19:17:05.700Z] [BG_LOG] "AI Config updated and saved:" {"provider":"openrouter","apiKey":"MOCK_API_KEY_FOR_TESTING","model":"anthropic/claude-3.5-sonnet","temperature":0.5,"top_p":1,"max_tokens":220,"stream":true,"reply":{"customPrompt":"Keep it warm, brief, specific; acknowledge their point; avoid salesy tone; 0–1 emoji."},"dm":{"customPrompt":"Thank them, reference comment, offer short helpful resource; soft opt-in; no pressure."},"attribution":{"httpReferer":"https://github.com/your-repo/linkedin-engagement-assistant","xTitle":"LinkedIn Engagement Assistant"},"modelFilters":{"onlyTextOutput":true,"minContext":8000}}
+[2025-09-04T19:17:05.853Z] [BG_INFO] "[INFO] Received request for AI config." ""
+[2025-09-04T19:17:05.853Z] [BG_INFO] "[INFO] Received ping from UI, sending pong back." ""
+[2025-09-04T19:17:05.879Z] [BG_INFO] "[INFO] Received request to get models from OpenRouter." ""
+[2025-09-04T19:17:05.880Z] [BG_INFO] "[INFO] Fetching models from OpenRouter." ""
+[2025-09-04T19:17:05.880Z] [BG_LOG] "[Playwright Mock] Intercepting fetch: https://openrouter.ai/api/v1/models"
+[2025-09-04T19:17:05.919Z] [BG_INFO] "[INFO] Received START_PIPELINE message" {"postUrn":"urn:li:activity:7123456789012345678","tabId":1581967957}
+[2025-09-04T19:17:05.919Z] [BG_INFO] "[INFO] Starting pipeline" {"postUrn":"urn:li:activity:7123456789012345678","tabId":1581967957,"step":"PIPELINE_START"}
+[2025-09-04T19:17:05.921Z] [BG_LOG] "State saved for post URN: urn:li:activity:7123456789012345678"
+[2025-09-04T19:17:05.922Z] [BG_INFO] "[INFO] Broadcasting state update" {"state":{"pipelineStatus":"running","comments":[{"commentId":"comment-1","text":"This is a test comment that needs processing.","ownerProfileUrl":"https://www.linkedin.com/in/test-user/","timestamp":"2025-09-04T19:17:05.694Z","type":"top-level","connected":false,"threadId":"thread-1","likeStatus":"DONE","replyStatus":"","dmStatus":"","attempts":{"like":0,"reply":0,"dm":0},"lastError":"","pipeline":{"queuedAt":"","likedAt":"2025-09-04T19:17:05.694Z","repliedAt":"","dmAt":"","generatedReply":""}},{"commentId":"comment-2","text":"Another test comment for processing.","ownerProfileUrl":"https://www.linkedin.com/in/another-user/","timestamp":"2025-09-04T19:17:05.694Z","type":"top-level","connected":false,"threadId":"thread-2","likeStatus":"","replyStatus":"","dmStatus":"","attempts":{"like":0,"reply":0,"dm":0},"lastError":"","pipeline":{"queuedAt":"","likedAt":"","repliedAt":"","dmAt":""}}]}}
+[2025-09-04T19:17:05.922Z] [BG_INFO] "[INFO] Starting processing queue." {"postUrn":"urn:li:activity:7123456789012345678","step":"PROCESS_QUEUE_START"}
+[2025-09-04T19:17:05.922Z] [BG_INFO] "[INFO] Processing next comment" {"postId":"urn:li:activity:7123456789012345678","commentId":"comment-1","step":"PROCESS_COMMENT_START"}
+[2025-09-04T19:17:05.922Z] [BG_INFO] "[INFO] Attempting to reply to comment" {"postId":"urn:li:activity:7123456789012345678","commentId":"comment-1","step":"REPLY_ATTEMPT"}
+[2025-09-04T19:17:05.922Z] [BG_INFO] "[INFO] Generating AI reply" {"postId":"urn:li:activity:7123456789012345678","commentId":"comment-1","step":"GENERATE_REPLY"}
+[2025-09-04T19:17:05.922Z] [BG_INFO] "[INFO] Requesting chat completion from OpenRouter" {"model":"anthropic/claude-3.5-sonnet"}
+[2025-09-04T19:17:05.922Z] [BG_LOG] "[Playwright Mock] Intercepting fetch: https://openrouter.ai/api/v1/chat/completions"
+[2025-09-04T19:17:05.922Z] [BG_LOG] "[Playwright Mock] Holding OpenRouter request indefinitely for pipeline test."
+[2025-09-04T19:17:06.106Z] [BG_INFO] "[INFO] Successfully fetched models from OpenRouter." ""
+--------------------------------------------------
+  ✘  1 tests/e2e/pipeline-controls.spec.ts:114:3 › Pipeline Controls › should correctly start, stop, and resume the pipeline (8.1s)
+
+--- PAGE & CONTENT SCRIPT LOGS ON FAILURE ---
+[LOG] Content script starting...
+[LOG] Document is already loaded, initializing immediately...
+[LOG] Initializing content script...
+[LOG] Attempting to create host element...
+[LOG] Attempting to append to document.body...
+[LOG] Successfully appended host element
+[LOG] Attempting to create shadow DOM...
+[LOG] Successfully created shadow DOM
+[LOG] Successfully mounted UI into shadow DOM
+[LOG] UI App component mounted. Sending ping to service worker.
+[LOG] Received response from service worker: {payload: pong}
+-------------------------------------------------
+
+--- BACKGROUND SERVICE WORKER LOGS ON FAILURE ---
+[2025-09-04T19:17:11.994Z] [BG_INFO] "[INFO] Logger initialized." ""
+[2025-09-04T19:17:11.995Z] [BG_INFO] "[INFO] LinkedIn Engagement Assistant Service Worker loaded." ""
+[2025-09-04T19:17:11.996Z] [BG_INFO] "[INFO] PipelineManager initialized." ""
+[2025-09-04T19:17:11.996Z] [BG_LOG] "[BACKGROUND SCRIPT] E2E test hooks installed."
+[2025-09-04T19:17:12.000Z] [BG_LOG] "Loaded 0 post states into memory."
+[2025-09-04T19:17:12.002Z] [BG_LOG] "No AI config found in storage. Saving and loading defaults."
+[2025-09-04T19:17:12.002Z] [BG_LOG] "State saved for post URN: urn:li:activity:7123456789012345678"
+[2025-09-04T19:17:12.002Z] [BG_LOG] "AI Config updated and saved:" {"provider":"openrouter","apiKey":"MOCK_API_KEY_FOR_TESTING","model":"anthropic/claude-3.5-sonnet","temperature":0.5,"top_p":1,"max_tokens":220,"stream":true,"reply":{"customPrompt":"Keep it warm, brief, specific; acknowledge their point; avoid salesy tone; 0–1 emoji."},"dm":{"customPrompt":"Thank them, reference comment, offer short helpful resource; soft opt-in; no pressure."},"attribution":{"httpReferer":"https://github.com/your-repo/linkedin-engagement-assistant","xTitle":"LinkedIn Engagement Assistant"},"modelFilters":{"onlyTextOutput":true,"minContext":8000}}
+[2025-09-04T19:17:12.128Z] [BG_INFO] "[INFO] Received request for AI config." ""
+[2025-09-04T19:17:12.128Z] [BG_INFO] "[INFO] Received ping from UI, sending pong back." ""
+[2025-09-04T19:17:12.151Z] [BG_INFO] "[INFO] Received request to get models from OpenRouter." ""
+[2025-09-04T19:17:12.152Z] [BG_INFO] "[INFO] Fetching models from OpenRouter." ""
+[2025-09-04T19:17:12.152Z] [BG_LOG] "[Playwright Mock] Intercepting fetch: https://openrouter.ai/api/v1/models"
+[2025-09-04T19:17:12.460Z] [BG_INFO] "[INFO] Successfully fetched models from OpenRouter." ""
+--------------------------------------------------
+  ✘  4 tests/e2e/pipeline-controls.spec.ts:208:3 › Pipeline Controls › should display correct pipeline status and counters (5.9s)
+
+--- PAGE & CONTENT SCRIPT LOGS ON FAILURE ---
+[LOG] Content script starting...
+[LOG] Document is already loaded, initializing immediately...
+[LOG] Initializing content script...
+[LOG] Attempting to create host element...
+[LOG] Attempting to append to document.body...
+[LOG] Successfully appended host element
+[LOG] Attempting to create shadow DOM...
+[LOG] Successfully created shadow DOM
+[LOG] Successfully mounted UI into shadow DOM
+[LOG] UI App component mounted. Sending ping to service worker.
+[LOG] Received response from service worker: {payload: pong}
+[LOG] [Content Script] Message received: LIKE_COMMENT
+[LOG] Content script received LIKE_COMMENT: {commentId: error-comment}
+[LOG] Attempting to like comment: error-comment
+[WARNING] Could not find comment element with ID: error-comment
+[LOG] [Content Script] Message received: LIKE_COMMENT
+[LOG] Content script received LIKE_COMMENT: {commentId: error-comment}
+[LOG] Attempting to like comment: error-comment
+[WARNING] Could not find comment element with ID: error-comment
+-------------------------------------------------
+
+--- BACKGROUND SERVICE WORKER LOGS ON FAILURE ---
+[2025-09-04T19:17:18.155Z] [BG_LOG] "Loaded 0 post states into memory."
+[2025-09-04T19:17:18.157Z] [BG_LOG] "No AI config found in storage. Saving and loading defaults."
+[2025-09-04T19:17:18.163Z] [BG_LOG] "State saved for post URN: urn:li:activity:7123456789012345678"
+[2025-09-04T19:17:18.164Z] [BG_LOG] "AI Config updated and saved:" {"provider":"openrouter","apiKey":"MOCK_API_KEY_FOR_TESTING","model":"anthropic/claude-3.5-sonnet","temperature":0.5,"top_p":1,"max_tokens":220,"stream":true,"reply":{"customPrompt":"Keep it warm, brief, specific; acknowledge their point; avoid salesy tone; 0–1 emoji."},"dm":{"customPrompt":"Thank them, reference comment, offer short helpful resource; soft opt-in; no pressure."},"attribution":{"httpReferer":"https://github.com/your-repo/linkedin-engagement-assistant","xTitle":"LinkedIn Engagement Assistant"},"modelFilters":{"onlyTextOutput":true,"minContext":8000}}
+[2025-09-04T19:17:18.217Z] [BG_LOG] "State saved for post URN: urn:li:activity:7123456789012345678"
+[2025-09-04T19:17:18.288Z] [BG_INFO] "[INFO] Received request for AI config." ""
+[2025-09-04T19:17:18.288Z] [BG_INFO] "[INFO] Received ping from UI, sending pong back." ""
+[2025-09-04T19:17:18.309Z] [BG_INFO] "[INFO] Received request to get models from OpenRouter." ""
+[2025-09-04T19:17:18.310Z] [BG_INFO] "[INFO] Fetching models from OpenRouter." ""
+[2025-09-04T19:17:18.310Z] [BG_LOG] "[Playwright Mock] Intercepting fetch: https://openrouter.ai/api/v1/models"
+[2025-09-04T19:17:18.344Z] [BG_INFO] "[INFO] Received START_PIPELINE message" {"postUrn":"urn:li:activity:7123456789012345678","tabId":1414560299}
+[2025-09-04T19:17:18.344Z] [BG_INFO] "[INFO] Starting pipeline" {"postUrn":"urn:li:activity:7123456789012345678","tabId":1414560299,"step":"PIPELINE_START"}
+[2025-09-04T19:17:18.345Z] [BG_LOG] "State saved for post URN: urn:li:activity:7123456789012345678"
+[2025-09-04T19:17:18.345Z] [BG_INFO] "[INFO] Broadcasting state update" {"state":{"pipelineStatus":"running","comments":[{"commentId":"error-comment","text":"__FORCE_ERROR__","ownerProfileUrl":"https://www.linkedin.com/in/error-user/","timestamp":"2025-09-04T19:17:18.215Z","type":"top-level","connected":false,"threadId":"error-thread","likeStatus":"","replyStatus":"","dmStatus":"","attempts":{"like":3,"reply":3,"dm":0},"lastError":"Simulated error for testing","pipeline":{"queuedAt":"2025-09-04T19:17:18.215Z","likedAt":"","repliedAt":"","dmAt":""}}]}}
+[2025-09-04T19:17:18.346Z] [BG_INFO] "[INFO] Starting processing queue." {"postUrn":"urn:li:activity:7123456789012345678","step":"PROCESS_QUEUE_START"}
+[2025-09-04T19:17:18.346Z] [BG_INFO] "[INFO] Processing next comment" {"postId":"urn:li:activity:7123456789012345678","commentId":"error-comment","step":"PROCESS_COMMENT_START"}
+[2025-09-04T19:17:18.346Z] [BG_INFO] "[INFO] Attempting to like comment" {"postId":"urn:li:activity:7123456789012345678","commentId":"error-comment","step":"LIKE_ATTEMPT"}
+[2025-09-04T19:17:18.347Z] [BG_WARN] "[WARN] Like attempt 1/3 failed" {"postId":"urn:li:activity:7123456789012345678","commentId":"error-comment","step":"LIKE_ATTEMPT","attempt":1,"error":"Content script failed to like comment error-comment"}
+[2025-09-04T19:17:18.557Z] [BG_INFO] "[INFO] Successfully fetched models from OpenRouter." ""
+[2025-09-04T19:17:20.454Z] [BG_WARN] "[WARN] Like attempt 2/3 failed" {"postId":"urn:li:activity:7123456789012345678","commentId":"error-comment","step":"LIKE_ATTEMPT","attempt":2,"error":"Content script failed to like comment error-comment"}
+--------------------------------------------------
+  ✘  5 tests/e2e/pipeline-controls.spec.ts:273:3 › Pipeline Controls › should handle errors gracefully (5.9s)
+
+
+  1) tests/e2e/pipeline-controls.spec.ts:114:3 › Pipeline Controls › should correctly start, stop, and resume the pipeline 
+
+    Error: [2mexpect([22m[31mlocator[39m[2m).[22mtoBeVisible[2m()[22m failed
+
+    Locator:  locator('div.sidebar').locator('[data-testid="stop-button"]')
+    Expected: visible
+    Received: <element(s) not found>
+    Timeout:  5000ms
+
+    Call log:
+    [2m  - Expect "toBeVisible" with timeout 5000ms[22m
+    [2m  - waiting for locator('div.sidebar').locator('[data-testid="stop-button"]')[22m
+
+
+      170 |
+      171 |     // Assert that the UI reflects the 'running' state.
+    > 172 |     await expect(stopButton).toBeVisible({ timeout: 5000 });
+          |                              ^
+      173 |     await expect(startButton).not.toBeVisible();
+      174 |     await expect(resumeButton).not.toBeVisible();
+      175 |     console.log('✓ Pipeline started successfully');
+        at /Users/bahy/Documents/playground/capstone_project/server/projects/linkedin_life_saver/project/tests/e2e/pipeline-controls.spec.ts:172:30
+
+  2) tests/e2e/pipeline-controls.spec.ts:208:3 › Pipeline Controls › should display correct pipeline status and counters 
+
+    Error: [2mexpect([22m[31mlocator[39m[2m).[22mtoContainText[2m([22m[32mexpected[39m[2m)[22m failed
+
+    Locator: locator('div.sidebar').locator('.sidebar-section').filter({ hasText: 'Live Counters' }).locator('[data-testid="total-top-level"]')
+    Expected string: [32m"2"[39m
+    Received: <element(s) not found>
+    Timeout: 5000ms
+
+    Call log:
+    [2m  - Expect "toContainText" with timeout 5000ms[22m
+    [2m  - waiting for locator('div.sidebar').locator('.sidebar-section').filter({ hasText: 'Live Counters' }).locator('[data-testid="total-top-level"]')[22m
+
+
+      247 |     
+      248 |     // The mock state has 2 top-level comments, both external (not from user)
+    > 249 |     await expect(totalTopLevel).toContainText('2', { timeout: 5000 });
+          |                                 ^
+      250 |     await expect(userTopLevel).toContainText('0', { timeout: 5000 });
+      251 |
+      252 |     // Check pipeline progress section
+        at /Users/bahy/Documents/playground/capstone_project/server/projects/linkedin_life_saver/project/tests/e2e/pipeline-controls.spec.ts:249:33
+
+  3) tests/e2e/pipeline-controls.spec.ts:273:3 › Pipeline Controls › should handle errors gracefully 
+
+    Error: [2mexpect([22m[31mlocator[39m[2m).[22mtoBeVisible[2m()[22m failed
+
+    Locator:  locator('div.sidebar').locator('[data-testid="stop-button"]')
+    Expected: visible
+    Received: <element(s) not found>
+    Timeout:  5000ms
+
+    Call log:
+    [2m  - Expect "toBeVisible" with timeout 5000ms[22m
+    [2m  - waiting for locator('div.sidebar').locator('[data-testid="stop-button"]')[22m
+
+
+      344 |     // The pipeline should still be controllable despite errors
+      345 |     const stopButton = sidebarHost.locator('[data-testid="stop-button"]');
+    > 346 |     await expect(stopButton).toBeVisible({ timeout: 5000 });
+          |                              ^
+      347 |
+      348 |     // Stop the pipeline
+      349 |     await stopButton.click();
+        at /Users/bahy/Documents/playground/capstone_project/server/projects/linkedin_life_saver/project/tests/e2e/pipeline-controls.spec.ts:346:30
+
+  3 failed
+    tests/e2e/pipeline-controls.spec.ts:114:3 › Pipeline Controls › should correctly start, stop, and resume the pipeline 
+    tests/e2e/pipeline-controls.spec.ts:208:3 › Pipeline Controls › should display correct pipeline status and counters 
+    tests/e2e/pipeline-controls.spec.ts:273:3 › Pipeline Controls › should handle errors gracefully 
+  2 passed (20.9s)
