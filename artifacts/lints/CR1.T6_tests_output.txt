@@ -8,14 +8,14 @@ transforming...
 rendering chunks...
 computing gzip size...
 dist/background.js  172.52 kB │ gzip: 45.03 kB │ map: 93.71 kB
-✓ built in 834ms
+✓ built in 318ms
 vite v5.4.19 building for test...
 transforming...
 ✓ 21 modules transformed.
 rendering chunks...
 computing gzip size...
 dist/content.js  278.88 kB │ gzip: 79.83 kB │ map: 144.06 kB
-✓ built in 1.03s
+✓ built in 540ms
 
 > linkedin-engagement-assistant@0.0.0 test
 > playwright test
@@ -24,150 +24,62 @@ dist/content.js  278.88 kB │ gzip: 79.83 kB │ map: 144.06 kB
 Running 8 tests using 6 workers
 
 Adding LinkedIn cookie for testing...
-LinkedIn cookie added successfully
-Setting up navigation debugging...
+Adding LinkedIn cookie for testing...
+Adding LinkedIn cookie for testing...
 Adding LinkedIn cookie for testing...
 LinkedIn cookie added successfully
 Setting up navigation debugging...
-Adding LinkedIn cookie for testing...
 LinkedIn cookie added successfully
 Setting up navigation debugging...
-Adding LinkedIn cookie for testing...
 LinkedIn cookie added successfully
 Setting up navigation debugging...
-Adding LinkedIn cookie for testing...
 LinkedIn cookie added successfully
 Setting up navigation debugging...
 Adding LinkedIn cookie for testing...
 LinkedIn cookie added successfully
 Setting up navigation debugging...
 [DEBUG] Request to LinkedIn: https://www.linkedin.com/feed/
-[DEBUG] Response from LinkedIn: https://www.linkedin.com/feed/ - 200
 [DEBUG] Request to LinkedIn: https://www.linkedin.com/feed/update/urn:li:activity:7368619407989760000/
+[DEBUG] Response from LinkedIn: https://www.linkedin.com/feed/ - 200
+[DEBUG] Request to LinkedIn: https://www.linkedin.com/feed/
+[DEBUG] Request to LinkedIn: https://www.linkedin.com/feed/update/urn:li:activity:7368619407989760000/
+[DEBUG] Response from LinkedIn: https://www.linkedin.com/feed/update/urn:li:activity:7368619407989760000/ - 200
+[DEBUG] Response from LinkedIn: https://www.linkedin.com/feed/ - 200
+[DEBUG] Response from LinkedIn: https://www.linkedin.com/feed/update/urn:li:activity:7368619407989760000/ - 200
 [DEBUG] Request to LinkedIn: https://www.linkedin.com/feed/update/urn:li:activity:7123456789012345678/
-[DEBUG] Request to LinkedIn: https://www.linkedin.com/feed/update/urn:li:activity:7368619407989760000/
-[DEBUG] Response from LinkedIn: https://www.linkedin.com/feed/update/urn:li:activity:7368619407989760000/ - 200
-[DEBUG] Response from LinkedIn: https://www.linkedin.com/feed/update/urn:li:activity:7368619407989760000/ - 200
 [DEBUG] Response from LinkedIn: https://www.linkedin.com/feed/update/urn:li:activity:7123456789012345678/ - 200
-[DEBUG] Request to LinkedIn: https://www.linkedin.com/feed/
-[DEBUG] Response from LinkedIn: https://www.linkedin.com/feed/ - 200
+Adding LinkedIn cookie for testing...
+LinkedIn cookie added successfully
+Setting up navigation debugging...
+[HUMAN_RATE_LIMIT] Waiting 3359ms after test: should load the extension and inject the content script on linkedin.com
 [DEBUG] Request to LinkedIn: https://www.linkedin.com/feed/update/urn:li:activity:7368619407989760000/
 [DEBUG] Response from LinkedIn: https://www.linkedin.com/feed/update/urn:li:activity:7368619407989760000/ - 200
-[HUMAN_RATE_LIMIT] Waiting 2000ms after test: should load the extension and inject the content script on linkedin.com
 [DEBUG] Request to LinkedIn: https://www.linkedin.com/feed/
 [DEBUG] Response from LinkedIn: https://www.linkedin.com/feed/ - 200
-[HUMAN_RATE_LIMIT] Waiting 3102ms after test: should update Live Counters on STATE_UPDATE event
-[HUMAN_RATE_LIMIT] Waiting 3299ms after test: should save settings, reload, and verify they are persisted
-  ✓  5 tests/e2e/setup.spec.ts:4:3 › Extension E2E Setup › should load the extension and inject the content script on linkedin.com (9.6s)
-[HUMAN_RATE_LIMIT] Waiting 3804ms after test: should successfully control pipeline lifecycle: start, stop, and resume
-[HUMAN_RATE_LIMIT] Waiting 3291ms after test: should inject the sidebar with default components on a LinkedIn post page
-[HUMAN_RATE_LIMIT] Waiting 2822ms after test: should display FAILED status and error log when AI call fails
-  ✓  1 tests/e2e/real-time-ui.spec.ts:27:3 › Real-time UI Updates › should update Live Counters on STATE_UPDATE event (13.0s)
-  ✓  3 tests/e2e/settings-persistence.spec.ts:4:3 › AI Settings Persistence › should save settings, reload, and verify they are persisted (13.6s)
-  ✓  6 tests/e2e/pipeline-controls.spec.ts:114:3 › Pipeline Control E2E Tests › should successfully control pipeline lifecycle: start, stop, and resume (14.8s)
-  ✓  4 tests/e2e/ui-injection.spec.ts:4:3 › Extension UI Injection and Initial State › should inject the sidebar with default components on a LinkedIn post page (15.6s)
-  ✓  2 tests/e2e/error-handling.spec.ts:97:3 › Error Handling E2E Tests › should display FAILED status and error log when AI call fails (15.8s)
+[HUMAN_RATE_LIMIT] Waiting 1971ms after test: should update Live Counters on STATE_UPDATE event
+[HUMAN_RATE_LIMIT] Waiting 3270ms after test: should save settings, reload, and verify they are persisted
+[HUMAN_RATE_LIMIT] Waiting 2353ms after test: should successfully control pipeline lifecycle: start, stop, and resume
+  ✓  5 tests/e2e/real-time-ui.spec.ts:27:3 › Real-time UI Updates › should update Live Counters on STATE_UPDATE event (7.4s)
+  ✓  1 tests/e2e/setup.spec.ts:4:3 › Extension E2E Setup › should load the extension and inject the content script on linkedin.com (7.8s)
+[HUMAN_RATE_LIMIT] Waiting 2694ms after test: should inject the sidebar with default components on a LinkedIn post page
 Adding LinkedIn cookie for testing...
 LinkedIn cookie added successfully
 Setting up navigation debugging...
 [DEBUG] Request to LinkedIn: https://www.linkedin.com/feed/update/urn:li:activity:7368619407989760000/
 [DEBUG] Response from LinkedIn: https://www.linkedin.com/feed/update/urn:li:activity:7368619407989760000/ - 200
-[DEBUG] Request to LinkedIn: https://www.linkedin.com/feed/update/urn:li:activity:7368619407989760000/
-[DEBUG] Response from LinkedIn: https://www.linkedin.com/feed/update/urn:li:activity:7368619407989760000/ - 200
-[HUMAN_RATE_LIMIT] Waiting 3242ms after test: should update Pipeline Progress on STATE_UPDATE event
-
---- PAGE & CONTENT SCRIPT LOGS ON FAILURE ---
-[LOG] Content script starting...
-[LOG] Document is already loaded, initializing immediately...
-[LOG] Initializing content script...
-[LOG] Attempting to create host element...
-[LOG] Attempting to append to document.body...
-[LOG] Successfully appended host element
-[LOG] Attempting to create shadow DOM...
-[LOG] Successfully created shadow DOM
-[LOG] Successfully mounted UI into shadow DOM
-[LOG] UI App component mounted. Sending ping to service worker.
-[LOG] Received response from service worker: {payload: pong}
-[LOG] [Content Script] Message received: LOG_ENTRY
-[LOG] UI received message: {type: LOG_ENTRY, payload: Object}
-[LOG] [Content Script] Message received: LOG_ENTRY
-[LOG] UI received message: {type: LOG_ENTRY, payload: Object}
-[LOG] [Content Script] Message received: LOG_ENTRY
-[LOG] UI received message: {type: LOG_ENTRY, payload: Object}
-[LOG] [Content Script] Message received: STATE_UPDATE
-[LOG] UI received message: {type: STATE_UPDATE, payload: Object}
-[LOG] E2E Test: Dispatching STATE_UPDATE message via postMessage: {comments: Array(1), isInitializing: false, pipelineStatus: running}
-[LOG] Content script starting...
-[LOG] Document is already loaded, initializing immediately...
-[LOG] Initializing content script...
-[LOG] Attempting to create host element...
-[LOG] Attempting to append to document.body...
-[LOG] Successfully appended host element
-[LOG] Attempting to create shadow DOM...
-[LOG] Successfully created shadow DOM
-[LOG] Successfully mounted UI into shadow DOM
-[LOG] UI App component mounted. Sending ping to service worker.
-[LOG] Received response from service worker: {payload: pong}
-[LOG] [Content Script] Message received: LOG_ENTRY
-[LOG] UI received message: {type: LOG_ENTRY, payload: Object}
-[LOG] [Content Script] Message received: LOG_ENTRY
-[LOG] UI received message: {type: LOG_ENTRY, payload: Object}
-[LOG] [Content Script] Message received: LOG_ENTRY
-[LOG] UI received message: {type: LOG_ENTRY, payload: Object}
-[LOG] [Content Script] Message received: STATE_UPDATE
-[LOG] UI received message: {type: STATE_UPDATE, payload: Object}
--------------------------------------------------
-
---- BACKGROUND SERVICE WORKER LOGS ON FAILURE ---
-[2025-09-05T13:10:02.527Z] [BG_INFO] "[INFO] Logger initialized." ""
-[2025-09-05T13:10:02.531Z] [BG_INFO] "[INFO] LinkedIn Engagement Assistant Service Worker loaded." ""
-[2025-09-05T13:10:02.540Z] [BG_INFO] "[INFO] PipelineManager initialized." ""
-[2025-09-05T13:10:02.543Z] [BG_LOG] "[BACKGROUND SCRIPT] E2E test hooks installed."
-[2025-09-05T13:10:02.580Z] [BG_LOG] "No AI config found in storage. Saving and loading defaults."
-[2025-09-05T13:10:02.724Z] [BG_LOG] "Loaded 0 post states into memory."
-[2025-09-05T13:10:02.724Z] [BG_INFO] "[INFO] All post states loaded into memory." ""
-[2025-09-05T13:10:03.304Z] [BG_INFO] "[INFO] Received request for AI config." ""
-[2025-09-05T13:10:03.306Z] [BG_INFO] "[INFO] Received ping from UI, sending pong back." ""
-[2025-09-05T13:10:03.340Z] [BG_LOG] "No state found for post URN: urn:li:activity:7368619407989760000"
-[2025-09-05T13:10:03.341Z] [BG_INFO] "[INFO] Broadcasting state update" {"state":{"isInitializing":false,"comments":[],"postUrn":"urn:li:activity:7368619407989760000"}}
-[2025-09-05T13:10:07.483Z] [BG_INFO] "[INFO] Received request for AI config." ""
-[2025-09-05T13:10:07.510Z] [BG_INFO] "[INFO] Received ping from UI, sending pong back." ""
-[2025-09-05T13:10:07.522Z] [BG_LOG] "No state found for post URN: urn:li:activity:7368619407989760000"
-[2025-09-05T13:10:07.522Z] [BG_INFO] "[INFO] Broadcasting state update" {"state":{"isInitializing":false,"comments":[],"postUrn":"urn:li:activity:7368619407989760000"}}
---------------------------------------------------
-  ✘  7 tests/e2e/real-time-ui.spec.ts:49:3 › Real-time UI Updates › should update Pipeline Progress on STATE_UPDATE event (13.2s)
+  ✓  3 tests/e2e/settings-persistence.spec.ts:4:3 › AI Settings Persistence › should save settings, reload, and verify they are persisted (9.0s)
+[HUMAN_RATE_LIMIT] Waiting 2845ms after test: should display FAILED status and error log when AI call fails
+  ✓  6 tests/e2e/pipeline-controls.spec.ts:114:3 › Pipeline Control E2E Tests › should successfully control pipeline lifecycle: start, stop, and resume (9.0s)
+[HUMAN_RATE_LIMIT] Waiting 3015ms after test: should update Pipeline Progress on STATE_UPDATE event
+  ✓  4 tests/e2e/ui-injection.spec.ts:4:3 › Extension UI Injection and Initial State › should inject the sidebar with default components on a LinkedIn post page (11.3s)
+  ✓  2 tests/e2e/error-handling.spec.ts:97:3 › Error Handling E2E Tests › should display FAILED status and error log when AI call fails (12.1s)
+  ✓  7 tests/e2e/real-time-ui.spec.ts:49:3 › Real-time UI Updates › should update Pipeline Progress on STATE_UPDATE event (5.0s)
 Adding LinkedIn cookie for testing...
 LinkedIn cookie added successfully
 Setting up navigation debugging...
 [DEBUG] Request to LinkedIn: https://www.linkedin.com/feed/update/urn:li:activity:7368619407989760000/
 [DEBUG] Response from LinkedIn: https://www.linkedin.com/feed/update/urn:li:activity:7368619407989760000/ - 200
-[HUMAN_RATE_LIMIT] Waiting 2393ms after test: should add new entry to Logs Panel on LOG_ENTRY event
-  ✓  8 tests/e2e/real-time-ui.spec.ts:90:3 › Real-time UI Updates › should add new entry to Logs Panel on LOG_ENTRY event (6.0s)
+[HUMAN_RATE_LIMIT] Waiting 1679ms after test: should add new entry to Logs Panel on LOG_ENTRY event
+  ✓  8 tests/e2e/real-time-ui.spec.ts:91:3 › Real-time UI Updates › should add new entry to Logs Panel on LOG_ENTRY event (3.1s)
 
-
-  1) tests/e2e/real-time-ui.spec.ts:49:3 › Real-time UI Updates › should update Pipeline Progress on STATE_UPDATE event 
-
-    Error: [2mexpect([22m[31mlocator[39m[2m).[22mtoHaveClass[2m([22m[32mexpected[39m[2m)[22m failed
-
-    Locator: locator('[data-testid="pipeline-row-mock-comment-id-123"]').locator('.step-indicator[data-testid="status-indicator"]').first()
-    Expected pattern: [32m/step-complete/[39m
-    Received: <element(s) not found>
-    Timeout: 5000ms
-
-    Call log:
-    [2m  - Expect "toHaveClass" with timeout 5000ms[22m
-    [2m  - waiting for locator('[data-testid="pipeline-row-mock-comment-id-123"]').locator('.step-indicator[data-testid="status-indicator"]').first()[22m
-
-
-      82 |
-      83 |     // 5. Assert the status of each step by checking for the correct CSS class
-    > 84 |     await expect(statusIndicators.nth(0)).toHaveClass(/step-complete/, { timeout: 5000 }); // Queued
-         |                                           ^
-      85 |     await expect(statusIndicators.nth(1)).toHaveClass(/step-complete/); // Liked
-      86 |     await expect(statusIndicators.nth(2)).toHaveClass(/step-active/);   // Replied
-      87 |     await expect(statusIndicators.nth(3)).toHaveClass(/step-pending/);  // DM Sent
-        at /home/moaz/code_machine/projects/linkedin_life_saver/project/tests/e2e/real-time-ui.spec.ts:84:43
-
-  1 failed
-    tests/e2e/real-time-ui.spec.ts:49:3 › Real-time UI Updates › should update Pipeline Progress on STATE_UPDATE event 
-  7 passed (42.5s)
+  8 passed (18.3s)
