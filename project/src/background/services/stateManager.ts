@@ -121,7 +121,7 @@ export const savePostState = async (
  */
 export const loadPostState = async (
   postUrn: string
-): Promise<PostState | null> => {
+): Promise<PostState | undefined> => {
   try {
     const storageResult = await chrome.storage.local.get(postUrn);
     const storedData = storageResult?.[postUrn];
@@ -133,10 +133,10 @@ export const loadPostState = async (
       return state;
     }
     console.log(`No state found for post URN: ${postUrn}`);
-    return null;
+    return undefined;
   } catch (error) {
     console.error(`Error loading state for post URN ${postUrn}:`, error);
-    return null;
+    return undefined;
   }
 };
 

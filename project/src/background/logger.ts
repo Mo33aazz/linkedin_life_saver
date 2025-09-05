@@ -122,7 +122,15 @@ export class Logger {
               message: String(error),
             },
     };
-    this.log('ERROR', message, errorContext);
+
+    let finalMessage = message;
+    const errorMessage = errorContext.error.message;
+    // Append the specific error message to the general log message for better UI visibility.
+    if (errorMessage && errorMessage !== 'undefined' && errorMessage !== 'null' && errorMessage !== message) {
+      finalMessage = `${message}: ${errorMessage}`;
+    }
+
+    this.log('ERROR', finalMessage, errorContext);
   }
 
   /**

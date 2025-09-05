@@ -6,6 +6,7 @@ import {
   loadAllStates,
   getPostState,
   mergeCapturedState,
+  loadPostState,
 } from './services/stateManager';
 import {
   initPipelineManager,
@@ -145,7 +146,47 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
   if (message.type === 'ping') {
     logger.info('Received ping from UI, sending pong back.');
     sendResponse({ payload: 'pong' });
-    // Return true to indicate you wish to send a response asynchronously.
+
+    // Proactively send state to the UI that just connected.
+    (async () => {
+      const postUrnRegex = /(urn:li:activity:\d+)/;
+      const match = sender.tab?.url?.match(postUrnRegex);
+      if (match && match[1]) {
+        const postUrn = match[1];
+        // Attempt to load from storage if not in memory, to handle SW startup race conditions
+        let state = getPostState(postUrn);
+        if (!state) {
+          state = await loadPostState(postUrn);
+        }
+
+        if (state) {
+          logger.info('Found existing state for this post, broadcasting to UI.', {
+            postUrn,
+          });
+          broadcastStateUpdate({
+            comments: state.comments,
+            pipelineStatus: state._meta.runState,
+            postUrn: state._meta.postId,
+            isInitializing: false,
+          });
+        } else {
+          // If no state, tell UI it's not initializing anymore for this post
+          broadcastStateUpdate({
+            isInitializing: false,
+            comments: [],
+            postUrn,
+          });
+        }
+      } else {
+        // On a page with no post URN
+        broadcastStateUpdate({
+          isInitializing: false,
+          comments: [],
+          postUrn: undefined,
+        });
+      }
+    })();
+
     return true;
   }
 

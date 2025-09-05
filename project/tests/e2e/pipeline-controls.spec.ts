@@ -43,6 +43,22 @@ const mockPostState: PostState = {
 
 test.describe('Pipeline Control E2E Tests', () => {
   test.beforeEach(async ({ page, background }) => {
+    // Intercept the AI call and prevent it from resolving using the service
+    // worker's internal fetch mock. This allows the pipeline to enter a "running"
+    // state that can be controlled (stopped/resumed) by the test, without the
+    // pipeline quickly finishing.
+    await background.evaluate(() => {
+      const selfWithMocks = self as unknown as {
+        __E2E_MOCK_FETCH: (
+          url: string,
+          resp: { hang: boolean }
+        ) => void;
+      };
+      selfWithMocks.__E2E_MOCK_FETCH('/api/v1/chat/completions', {
+        hang: true,
+      });
+    });
+
     // Inject mock state into the service worker's storage before navigating.
     // This is crucial for creating a predictable test environment.
     await background.evaluate(

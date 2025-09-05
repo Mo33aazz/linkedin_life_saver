@@ -3,7 +3,32 @@ import { test, expect } from './fixtures';
 test.describe('AI Settings Persistence', () => {
   test('should save settings, reload, and verify they are persisted', async ({
     page,
+    background,
   }) => {
+    // Mock the API call to fetch AI models using the service worker's internal fetch mock.
+    // This is more reliable than context.route for service worker fetches.
+    await background.evaluate(() => {
+      const selfWithMocks = self as unknown as {
+        __E2E_MOCK_FETCH: (
+          url: string,
+          resp: { status: number; body: object }
+        ) => void;
+      };
+      const mockModels = [
+        { id: 'mock/model-1', name: 'Mock Model One', context_length: 16000 },
+        {
+          id: 'mock/model-2',
+          name: 'Mock Model Two (Selected)',
+          context_length: 32000,
+        },
+        { id: 'mock/model-3', name: 'Mock Model Three', context_length: 8001 },
+      ];
+      selfWithMocks.__E2E_MOCK_FETCH('/api/v1/models', {
+        status: 200,
+        body: { data: mockModels },
+      });
+    });
+
     // Define mock data for the test
     const MOCK_API_KEY = 'sk-or-playwright-test-key-12345';
     const MOCK_MODEL_ID = 'mock/model-2';

@@ -10,8 +10,8 @@ const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
 /**
- * Injects a script into the service worker to instrument both console logging and the fetch API.
- * This ensures that both capabilities are available from the absolute start of the worker's lifecycle.
+ * Injects scripts into the service worker to instrument it for testing.
+ * This includes console log capturing and a mechanism for mocking fetch requests.
  * @param sw The Playwright Worker object representing the service worker.
  */
 const instrumentServiceWorker = async (sw: Worker) => {
@@ -31,7 +31,6 @@ const instrumentServiceWorker = async (sw: Worker) => {
             const message = args.map(arg => {
                 if (arg instanceof Error) return arg.stack;
                 try {
-                    // Handle circular references which can occur in complex objects
                     return JSON.stringify(arg, (_key, value) => {
                         if (typeof value === 'object' && value !== null) {
                             if (seen.has(value)) return '[Circular]';
@@ -46,68 +45,56 @@ const instrumentServiceWorker = async (sw: Worker) => {
             (globalScope.__playwright_logs__ as { type: string, message: string, timestamp: string }[]).push({ type, message, timestamp: new Date().toISOString() });
         };
 
-        // Override console methods
         console.log = (...args) => captureLog('LOG', ...args);
         console.warn = (...args) => captureLog('WARN', ...args);
         console.error = (...args) => captureLog('ERROR', ...args);
         console.info = (...args) => captureLog('INFO', ...args);
         console.debug = (...args) => captureLog('DEBUG', ...args);
-        // Capture uncaught exceptions and unhandled promise rejections
         self.addEventListener('error', (event) => captureLog('EXCEPTION', event.error || event.message));
         self.addEventListener('unhandledrejection', (event) => captureLog('UNHANDLED_REJECTION', event.reason));
 
         // --- 2. SETUP FETCH MOCKING ---
-        const originalFetch = globalScope.fetch;
-        globalScope.fetch = async (url: Request | string | URL, config?: globalThis.RequestInit): Promise<Response> => {
-            const requestUrl = (url instanceof Request) ? url.url : String(url);
-            // Log the intercepted call for debugging purposes
-            console.log(`[Playwright Mock] Intercepting fetch: ${requestUrl}`);
+        // This replaces Playwright's `context.route` which can be unreliable for service workers.
+        // We override the global fetch and check against a map of mocks registered by tests.
+        globalScope.__E2E_FETCH_MOCKS__ = new Map();
+        const originalFetch = self.fetch;
 
-            // --- TEST-SPECIFIC MOCKING ---
-            // For pipeline-controls.spec.ts, we need to pause the pipeline.
-            // We do this by intercepting the AI call and never resolving the promise.
-            if (requestUrl.includes('openrouter.ai/api/v1/chat/completions')) {
-                console.log('[Playwright Mock] Holding OpenRouter request indefinitely for pipeline test.');
-                return new Promise(() => { /* This promise never resolves */ });
+        type MockResponseType = { status: number; body: object; contentType?: string } | { hang: boolean };
+
+        globalScope.__E2E_MOCK_FETCH = (
+            urlPattern: string,
+            mockResponse: MockResponseType
+        ) => {
+            (globalScope.__E2E_FETCH_MOCKS__ as Map<string, MockResponseType>).set(urlPattern, mockResponse);
+            console.log(`[E2E MOCK] Registered mock for pattern: ${urlPattern}`);
+        };
+
+        globalScope.__E2E_CLEAR_FETCH_MOCKS = () => {
+            (globalScope.__E2E_FETCH_MOCKS__ as Map<string, MockResponseType>).clear();
+        };
+
+        self.fetch = async (input, init): Promise<Response> => {
+            const url = typeof input === 'string' ? input : (input instanceof URL ? input.href : (input as Request).url);
+            const mocks = globalScope.__E2E_FETCH_MOCKS__ as Map<string, MockResponseType>;
+
+            for (const [pattern, mock] of mocks.entries()) {
+                if (url.includes(pattern)) {
+                    console.log(`[E2E MOCK] Matched fetch for "${url}" with pattern "${pattern}".`);
+                    if ('hang' in mock && mock.hang) {
+                        console.log('[E2E MOCK] Hanging request indefinitely.');
+                        return new Promise(() => { /* This promise never resolves */ });
+                    }
+                    
+                    if ('status' in mock) {
+                        console.log('Returning mock response.');
+                        return new Response(JSON.stringify(mock.body), {
+                            status: mock.status,
+                            headers: { 'Content-Type': mock.contentType || 'application/json' },
+                        });
+                    }
+                }
             }
-
-            // For settings-persistence.spec.ts, we need to return a mock list of models.
-            if (requestUrl.includes('openrouter.ai/api/v1/models')) {
-                console.log('[Playwright Mock] Responding with mocked model list for settings test.');
-                const mockModels = [
-                    { id: 'mock/model-1', name: 'Mock Model One', context_length: 16000 },
-                    { id: 'mock/model-2', name: 'Mock Model Two (Selected)', context_length: 32000 },
-                    { id: 'mock/model-3', name: 'Mock Model Three', context_length: 8001 },
-                ];
-                return new Response(JSON.stringify({ data: mockModels }), {
-                    status: 200,
-                    headers: { 'Content-Type': 'application/json' }
-                });
-            }
-
-            // =======================================================
-            // ===           YOUR MOCKING LOGIC HERE               ===
-            // =======================================================
-            // This logic runs inside the service worker.
-
-            // Example: Mock a specific API endpoint for user data
-            if (requestUrl.includes('/api/user/profile')) {
-                console.log('[Playwright Mock] Responding with mocked user profile.');
-                const mockResponse = { id: 'mock-user-123', name: 'Mocked User from Service Worker' };
-                return new Response(JSON.stringify(mockResponse), {
-                    status: 200,
-                    headers: { 'Content-Type': 'application/json' }
-                });
-            }
-
-            // Example: Block requests to analytics services
-            if (requestUrl.includes('google-analytics.com')) {
-                console.log(`[Playwright Mock] Blocking request to ${requestUrl}`);
-                return new Response(null, { status: 404, statusText: 'Blocked by Playwright Mock' });
-            }
-
-            // For all other requests, call the original fetch to allow them to proceed to the real network
-            return originalFetch(url, config);
+            return originalFetch(input, init);
         };
     });
 };
@@ -127,10 +114,6 @@ export const test = base.extend<{
             ],
         });
 
-        // --- PROACTIVE INSTRUMENTATION FOR THE SERVICE WORKER ---
-        // This is the core of the solution. We set up a listener that instruments
-        // the service worker as soon as Playwright detects its creation.
-
         const serviceWorkerPromise = new Promise<Worker>(resolve => {
             context.on('serviceworker', async (sw) => {
                 await instrumentServiceWorker(sw);
@@ -138,15 +121,13 @@ export const test = base.extend<{
             });
         });
 
-        // Handle the race condition where the worker might already exist when we start listening.
         let serviceWorker = context.serviceWorkers()[0];
         if (serviceWorker) {
             await instrumentServiceWorker(serviceWorker);
         } else {
-            serviceWorker = await serviceWorkerPromise; // Wait for the listener to find it.
+            serviceWorker = await serviceWorkerPromise;
         }
 
-        // Add authentication cookie from .env file
         if (process.env.LINKEDIN_COOKIE) {
             const cookie = {
                 name: 'li_at',
@@ -163,19 +144,14 @@ export const test = base.extend<{
             console.warn('LINKEDIN_COOKIE environment variable not set. Running tests in a logged-out state.');
         }
 
-        // `addInitScript` is for PAGES (content scripts, popups), not the service worker.
-        // It's kept here in case you need separate mocking logic for the page context.
         await context.addInitScript(() => {
             // console.log('This is an init script running on a page, not the service worker.');
         });
 
-        // The test runs here, with the service worker fully instrumented.
         await use(context);
 
-        // After the test is complete, retrieve all logs from the service worker's global array.
         const backgroundLogs: { type: string, message: string, timestamp: string }[] = await serviceWorker.evaluate(() => (self as { __playwright_logs__?: { type: string, message: string, timestamp: string }[] }).__playwright_logs__ || []);
 
-        // Only display the logs if the test failed, to keep test output clean on success.
         if (testInfo.status !== testInfo.expectedStatus) {
             console.log('\n--- BACKGROUND SERVICE WORKER LOGS ON FAILURE ---');
             if (backgroundLogs.length > 0) {
@@ -197,7 +173,46 @@ export const test = base.extend<{
         if (!backgroundWorker) {
             backgroundWorker = await context.waitForEvent('serviceworker');
         }
+
+        const pollTimeout = 10000;
+        const pollInterval = 200;
+        const startTime = Date.now();
+        let isReady = false;
+        while (Date.now() - startTime < pollTimeout) {
+            isReady = await backgroundWorker.evaluate(async () => {
+                const selfWithHooks = self as unknown as {
+                    __E2E_TEST_HOOKS_INSTALLED?: boolean;
+                    __E2E_TEST_UPDATE_CONFIG: (config: object) => Promise<void>;
+                };
+
+                if (!selfWithHooks.__E2E_TEST_HOOKS_INSTALLED) {
+                    return false;
+                }
+
+                try {
+                    await selfWithHooks.__E2E_TEST_UPDATE_CONFIG({});
+                    return true;
+                } catch (error) {
+                    return false;
+                }
+            });
+
+            if (isReady) break;
+            await new Promise(resolve => setTimeout(resolve, pollInterval));
+        }
+        if (!isReady) {
+            throw new Error(`Timed out after ${pollTimeout}ms waiting for the service worker to become fully initialized.`);
+        }
+
         await use(backgroundWorker);
+
+        // Teardown: Clear mocks after each test to ensure isolation.
+        await backgroundWorker.evaluate(() => {
+            const globalScope = self as typeof self & { __E2E_CLEAR_FETCH_MOCKS?: () => void };
+            if (globalScope.__E2E_CLEAR_FETCH_MOCKS) {
+                globalScope.__E2E_CLEAR_FETCH_MOCKS();
+            }
+        });
     },
 
     extensionId: async ({ background }, use) => {
