@@ -2177,7 +2177,7 @@
             ],
             "parallelizable": true
         },
-        "output": "An expert developer meticulously follows the provided instructions to create a new end-to-end test file for error handling. The test simulates an API failure and verifies that the UI correctly reflects this error state, ensuring the system's resilience and user feedback mechanisms are working as intended.\n\n~~~\n#- file: tests/e2e/error-handling.spec.ts\nimport { test, expect } from './fixtures';\nimport type { PostState, Comment } from '../../src/shared/types';\n\n// Test data constants\nconst TEST_POST_URL =\n  'https://www.linkedin.com/feed/update/urn:li:activity:7123456789012345678/';\nconst TEST_POST_URN = 'urn:li:activity:7123456789012345678';\n\n// A mock comment designed to fail at the \"reply\" step.\n// 'likeStatus' is 'DONE' so the pipeline proceeds to the reply step.\n// 'replyStatus' is '' so the pipeline will attempt to reply.\nconst mockComment: Comment = {\n  commentId: 'urn:li:comment:(activity:7123456789012345678,123456789)',\n  text: 'This is a test comment that will trigger an AI error.',\n  ownerProfileUrl: 'https://www.linkedin.com/in/error-test-user/',\n  timestamp: '2d',\n  type: 'top-level',\n  connected: false,\n  threadId: 'urn:li:comment:(activity:7123456789012345678,123456789)',\n  likeStatus: 'DONE', // Pre-condition: Liking is already complete.\n  replyStatus: '', // Target: This is the step that will be attempted and fail.\n  dmStatus: '',\n  attempts: { like: 0, reply: 0, dm: 0 },\n  lastError: '',\n  pipeline: {\n    queuedAt: new Date().toISOString(),\n    likedAt: new Date().toISOString(),\n    repliedAt: '',\n    dmAt: '',\n  },\n};\n\nconst mockPostState: PostState = {\n  _meta: {\n    postId: TEST_POST_URN,\n    postUrl: TEST_POST_URL,\n    lastUpdated: new Date().toISOString(),\n    runState: 'idle',\n    userProfileUrl: 'https://www.linkedin.com/in/signed-in-user/',\n  },\n  comments: [mockComment],\n};\n\ntest.describe('Error Handling E2E Tests', () => {\n  test.beforeEach(async ({ page, background }) => {\n    // 0. Set a dummy API key to bypass the config check and test network failure.\n    await background.evaluate(async () => {\n      // This is a test-only hook exposed by the service worker setup in fixtures.ts\n      await (\n        self as unknown as {\n          __E2E_TEST_UPDATE_CONFIG: (config: { apiKey: string }) => Promise<void>;\n        }\n      ).__E2E_TEST_UPDATE_CONFIG({ apiKey: 'DUMMY_KEY_FOR_TESTING' });\n    });\n\n    // 1. Mock the network request to OpenRouter to simulate an API failure.\n    // This is done by instrumenting the service worker's global fetch.\n    await background.evaluate(() => {\n      const selfWithMocks = self as unknown as {\n        __E2E_MOCK_FETCH: (\n          url: string,\n          resp: { status: number; body: object }\n        ) => void;\n      };\n      selfWithMocks.__E2E_MOCK_FETCH('/api/v1/chat/completions', {\n        status: 500,\n        body: { error: { message: 'Simulated server error' } },\n      });\n    });\n\n    // 2. Inject the mock state into the service worker's storage.\n    // This ensures the pipeline starts with a predictable state, specifically\n    // with a comment that is ready to be replied to.\n    await background.evaluate(\n      async ({ postUrn, state }: { postUrn: string; state: PostState }) => {\n        await (\n          self as unknown as {\n            __E2E_TEST_SAVE_POST_STATE: (\n              postUrn: string,\n              state: PostState\n            ) => Promise<void>;\n          }\n        ).__E2E_TEST_SAVE_POST_STATE(postUrn, state);\n      },\n      { postUrn: TEST_POST_URN, state: mockPostState }\n    );\n\n    // 3. Navigate to the target page and wait for the UI to be ready.\n    await page.goto(TEST_POST_URL, { waitUntil: 'domcontentloaded' });\n\n    const sidebarRootLocator = page.locator(\n      '#linkedin-engagement-assistant-root'\n    );\n    await expect(sidebarRootLocator).toBeAttached({ timeout: 15000 });\n  });\n\n  test('should display FAILED status and error log when AI call fails', async ({\n    page,\n  }) => {\n    // Define locators for key UI elements.\n    const sidebarRootLocator = page.locator(\n      '#linkedin-engagement-assistant-root'\n    );\n    const startButtonLocator = sidebarRootLocator.locator(\n      '[data-testid=\"start-button\"]'\n    );\n    const commentRowLocator = sidebarRootLocator.locator(\n      `[data-testid=\"pipeline-row-${mockComment.commentId}\"]`\n    );\n    // This selector targets the specific test ID for the \"Replied\" step's status indicator,\n    // making it more robust against UI structure and style changes.\n    const repliedStepIndicator = commentRowLocator.locator(\n      '[data-testid=\"step-indicator-Replied\"]'\n    );\n    // This locator is specific to the final error log, ignoring intermediate errors.\n    const errorLogLocator = sidebarRootLocator.locator(\n      '.log-entry--error:has-text(\"Failed to reply to comment\")'\n    );\n\n    await test.step('Start the pipeline', async () => {\n      await expect(startButtonLocator).toBeVisible();\n      await startButtonLocator.click();\n    });\n\n    await test.step('Verify UI shows FAILED status for the reply step', async () => {\n      // The assertion waits for the class 'step-failed' to be applied to the\n      // indicator, confirming the UI has updated to reflect the error state.\n      await expect(repliedStepIndicator).toHaveClass(/step-failed/, {\n        timeout: 10000,\n      });\n    });\n\n    await test.step('Verify a structured error log is displayed in the logs panel', async () => {\n      // The assertion waits for the specific, final error log entry to become visible.\n      await expect(errorLogLocator).toBeVisible();\n      // It then checks that the log message contains the expected error text,\n      // confirming that the specific failure was logged correctly.\n      await expect(errorLogLocator).toContainText('Failed to reply to comment');\n    });\n  });\n});\n~~~",
+        "output": "An expert developer meticulously follows the instructions to create a new end-to-end test file for error handling.\n\nAfter a thorough analysis of the task requirements and the provided design artifacts, I have determined the optimal course of action. The task is to create a new Playwright test file, `tests/e2e/error-handling.spec.ts`, to validate the application's error handling when an AI API call fails.\n\nThe provided methodology is sound and leverages the custom test fixtures effectively. The plan involves:\n1.  **State Seeding:** Injecting a pre-configured state into the service worker to ensure the pipeline starts at the 'reply' step, which is the target for our failure simulation.\n2.  **Network Interception:** Using the `__E2E_MOCK_FETCH` helper in the service worker to intercept the call to OpenRouter and return a simulated `500 Internal Server Error`.\n3.  **UI Verification:** Triggering the pipeline and then asserting that the UI correctly updates to show a 'FAILED' status for the reply step and displays a corresponding error message in the logs panel.\n\nThe provided code for `tests/e2e/error-handling.spec.ts` perfectly aligns with this plan and the acceptance criteria. It is well-structured, uses robust locators, and follows best practices for asynchronous testing. Therefore, I will create this new file with the specified content. No modifications to existing files are necessary for this task.\n\n~~~typescript\n#- file: tests/e2e/error-handling.spec.ts\nimport { test, expect } from './fixtures';\nimport type { PostState, Comment } from '../../src/shared/types';\n\n// Test data constants\nconst TEST_POST_URL =\n  'https://www.linkedin.com/feed/update/urn:li:activity:7123456789012345678/';\nconst TEST_POST_URN = 'urn:li:activity:7123456789012345678';\n\n// A mock comment designed to fail at the \"reply\" step.\n// 'likeStatus' is 'DONE' so the pipeline proceeds to the reply step.\n// 'replyStatus' is '' so the pipeline will attempt to reply.\nconst mockComment: Comment = {\n  commentId: 'urn:li:comment:(activity:7123456789012345678,123456789)',\n  text: 'This is a test comment that will trigger an AI error.',\n  ownerProfileUrl: 'https://www.linkedin.com/in/error-test-user/',\n  timestamp: '2d',\n  type: 'top-level',\n  connected: false,\n  threadId: 'urn:li:comment:(activity:7123456789012345678,123456789)',\n  likeStatus: 'DONE', // Pre-condition: Liking is already complete.\n  replyStatus: '', // Target: This is the step that will be attempted and fail.\n  dmStatus: '',\n  attempts: { like: 0, reply: 0, dm: 0 },\n  lastError: '',\n  pipeline: {\n    queuedAt: new Date().toISOString(),\n    likedAt: new Date().toISOString(),\n    repliedAt: '',\n    dmAt: '',\n  },\n};\n\nconst mockPostState: PostState = {\n  _meta: {\n    postId: TEST_POST_URN,\n    postUrl: TEST_POST_URL,\n    lastUpdated: new Date().toISOString(),\n    runState: 'idle',\n    userProfileUrl: 'https://www.linkedin.com/in/signed-in-user/',\n  },\n  comments: [mockComment],\n};\n\ntest.describe('Error Handling E2E Tests', () => {\n  test.beforeEach(async ({ page, background }) => {\n    // 0. Set a dummy API key to bypass the config check and test network failure.\n    await background.evaluate(async () => {\n      // This is a test-only hook exposed by the service worker setup in fixtures.ts\n      await (\n        self as unknown as {\n          __E2E_TEST_UPDATE_CONFIG: (config: { apiKey: string }) => Promise<void>;\n        }\n      ).__E2E_TEST_UPDATE_CONFIG({ apiKey: 'DUMMY_KEY_FOR_TESTING' });\n    });\n\n    // 1. Mock the network request to OpenRouter to simulate an API failure.\n    // This is done by instrumenting the service worker's global fetch.\n    await background.evaluate(() => {\n      const selfWithMocks = self as unknown as {\n        __E2E_MOCK_FETCH: (\n          url: string,\n          resp: { status: number; body: object }\n        ) => void;\n      };\n      selfWithMocks.__E2E_MOCK_FETCH('/api/v1/chat/completions', {\n        status: 500,\n        body: { error: { message: 'Simulated server error' } },\n      });\n    });\n\n    // 2. Inject the mock state into the service worker's storage.\n    // This ensures the pipeline starts with a predictable state, specifically\n    // with a comment that is ready to be replied to.\n    await background.evaluate(\n      async ({ postUrn, state }: { postUrn: string; state: PostState }) => {\n        await (\n          self as unknown as {\n            __E2E_TEST_SAVE_POST_STATE: (\n              postUrn: string,\n              state: PostState\n            ) => Promise<void>;\n          }\n        ).__E2E_TEST_SAVE_POST_STATE(postUrn, state);\n      },\n      { postUrn: TEST_POST_URN, state: mockPostState }\n    );\n\n    // 3. Navigate to the target page and wait for the UI to be ready.\n    await page.goto(TEST_POST_URL, { waitUntil: 'domcontentloaded' });\n\n    const sidebarRootLocator = page.locator(\n      '#linkedin-engagement-assistant-root'\n    );\n    await expect(sidebarRootLocator).toBeAttached({ timeout: 15000 });\n  });\n\n  test('should display FAILED status and error log when AI call fails', async ({\n    page,\n  }) => {\n    // Define locators for key UI elements.\n    const sidebarRootLocator = page.locator(\n      '#linkedin-engagement-assistant-root'\n    );\n    const startButtonLocator = sidebarRootLocator.locator(\n      '[data-testid=\"start-button\"]'\n    );\n    const commentRowLocator = sidebarRootLocator.locator(\n      `[data-testid=\"pipeline-row-${mockComment.commentId}\"]`\n    );\n    // This selector targets the specific test ID for the \"Replied\" step's status indicator,\n    // making it more robust against UI structure and style changes.\n    const repliedStepIndicator = commentRowLocator.locator(\n      '[data-testid=\"step-indicator-Replied\"]'\n    );\n    // This locator is specific to the final error log, ignoring intermediate errors.\n    const errorLogLocator = sidebarRootLocator.locator(\n      '.log-entry--error:has-text(\"Failed to reply to comment\")'\n    );\n\n    await test.step('Start the pipeline', async () => {\n      await expect(startButtonLocator).toBeVisible();\n      await startButtonLocator.click();\n    });\n\n    await test.step('Verify UI shows FAILED status for the reply step', async () => {\n      // The assertion waits for the class 'step-failed' to be applied to the\n      // indicator, confirming the UI has updated to reflect the error state.\n      await expect(repliedStepIndicator).toHaveClass(/step-failed/, {\n        timeout: 10000,\n      });\n    });\n\n    await test.step('Verify a structured error log is displayed in the logs panel', async () => {\n      // The assertion waits for the specific, final error log entry to become visible.\n      await expect(errorLogLocator).toBeVisible();\n      // It then checks that the log message contains the expected error text,\n      // confirming that the specific failure was logged correctly.\n      await expect(errorLogLocator).toContainText('Failed to reply to comment');\n    });\n  });\n});\n~~~",
         "iteration_id": "CR1",
         "completed": false,
         "target_files": [],
@@ -2185,27 +2185,698 @@
         "files": []
     },
     {
-        "name": "DR1",
+        "name": "DR1.T2a",
         "context": {
+            "task_id": "DR1.T2a",
             "iteration_id": "DR1",
             "iteration_goal": "End-to-end testing and final validation of the LinkedIn Engagement Assistant",
-            "description": "Create comprehensive end-to-end tests to validate all functionalities of the LinkedIn Engagement Assistant, including UI interactions, pipeline execution, logging, connection status handling, and real-time updates.",
-            "agent_type_hint": "QualityAssuranceSpecialist",
-            "inputs": "Complete implementation of the LinkedIn Engagement Assistant extension, including all UI components, background services, and content scripts.",
+            "description": "Create header content with status display, controls configured info, user info, and post info. This involves implementing the Header component to display: 1) Current pipeline status (idle/running/completed), 2) Configuration summary (max replies, delay settings), 3) Current user profile information, 4) Current post details (URL, author, timestamp).",
+            "agent_type_hint": "FrontendAgent",
+            "inputs": "Header component implementation",
             "target_files": [
-                "tests/e2e/"
+                "src/ui/components/Header.tsx"
+            ],
+            "input_files": [
+                "src/ui/components/Header.tsx"
+            ],
+            "deliverables": "Header component with status, controls configured info, user info, and post info.",
+            "acceptance_criteria": "Header displays all required information correctly including pipeline status, configuration summary, user profile, and post details.",
+            "dependencies": [],
+            "parallelizable": false
+        },
+        "output": "",
+        "iteration_id": "",
+        "completed": false,
+        "target_files": [],
+        "input_files": [],
+        "files": []
+    },
+    {
+        "name": "DR1.T2b",
+        "context": {
+            "task_id": "DR1.T2b",
+            "iteration_id": "DR1",
+            "iteration_goal": "End-to-end testing and final validation of the LinkedIn Engagement Assistant",
+            "description": "Test header content functionality. Verify status display, controls configured info, user info, and post info work correctly. This includes testing: 1) Status updates when pipeline starts/stops, 2) Configuration info reflects current settings, 3) User info displays correctly from LinkedIn profile, 4) Post info updates when navigating to different posts.",
+            "agent_type_hint": "QualityAssuranceSpecialist",
+            "inputs": "Header component implementation",
+            "target_files": [
+                "tests/e2e/header.spec.ts"
+            ],
+            "input_files": [
+                "src/ui/components/Header.tsx"
+            ],
+            "deliverables": "Test suite validating Header section functionality.",
+            "acceptance_criteria": "Header displays status, controls configured info, user info, and post info correctly in all scenarios.",
+            "dependencies": [
+                "DR1.T2a"
+            ],
+            "parallelizable": false
+        },
+        "output": "",
+        "iteration_id": "",
+        "completed": false,
+        "target_files": [],
+        "input_files": [],
+        "files": []
+    },
+    {
+        "name": "DR1.T3",
+        "context": {
+            "task_id": "DR1.T3",
+            "iteration_id": "DR1",
+            "iteration_goal": "End-to-end testing and final validation of the LinkedIn Engagement Assistant",
+            "description": "Create tests for Live Counters functionality. Verify 'Total Top-Level (No Replies)' and 'Your Top-Level (No Replies)' counters update correctly. This includes testing: 1) Initial counter values are zero, 2) Counters update when comments are loaded, 3) Counters differentiate between user's comments and others, 4) Counters exclude replies to comments.",
+            "agent_type_hint": "QualityAssuranceSpecialist",
+            "inputs": "Counters component implementation",
+            "target_files": [
+                "tests/e2e/counters.spec.ts"
+            ],
+            "input_files": [
+                "src/ui/components/Counters.tsx"
+            ],
+            "deliverables": "Test suite validating Live Counters functionality.",
+            "acceptance_criteria": "Counters update accurately based on comment processing in all scenarios.",
+            "dependencies": [],
+            "parallelizable": false
+        },
+        "output": "",
+        "iteration_id": "",
+        "completed": false,
+        "target_files": [],
+        "input_files": [],
+        "files": []
+    },
+    {
+        "name": "DR1.T4",
+        "context": {
+            "task_id": "DR1.T4",
+            "iteration_id": "DR1",
+            "iteration_goal": "End-to-end testing and final validation of the LinkedIn Engagement Assistant",
+            "description": "Create tests for Pipeline Progress functionality after pipeline execution. Verify status display and comment progress steps (Queued, Liked, Replied, DM Sent) update correctly after running actual comments and DMs. This includes testing: 1) Final pipeline status shows 'completed', 2) Each comment shows correct progress steps, 3) Progress indicators reflect actual actions performed, 4) Failed comments show appropriate error status.",
+            "agent_type_hint": "QualityAssuranceSpecialist",
+            "inputs": "PipelineProgress component implementation",
+            "target_files": [
+                "tests/e2e/pipeline-progress.spec.ts"
+            ],
+            "input_files": [
+                "src/ui/components/PipelineProgress.tsx"
+            ],
+            "deliverables": "Test suite validating Pipeline Progress functionality after pipeline execution.",
+            "acceptance_criteria": "Pipeline status and individual comment progress steps update correctly after pipeline execution in all scenarios.",
+            "dependencies": [
+                "DR1.T10e"
+            ],
+            "parallelizable": false
+        },
+        "output": "",
+        "iteration_id": "",
+        "completed": false,
+        "target_files": [],
+        "input_files": [],
+        "files": []
+    },
+    {
+        "name": "DR1.T5",
+        "context": {
+            "task_id": "DR1.T5",
+            "iteration_id": "DR1",
+            "iteration_goal": "End-to-end testing and final validation of the LinkedIn Engagement Assistant",
+            "description": "Create tests for Controls section functionality after pipeline execution. Verify Start button, Max Replies, Delay Between Replies, Max Open Tabs, Max Scrolls, Rate Limit Profile, Export JSON, Export Logs, and Reset Session work correctly after running actual comments and DMs. This includes testing: 1) Controls reflect final state after execution, 2) Export JSON downloads complete pipeline data, 3) Export Logs includes all execution logs, 4) Reset Session clears all data and resets UI.",
+            "agent_type_hint": "QualityAssuranceSpecialist",
+            "inputs": "Controls component implementation",
+            "target_files": [
+                "tests/e2e/controls.spec.ts"
+            ],
+            "input_files": [
+                "src/ui/components/Controls.tsx"
+            ],
+            "deliverables": "Test suite validating Controls section functionality after pipeline execution.",
+            "acceptance_criteria": "All controls function correctly and trigger expected actions after pipeline execution in all scenarios.",
+            "dependencies": [
+                "DR1.T10e"
+            ],
+            "parallelizable": false
+        },
+        "output": "",
+        "iteration_id": "",
+        "completed": false,
+        "target_files": [],
+        "input_files": [],
+        "files": []
+    },
+    {
+        "name": "DR1.T6a",
+        "context": {
+            "task_id": "DR1.T6a",
+            "iteration_id": "DR1",
+            "iteration_goal": "End-to-end testing and final validation of the LinkedIn Engagement Assistant",
+            "description": "Modify AI Settings to make non-prompt options collapsed by default. This involves implementing collapsible sections in the AiSettings component where: 1) Model selection, Temperature, Top P, Max Tokens, and Stream Tokens are collapsed by default, 2) Only prompt-related options are initially visible, 3) Users can expand/collapse sections as needed.",
+            "agent_type_hint": "FrontendAgent",
+            "inputs": "AiSettings component implementation",
+            "target_files": [
+                "src/ui/components/AiSettings.tsx"
+            ],
+            "input_files": [
+                "src/ui/components/AiSettings.tsx"
+            ],
+            "deliverables": "Modified AiSettings component with non-prompt options collapsed by default.",
+            "acceptance_criteria": "Non-prompt options in AI Settings are collapsed by default and can be expanded/collapsed by user interaction.",
+            "dependencies": [],
+            "parallelizable": false
+        },
+        "output": "",
+        "iteration_id": "",
+        "completed": false,
+        "target_files": [],
+        "input_files": [],
+        "files": []
+    },
+    {
+        "name": "DR1.T6b",
+        "context": {
+            "task_id": "DR1.T6b",
+            "iteration_id": "DR1",
+            "iteration_goal": "End-to-end testing and final validation of the LinkedIn Engagement Assistant",
+            "description": "Add prompt for people not connected with different comment (no DM). This involves implementing: 1) A new prompt field in AiSettings specifically for non-connected users, 2) Logic to use this prompt when replying to non-connected users, 3) Ensuring no DM is sent to non-connected users, 4) UI to configure this prompt separately from the standard reply prompt.",
+            "agent_type_hint": "FrontendAgent",
+            "inputs": "AiSettings component implementation",
+            "target_files": [
+                "src/ui/components/AiSettings.tsx"
+            ],
+            "input_files": [
+                "src/ui/components/AiSettings.tsx"
+            ],
+            "deliverables": "AiSettings component with prompt for people not connected.",
+            "acceptance_criteria": "Prompt for people not connected is added and configured correctly, with appropriate logic to use it when replying to non-connected users.",
+            "dependencies": [
+                "DR1.T6a"
+            ],
+            "parallelizable": false
+        },
+        "output": "",
+        "iteration_id": "",
+        "completed": false,
+        "target_files": [],
+        "input_files": [],
+        "files": []
+    },
+    {
+        "name": "DR1.T6c",
+        "context": {
+            "task_id": "DR1.T6c",
+            "iteration_id": "DR1",
+            "iteration_goal": "End-to-end testing and final validation of the LinkedIn Engagement Assistant",
+            "description": "Test non-prompt options collapsed by default in AI Settings. This includes verifying: 1) Model selection, Temperature, Top P, Max Tokens, and Stream Tokens sections are collapsed when AI Settings are opened, 2) Prompt-related sections are expanded by default, 3) Collapsing/expanding functionality works correctly, 4) Settings are saved and restored correctly when sections are collapsed.",
+            "agent_type_hint": "QualityAssuranceSpecialist",
+            "inputs": "AiSettings component implementation",
+            "target_files": [
+                "tests/e2e/ai-settings-collapsed.spec.ts"
+            ],
+            "input_files": [
+                "src/ui/components/AiSettings.tsx"
+            ],
+            "deliverables": "Test suite validating non-prompt options collapsed by default.",
+            "acceptance_criteria": "Non-prompt options are collapsed by default in AI Settings and collapse/expand functionality works correctly.",
+            "dependencies": [
+                "DR1.T6a"
+            ],
+            "parallelizable": false
+        },
+        "output": "",
+        "iteration_id": "",
+        "completed": false,
+        "target_files": [],
+        "input_files": [],
+        "files": []
+    },
+    {
+        "name": "DR1.T6d",
+        "context": {
+            "task_id": "DR1.T6d",
+            "iteration_id": "DR1",
+            "iteration_goal": "End-to-end testing and final validation of the LinkedIn Engagement Assistant",
+            "description": "Test prompt for people not connected. This includes verifying: 1) The new prompt field is displayed and configurable in AI Settings, 2) When replying to non-connected users, the system uses this specific prompt, 3) No DM is sent to non-connected users, 4) The prompt is saved and restored correctly, 5) The generated reply for non-connected users is appropriate based on the prompt.",
+            "agent_type_hint": "QualityAssuranceSpecialist",
+            "inputs": "AiSettings component implementation",
+            "target_files": [
+                "tests/e2e/ai-settings-not-connected.spec.ts"
+            ],
+            "input_files": [
+                "src/ui/components/AiSettings.tsx"
+            ],
+            "deliverables": "Test suite validating prompt for people not connected.",
+            "acceptance_criteria": "Prompt for people not connected works correctly in all scenarios, with appropriate replies generated and no DMs sent to non-connected users.",
+            "dependencies": [
+                "DR1.T6b"
+            ],
+            "parallelizable": false
+        },
+        "output": "",
+        "iteration_id": "",
+        "completed": false,
+        "target_files": [],
+        "input_files": [],
+        "files": []
+    },
+    {
+        "name": "DR1.T7",
+        "context": {
+            "task_id": "DR1.T7",
+            "iteration_id": "DR1",
+            "iteration_goal": "End-to-end testing and final validation of the LinkedIn Engagement Assistant",
+            "description": "Create tests for Logs functionality at the end of the list. Verify INFO, WARN, ERROR, and DEBUG log filtering works correctly and logs display properly. Test each log functionality step by step: 1) Pipeline start logs (initialization, configuration loading), 2) Comment processing logs (parsing, filtering), 3) AI reply generation logs (API calls, responses), 4) DM sending logs (message creation, sending), 5) Error handling logs (failures, retries), 6) Completion logs (final status, summary). Verify log filtering by level works correctly.",
+            "agent_type_hint": "QualityAssuranceSpecialist",
+            "inputs": "LogsPanel component implementation",
+            "target_files": [
+                "tests/e2e/logs.spec.ts"
+            ],
+            "input_files": [
+                "src/ui/components/LogsPanel.tsx"
+            ],
+            "deliverables": "Test suite validating Logs functionality with step-by-step verification.",
+            "acceptance_criteria": "Logs display correctly for each step and filtering works as expected in all scenarios.",
+            "dependencies": [
+                "DR1.T15"
+            ],
+            "parallelizable": false
+        },
+        "output": "",
+        "iteration_id": "",
+        "completed": false,
+        "target_files": [],
+        "input_files": [],
+        "files": []
+    },
+    {
+        "name": "DR1.T8",
+        "context": {
+            "task_id": "DR1.T8",
+            "iteration_id": "DR1",
+            "iteration_goal": "End-to-end testing and final validation of the LinkedIn Engagement Assistant",
+            "description": "Create tests for URL validation after adding all header details. Verify sidebar only activates on LinkedIn post URLs (https://www.linkedin.com/feed/update/urn:li:activity:) and is disabled on other URLs. This includes testing: 1) Sidebar appears on valid post URLs, 2) Sidebar doesn't appear on other LinkedIn pages (profile, feed, etc.), 3) Sidebar doesn't appear on non-LinkedIn sites, 4) Header details update correctly when navigating between valid posts.",
+            "agent_type_hint": "QualityAssuranceSpecialist",
+            "inputs": "URL validation logic",
+            "target_files": [
+                "tests/e2e/url-validation.spec.ts"
+            ],
+            "input_files": [
+                "src/content-scripts/index.ts"
+            ],
+            "deliverables": "Test suite validating URL-specific sidebar activation.",
+            "acceptance_criteria": "Sidebar only activates on valid LinkedIn post URLs and header details update correctly when navigating between posts.",
+            "dependencies": [
+                "DR1.T2b"
+            ],
+            "parallelizable": false
+        },
+        "output": "",
+        "iteration_id": "",
+        "completed": false,
+        "target_files": [],
+        "input_files": [],
+        "files": []
+    },
+    {
+        "name": "DR1.T9a",
+        "context": {
+            "task_id": "DR1.T9a",
+            "iteration_id": "DR1",
+            "iteration_goal": "End-to-end testing and final validation of the LinkedIn Engagement Assistant",
+            "description": "Fix sidebar collapse/expand functionality and ensure it shrinks the LinkedIn page without interfering with page elements. This involves implementing: 1) A collapse/expand toggle button in the header, 2) Smooth animation when collapsing/expanding, 3) Proper resizing of LinkedIn content area when sidebar is collapsed, 4) Ensuring sidebar doesn't overlay or hide LinkedIn content when expanded, 5) Maintaining all functionality when sidebar is collapsed.",
+            "agent_type_hint": "FrontendAgent",
+            "inputs": "Sidebar collapse/expand implementation",
+            "target_files": [
+                "src/ui/components/Header.tsx",
+                "src/ui/App.tsx"
+            ],
+            "input_files": [
+                "src/ui/components/Header.tsx",
+                "src/ui/App.tsx"
+            ],
+            "deliverables": "Fixed sidebar collapse/expand functionality that doesn't interfere with LinkedIn page.",
+            "acceptance_criteria": "Sidebar collapses/expands smoothly and shrinks the LinkedIn page without interfering with page elements in all scenarios.",
+            "dependencies": [],
+            "parallelizable": false
+        },
+        "output": "",
+        "iteration_id": "",
+        "completed": false,
+        "target_files": [],
+        "input_files": [],
+        "files": []
+    },
+    {
+        "name": "DR1.T9b",
+        "context": {
+            "task_id": "DR1.T9b",
+            "iteration_id": "DR1",
+            "iteration_goal": "End-to-end testing and final validation of the LinkedIn Engagement Assistant",
+            "description": "Test sidebar UI functionality and smoothness. Verify toggle works smoothly without issues and doesn't interfere with LinkedIn page elements. This includes testing: 1) Collapse/expand animation is smooth and visually appealing, 2) Toggle button works correctly in all states, 3) LinkedIn content area resizes properly when sidebar state changes, 4) No LinkedIn elements are hidden or overlapped by sidebar, 5) All sidebar functionality works when collapsed (e.g., pipeline continues running).",
+            "agent_type_hint": "QualityAssuranceSpecialist",
+            "inputs": "Sidebar collapse/expand implementation",
+            "target_files": [
+                "tests/e2e/sidebar-toggle.spec.ts"
+            ],
+            "input_files": [
+                "src/ui/components/Header.tsx",
+                "src/ui/App.tsx"
+            ],
+            "deliverables": "Test suite validating sidebar collapse/expand functionality and smoothness.",
+            "acceptance_criteria": "Sidebar collapse/expand works smoothly without interfering with LinkedIn page elements in all scenarios.",
+            "dependencies": [
+                "DR1.T9a"
+            ],
+            "parallelizable": false
+        },
+        "output": "",
+        "iteration_id": "",
+        "completed": false,
+        "target_files": [],
+        "input_files": [],
+        "files": []
+    },
+    {
+        "name": "DR1.T10a",
+        "context": {
+            "task_id": "DR1.T10a",
+            "iteration_id": "DR1",
+            "iteration_goal": "End-to-end testing and final validation of the LinkedIn Engagement Assistant",
+            "description": "Create tests for liking comments functionality in the pipeline. Verify that the system correctly likes comments and updates the UI accordingly. This includes testing: 1) Like button is clicked correctly for each comment, 2) Like status is updated in the pipeline progress, 3) UI counters update after liking, 4) Liking works with different comment counts, 5) Failed likes are handled gracefully.",
+            "agent_type_hint": "QualityAssuranceSpecialist",
+            "inputs": "Liking functionality implementation",
+            "target_files": [
+                "tests/e2e/liking.spec.ts"
+            ],
+            "input_files": [
+                "src/content-scripts/domInteractor.ts",
+                "src/background/services/pipelineManager.ts"
+            ],
+            "deliverables": "Test suite validating comment liking functionality.",
+            "acceptance_criteria": "System successfully likes comments and updates the pipeline progress UI in all scenarios.",
+            "dependencies": [],
+            "parallelizable": false
+        },
+        "output": "",
+        "iteration_id": "",
+        "completed": false,
+        "target_files": [],
+        "input_files": [],
+        "files": []
+    },
+    {
+        "name": "DR1.T10b",
+        "context": {
+            "task_id": "DR1.T10b",
+            "iteration_id": "DR1",
+            "iteration_goal": "End-to-end testing and final validation of the LinkedIn Engagement Assistant",
+            "description": "Create tests for replying to comments with AI-generated content. Verify that the system generates appropriate replies and posts them correctly. This includes testing: 1) AI generates appropriate replies based on prompts, 2) Replies are posted correctly to comments, 3) Reply status is updated in pipeline progress, 4) Different prompts are used for connected and non-connected users, 5) Failed replies are handled gracefully.",
+            "agent_type_hint": "QualityAssuranceSpecialist",
+            "inputs": "Reply functionality implementation",
+            "target_files": [
+                "tests/e2e/replying.spec.ts"
+            ],
+            "input_files": [
+                "src/content-scripts/domInteractor.ts",
+                "src/background/services/pipelineManager.ts",
+                "src/background/services/openRouterClient.ts"
+            ],
+            "deliverables": "Test suite validating AI-generated reply functionality.",
+            "acceptance_criteria": "System successfully generates and posts AI replies to comments in all scenarios.",
+            "dependencies": [],
+            "parallelizable": false
+        },
+        "output": "",
+        "iteration_id": "",
+        "completed": false,
+        "target_files": [],
+        "input_files": [],
+        "files": []
+    },
+    {
+        "name": "DR1.T10c",
+        "context": {
+            "task_id": "DR1.T10c",
+            "iteration_id": "DR1",
+            "iteration_goal": "End-to-end testing and final validation of the LinkedIn Engagement Assistant",
+            "description": "Create tests for scrolling to load additional comments during pipeline execution. Verify that the system correctly scrolls to load more comments when needed. This includes testing: 1) Page scrolls automatically when more comments are available, 2) Scrolling stops when all comments are loaded, 3) Scrolling respects max scrolls setting, 4) Scrolling doesn't interfere with other page elements, 5) Scrolling works with different comment counts.",
+            "agent_type_hint": "QualityAssuranceSpecialist",
+            "inputs": "Scrolling functionality implementation",
+            "target_files": [
+                "tests/e2e/scrolling.spec.ts"
+            ],
+            "input_files": [
+                "src/content-scripts/domInteractor.ts"
+            ],
+            "deliverables": "Test suite validating comment loading through scrolling.",
+            "acceptance_criteria": "System successfully scrolls to load additional comments during pipeline execution in all scenarios.",
+            "dependencies": [],
+            "parallelizable": false
+        },
+        "output": "",
+        "iteration_id": "",
+        "completed": false,
+        "target_files": [],
+        "input_files": [],
+        "files": []
+    },
+    {
+        "name": "DR1.T10d",
+        "context": {
+            "task_id": "DR1.T10d",
+            "iteration_id": "DR1",
+            "iteration_goal": "End-to-end testing and final validation of the LinkedIn Engagement Assistant",
+            "description": "Create tests for checking connection status during pipeline execution. Verify that the system correctly determines if users are connected. This includes testing: 1) Connection status is correctly identified for each user, 2) Status is updated in pipeline progress, 3) Connection checking works with different user profiles, 4) Failed connection checks are handled gracefully, 5) Connection status is used correctly to determine next actions.",
+            "agent_type_hint": "QualityAssuranceSpecialist",
+            "inputs": "Connection status checking implementation",
+            "target_files": [
+                "tests/e2e/connection-checking.spec.ts"
+            ],
+            "input_files": [
+                "src/background/services/pipelineManager.ts"
+            ],
+            "deliverables": "Test suite validating connection status checking functionality.",
+            "acceptance_criteria": "System correctly identifies connection status of users during pipeline execution in all scenarios.",
+            "dependencies": [],
+            "parallelizable": false
+        },
+        "output": "",
+        "iteration_id": "",
+        "completed": false,
+        "target_files": [],
+        "input_files": [],
+        "files": []
+    },
+    {
+        "name": "DR1.T10e",
+        "context": {
+            "task_id": "DR1.T10e",
+            "iteration_id": "DR1",
+            "iteration_goal": "End-to-end testing and final validation of the LinkedIn Engagement Assistant",
+            "description": "Create tests for sending DMs during pipeline execution. Verify that the system correctly sends DMs to connected users. This includes testing: 1) DMs are sent only to connected users, 2) DM content is generated based on DM prompt, 3) DMs are sent correctly through LinkedIn messaging, 4) DM status is updated in pipeline progress, 5) Failed DMs are handled gracefully with retries.",
+            "agent_type_hint": "QualityAssuranceSpecialist",
+            "inputs": "DM sending implementation",
+            "target_files": [
+                "tests/e2e/dm-sending-pipeline.spec.ts"
+            ],
+            "input_files": [
+                "src/content-scripts/domInteractor.ts",
+                "src/background/services/pipelineManager.ts",
+                "src/background/services/openRouterClient.ts"
+            ],
+            "deliverables": "Test suite validating DM sending functionality within the pipeline.",
+            "acceptance_criteria": "System successfully sends DMs to connected users during pipeline execution in all scenarios.",
+            "dependencies": [],
+            "parallelizable": false
+        },
+        "output": "",
+        "iteration_id": "",
+        "completed": false,
+        "target_files": [],
+        "input_files": [],
+        "files": []
+    },
+    {
+        "name": "DR1.T11",
+        "context": {
+            "task_id": "DR1.T11",
+            "iteration_id": "DR1",
+            "iteration_goal": "End-to-end testing and final validation of the LinkedIn Engagement Assistant",
+            "description": "Create tests for connection status handling. Verify system detects non-connected users and sends appropriate connection request message. This includes testing: 1) Non-connected users are correctly identified, 2) Connection request message is sent instead of DM, 3) Connection request message is generated based on non-connected prompt, 4) Connection request status is updated in pipeline progress, 5) Failed connection requests are handled gracefully.",
+            "agent_type_hint": "QualityAssuranceSpecialist",
+            "inputs": "Connection status logic",
+            "target_files": [
+                "tests/e2e/connection-status.spec.ts"
+            ],
+            "input_files": [
+                "src/background/services/pipelineManager.ts"
+            ],
+            "deliverables": "Test suite validating connection status handling.",
+            "acceptance_criteria": "System correctly identifies non-connected users and sends connection request message in all scenarios.",
+            "dependencies": [],
+            "parallelizable": false
+        },
+        "output": "",
+        "iteration_id": "",
+        "completed": false,
+        "target_files": [],
+        "input_files": [],
+        "files": []
+    },
+    {
+        "name": "DR1.T12",
+        "context": {
+            "task_id": "DR1.T12",
+            "iteration_id": "DR1",
+            "iteration_goal": "End-to-end testing and final validation of the LinkedIn Engagement Assistant",
+            "description": "Create tests for DM sending functionality. Verify system successfully sends DMs to connected users with AI-generated content. This includes testing: 1) DMs are sent only to connected users, 2) DM content is generated based on DM prompt, 3) DMs are sent correctly through LinkedIn messaging, 4) DM status is updated in pipeline progress, 5) Failed DMs are handled gracefully with retries.",
+            "agent_type_hint": "QualityAssuranceSpecialist",
+            "inputs": "DM sending implementation",
+            "target_files": [
+                "tests/e2e/dm-sending.spec.ts"
+            ],
+            "input_files": [
+                "src/background/services/pipelineManager.ts",
+                "src/content-scripts/domInteractor.ts"
+            ],
+            "deliverables": "Test suite validating DM sending functionality.",
+            "acceptance_criteria": "System successfully sends AI-generated DMs to connected users in all scenarios.",
+            "dependencies": [],
+            "parallelizable": false
+        },
+        "output": "",
+        "iteration_id": "",
+        "completed": false,
+        "target_files": [],
+        "input_files": [],
+        "files": []
+    },
+    {
+        "name": "DR1.T13",
+        "context": {
+            "task_id": "DR1.T13",
+            "iteration_id": "DR1",
+            "iteration_goal": "End-to-end testing and final validation of the LinkedIn Engagement Assistant",
+            "description": "Create tests for real-time UI updates. Verify UI updates in real-time as pipeline progresses and rate limiting works correctly. This includes testing: 1) Counters update as comments are processed, 2) Pipeline progress updates as each step completes, 3) Logs display in real-time as events occur, 4) Rate limiting prevents too many actions in short time, 5) UI remains responsive during pipeline execution.",
+            "agent_type_hint": "QualityAssuranceSpecialist",
+            "inputs": "UI state management and rate limiting implementation",
+            "target_files": [
+                "tests/e2e/realtime-updates.spec.ts"
+            ],
+            "input_files": [
+                "src/ui/store/index.ts",
+                "src/background/services/pipelineManager.ts"
+            ],
+            "deliverables": "Test suite validating real-time UI updates and rate limiting.",
+            "acceptance_criteria": "UI updates in real-time during pipeline execution and rate limiting functions correctly in all scenarios.",
+            "dependencies": [],
+            "parallelizable": false
+        },
+        "output": "",
+        "iteration_id": "",
+        "completed": false,
+        "target_files": [],
+        "input_files": [],
+        "files": []
+    },
+    {
+        "name": "DR1.T14",
+        "context": {
+            "task_id": "DR1.T14",
+            "iteration_id": "DR1",
+            "iteration_goal": "End-to-end testing and final validation of the LinkedIn Engagement Assistant",
+            "description": "Create tests for post change handling. Verify that when the user navigates to a different LinkedIn post, the extension resets and starts processing the new post. This includes testing: 1) Extension detects when user navigates to a different post, 2) Previous post data is cleared, 3) New post data is loaded and processed, 4) UI updates to reflect new post, 5) Pipeline can be started for new post.",
+            "agent_type_hint": "QualityAssuranceSpecialist",
+            "inputs": "Post change handling implementation",
+            "target_files": [
+                "tests/e2e/post-change.spec.ts"
+            ],
+            "input_files": [
+                "src/content-scripts/index.ts",
+                "src/background/services/stateManager.ts"
+            ],
+            "deliverables": "Test suite validating post change handling.",
+            "acceptance_criteria": "Extension correctly resets and starts processing when user navigates to a different LinkedIn post in all scenarios.",
+            "dependencies": [],
+            "parallelizable": false
+        },
+        "output": "",
+        "iteration_id": "",
+        "completed": false,
+        "target_files": [],
+        "input_files": [],
+        "files": []
+    },
+    {
+        "name": "DR1.T15",
+        "context": {
+            "task_id": "DR1.T15",
+            "iteration_id": "DR1",
+            "iteration_goal": "End-to-end testing and final validation of the LinkedIn Engagement Assistant",
+            "description": "Create tests for header bar content. Verify that the header bar displays status, controls configured info, user info, and post info correctly. This includes testing: 1) Status displays current pipeline state, 2) Controls info shows current configuration, 3) User info displays LinkedIn profile data, 4) Post info shows current post details, 5) All info updates correctly when state changes.",
+            "agent_type_hint": "QualityAssuranceSpecialist",
+            "inputs": "Header bar content implementation",
+            "target_files": [
+                "tests/e2e/header-content.spec.ts"
+            ],
+            "input_files": [
+                "src/ui/components/Header.tsx"
+            ],
+            "deliverables": "Test suite validating header bar content.",
+            "acceptance_criteria": "Header bar correctly displays status, controls configured info, user info, and post info in all scenarios.",
+            "dependencies": [
+                "DR1.T2a"
+            ],
+            "parallelizable": false
+        },
+        "output": "",
+        "iteration_id": "",
+        "completed": false,
+        "target_files": [],
+        "input_files": [],
+        "files": []
+    },
+    {
+        "name": "DR1.T16",
+        "context": {
+            "task_id": "DR1.T16",
+            "iteration_id": "DR1",
+            "iteration_goal": "End-to-end testing and final validation of the LinkedIn Engagement Assistant",
+            "description": "Create comprehensive end-to-end test scenarios that validate the entire workflow from initialization to completion, including error handling and recovery. This includes testing: 1) Complete pipeline execution from start to finish, 2) All UI components update correctly during execution, 3) Error handling for various failure scenarios (API failures, DOM changes, network issues), 4) Recovery mechanisms work correctly, 5) Final state is correctly saved and reported.",
+            "agent_type_hint": "QualityAssuranceSpecialist",
+            "inputs": "All extension components and previous test suites",
+            "target_files": [
+                "tests/e2e/full-workflow.spec.ts"
             ],
             "input_files": [
                 "src/"
             ],
-            "deliverables": "A complete end-to-end test suite using Playwright that validates all major functionalities of the extension.",
-            "acceptance_criteria": "All tests pass successfully, covering UI interactions, pipeline execution, logging modes, connection status handling, URL validation, and real-time updates.",
+            "deliverables": "End-to-end test scenarios covering the complete workflow with error handling.",
+            "acceptance_criteria": "Complete workflow executes successfully with proper error handling and recovery mechanisms in all scenarios.",
             "dependencies": [
-                "I8.T4"
+                "DR1.T2b",
+                "DR1.T3",
+                "DR1.T4",
+                "DR1.T5",
+                "DR1.T6c",
+                "DR1.T6d",
+                "DR1.T7",
+                "DR1.T8",
+                "DR1.T9b",
+                "DR1.T10a",
+                "DR1.T10b",
+                "DR1.T10c",
+                "DR1.T10d",
+                "DR1.T10e",
+                "DR1.T11",
+                "DR1.T12",
+                "DR1.T13",
+                "DR1.T14",
+                "DR1.T15"
             ],
             "parallelizable": false
         },
-        "output": null,
+        "output": "",
         "iteration_id": "",
         "completed": false,
         "target_files": [],
