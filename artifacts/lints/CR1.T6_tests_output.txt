@@ -7,15 +7,15 @@ transforming...
 ✓ 6 modules transformed.
 rendering chunks...
 computing gzip size...
-dist/background.js  167.48 kB │ gzip: 44.66 kB │ map: 89.94 kB
-✓ built in 71ms
+dist/background.js  172.52 kB │ gzip: 45.03 kB │ map: 93.71 kB
+✓ built in 515ms
 vite v5.4.19 building for test...
 transforming...
 ✓ 21 modules transformed.
 rendering chunks...
 computing gzip size...
-dist/content.js  274.76 kB │ gzip: 79.10 kB │ map: 141.54 kB
-✓ built in 135ms
+dist/content.js  279.19 kB │ gzip: 79.78 kB │ map: 144.31 kB
+✓ built in 1.08s
 
 > linkedin-engagement-assistant@0.0.0 test
 > playwright test
@@ -23,33 +23,270 @@ dist/content.js  274.76 kB │ gzip: 79.10 kB │ map: 141.54 kB
 
 Running 8 tests using 6 workers
 
-  ✓  4 tests/e2e/setup.spec.ts:4:3 › Extension E2E Setup › should load the extension and inject the content script on linkedin.com (5.7s)
-  ✓  1 tests/e2e/real-time-ui.spec.ts:27:3 › Real-time UI Updates › should update Live Counters on STATE_UPDATE event (6.8s)
-  ✓  3 tests/e2e/pipeline-controls.spec.ts:114:3 › Pipeline Control E2E Tests › should successfully control pipeline lifecycle: start, stop, and resume (6.9s)
 
 --- PAGE & CONTENT SCRIPT LOGS ON FAILURE ---
-No logs captured from page.
+[INFO] Clear-Site-Data header on 'https://www.linkedin.com/feed/update/urn:li:activity:7368619407989760000/': Cleared data types: "storage".
+[INFO] Clear-Site-Data header on 'https://www.linkedin.com/feed/update/urn:li:activity:7368619407989760000/': Cleared data types: "storage".
+[INFO] Clear-Site-Data header on 'https://www.linkedin.com/feed/update/urn:li:activity:7368619407989760000/': Cleared data types: "storage".
+[INFO] Clear-Site-Data header on 'https://www.linkedin.com/feed/update/urn:li:activity:7368619407989760000/': Cleared data types: "storage".
+[INFO] Clear-Site-Data header on 'https://www.linkedin.com/feed/update/urn:li:activity:7368619407989760000/': Cleared data types: "storage".
+[INFO] Clear-Site-Data header on 'https://www.linkedin.com/feed/update/urn:li:activity:7368619407989760000/': Cleared data types: "storage".
+[INFO] Clear-Site-Data header on 'https://www.linkedin.com/feed/update/urn:li:activity:7368619407989760000/': Cleared data types: "storage".
+[INFO] Clear-Site-Data header on 'https://www.linkedin.com/feed/update/urn:li:activity:7368619407989760000/': Cleared data types: "storage".
+[INFO] Clear-Site-Data header on 'https://www.linkedin.com/feed/update/urn:li:activity:7368619407989760000/': Cleared data types: "storage".
+[INFO] Clear-Site-Data header on 'https://www.linkedin.com/feed/update/urn:li:activity:7368619407989760000/': Cleared data types: "storage".
+[INFO] Clear-Site-Data header on 'https://www.linkedin.com/feed/update/urn:li:activity:7368619407989760000/': Cleared data types: "storage".
+[INFO] Clear-Site-Data header on 'https://www.linkedin.com/feed/update/urn:li:activity:7368619407989760000/': Cleared data types: "storage".
+[INFO] Clear-Site-Data header on 'https://www.linkedin.com/feed/update/urn:li:activity:7368619407989760000/': Cleared data types: "storage".
+[INFO] Clear-Site-Data header on 'https://www.linkedin.com/feed/update/urn:li:activity:7368619407989760000/': Cleared data types: "storage".
+[INFO] Clear-Site-Data header on 'https://www.linkedin.com/feed/update/urn:li:activity:7368619407989760000/': Cleared data types: "storage".
+[INFO] Clear-Site-Data header on 'https://www.linkedin.com/feed/update/urn:li:activity:7368619407989760000/': Cleared data types: "storage".
+[INFO] Clear-Site-Data header on 'https://www.linkedin.com/feed/update/urn:li:activity:7368619407989760000/': Cleared data types: "storage".
+[INFO] Clear-Site-Data header on 'https://www.linkedin.com/feed/update/urn:li:activity:7368619407989760000/': Cleared data types: "storage".
+[INFO] Clear-Site-Data header on 'https://www.linkedin.com/feed/update/urn:li:activity:7368619407989760000/': Cleared data types: "storage".
+[INFO] Clear-Site-Data header on 'https://www.linkedin.com/feed/update/urn:li:activity:7368619407989760000/': Cleared data types: "storage".
 -------------------------------------------------
 
 --- BACKGROUND SERVICE WORKER LOGS ON FAILURE ---
-[2025-09-05T00:12:25.760Z] [BG_INFO] "[INFO] Logger initialized." ""
-[2025-09-05T00:12:25.761Z] [BG_INFO] "[INFO] LinkedIn Engagement Assistant Service Worker loaded." ""
-[2025-09-05T00:12:25.762Z] [BG_INFO] "[INFO] PipelineManager initialized." ""
-[2025-09-05T00:12:25.763Z] [BG_LOG] "[BACKGROUND SCRIPT] E2E test hooks installed."
-[2025-09-05T00:12:25.858Z] [BG_LOG] "No AI config found in storage. Saving and loading defaults."
-[2025-09-05T00:12:25.858Z] [BG_LOG] "Loaded 0 post states into memory."
-[2025-09-05T00:12:25.858Z] [BG_INFO] "[INFO] All post states loaded into memory." ""
+No logs captured from service worker.
 --------------------------------------------------
-  ✘  7 tests/e2e/real-time-ui.spec.ts:49:3 › Real-time UI Updates › should update Pipeline Progress on STATE_UPDATE event (1.1s)
-  ✓  2 tests/e2e/settings-persistence.spec.ts:4:3 › AI Settings Persistence › should save settings, reload, and verify they are persisted (8.1s)
-  ✓  5 tests/e2e/ui-injection.spec.ts:4:3 › Extension UI Injection and Initial State › should inject the sidebar with default components on a LinkedIn post page (8.3s)
-  ✓  6 tests/e2e/error-handling.spec.ts:77:3 › Error Handling E2E Tests › should display FAILED status and error log when AI call fails (9.7s)
-  ✓  8 tests/e2e/real-time-ui.spec.ts:90:3 › Real-time UI Updates › should add new entry to Logs Panel on LOG_ENTRY event (3.4s)
+
+--- PAGE & CONTENT SCRIPT LOGS ON FAILURE ---
+[INFO] Clear-Site-Data header on 'https://www.linkedin.com/feed/update/urn:li:activity:7368619407989760000/': Cleared data types: "storage".
+[INFO] Clear-Site-Data header on 'https://www.linkedin.com/feed/update/urn:li:activity:7368619407989760000/': Cleared data types: "storage".
+[INFO] Clear-Site-Data header on 'https://www.linkedin.com/feed/update/urn:li:activity:7368619407989760000/': Cleared data types: "storage".
+[INFO] Clear-Site-Data header on 'https://www.linkedin.com/feed/update/urn:li:activity:7368619407989760000/': Cleared data types: "storage".
+[INFO] Clear-Site-Data header on 'https://www.linkedin.com/feed/update/urn:li:activity:7368619407989760000/': Cleared data types: "storage".
+[INFO] Clear-Site-Data header on 'https://www.linkedin.com/feed/update/urn:li:activity:7368619407989760000/': Cleared data types: "storage".
+[INFO] Clear-Site-Data header on 'https://www.linkedin.com/feed/update/urn:li:activity:7368619407989760000/': Cleared data types: "storage".
+[INFO] Clear-Site-Data header on 'https://www.linkedin.com/feed/update/urn:li:activity:7368619407989760000/': Cleared data types: "storage".
+[INFO] Clear-Site-Data header on 'https://www.linkedin.com/feed/update/urn:li:activity:7368619407989760000/': Cleared data types: "storage".
+[INFO] Clear-Site-Data header on 'https://www.linkedin.com/feed/update/urn:li:activity:7368619407989760000/': Cleared data types: "storage".
+[INFO] Clear-Site-Data header on 'https://www.linkedin.com/feed/update/urn:li:activity:7368619407989760000/': Cleared data types: "storage".
+[INFO] Clear-Site-Data header on 'https://www.linkedin.com/feed/update/urn:li:activity:7368619407989760000/': Cleared data types: "storage".
+[INFO] Clear-Site-Data header on 'https://www.linkedin.com/feed/update/urn:li:activity:7368619407989760000/': Cleared data types: "storage".
+[INFO] Clear-Site-Data header on 'https://www.linkedin.com/feed/update/urn:li:activity:7368619407989760000/': Cleared data types: "storage".
+[INFO] Clear-Site-Data header on 'https://www.linkedin.com/feed/update/urn:li:activity:7368619407989760000/': Cleared data types: "storage".
+[INFO] Clear-Site-Data header on 'https://www.linkedin.com/feed/update/urn:li:activity:7368619407989760000/': Cleared data types: "storage".
+[INFO] Clear-Site-Data header on 'https://www.linkedin.com/feed/update/urn:li:activity:7368619407989760000/': Cleared data types: "storage".
+[INFO] Clear-Site-Data header on 'https://www.linkedin.com/feed/update/urn:li:activity:7368619407989760000/': Cleared data types: "storage".
+[INFO] Clear-Site-Data header on 'https://www.linkedin.com/feed/update/urn:li:activity:7368619407989760000/': Cleared data types: "storage".
+[INFO] Clear-Site-Data header on 'https://www.linkedin.com/feed/update/urn:li:activity:7368619407989760000/': Cleared data types: "storage".
+-------------------------------------------------
+
+--- BACKGROUND SERVICE WORKER LOGS ON FAILURE ---
+No logs captured from service worker.
+--------------------------------------------------
+
+--- PAGE & CONTENT SCRIPT LOGS ON FAILURE ---
+[INFO] Clear-Site-Data header on 'https://www.linkedin.com/feed/': Cleared data types: "storage".
+[INFO] Clear-Site-Data header on 'https://www.linkedin.com/feed/': Cleared data types: "storage".
+[INFO] Clear-Site-Data header on 'https://www.linkedin.com/feed/': Cleared data types: "storage".
+[INFO] Clear-Site-Data header on 'https://www.linkedin.com/feed/': Cleared data types: "storage".
+[INFO] Clear-Site-Data header on 'https://www.linkedin.com/feed/': Cleared data types: "storage".
+[INFO] Clear-Site-Data header on 'https://www.linkedin.com/feed/': Cleared data types: "storage".
+[INFO] Clear-Site-Data header on 'https://www.linkedin.com/feed/': Cleared data types: "storage".
+[INFO] Clear-Site-Data header on 'https://www.linkedin.com/feed/': Cleared data types: "storage".
+[INFO] Clear-Site-Data header on 'https://www.linkedin.com/feed/': Cleared data types: "storage".
+[INFO] Clear-Site-Data header on 'https://www.linkedin.com/feed/': Cleared data types: "storage".
+[INFO] Clear-Site-Data header on 'https://www.linkedin.com/feed/': Cleared data types: "storage".
+[INFO] Clear-Site-Data header on 'https://www.linkedin.com/feed/': Cleared data types: "storage".
+[INFO] Clear-Site-Data header on 'https://www.linkedin.com/feed/': Cleared data types: "storage".
+[INFO] Clear-Site-Data header on 'https://www.linkedin.com/feed/': Cleared data types: "storage".
+[INFO] Clear-Site-Data header on 'https://www.linkedin.com/feed/': Cleared data types: "storage".
+[INFO] Clear-Site-Data header on 'https://www.linkedin.com/feed/': Cleared data types: "storage".
+[INFO] Clear-Site-Data header on 'https://www.linkedin.com/feed/': Cleared data types: "storage".
+[INFO] Clear-Site-Data header on 'https://www.linkedin.com/feed/': Cleared data types: "storage".
+[INFO] Clear-Site-Data header on 'https://www.linkedin.com/feed/': Cleared data types: "storage".
+[INFO] Clear-Site-Data header on 'https://www.linkedin.com/feed/': Cleared data types: "storage".
+-------------------------------------------------
+
+--- BACKGROUND SERVICE WORKER LOGS ON FAILURE ---
+No logs captured from service worker.
+--------------------------------------------------
+
+--- PAGE & CONTENT SCRIPT LOGS ON FAILURE ---
+[INFO] Clear-Site-Data header on 'https://www.linkedin.com/feed/update/urn:li:activity:7368619407989760000/': Cleared data types: "storage".
+[INFO] Clear-Site-Data header on 'https://www.linkedin.com/feed/update/urn:li:activity:7368619407989760000/': Cleared data types: "storage".
+[INFO] Clear-Site-Data header on 'https://www.linkedin.com/feed/update/urn:li:activity:7368619407989760000/': Cleared data types: "storage".
+[INFO] Clear-Site-Data header on 'https://www.linkedin.com/feed/update/urn:li:activity:7368619407989760000/': Cleared data types: "storage".
+[INFO] Clear-Site-Data header on 'https://www.linkedin.com/feed/update/urn:li:activity:7368619407989760000/': Cleared data types: "storage".
+[INFO] Clear-Site-Data header on 'https://www.linkedin.com/feed/update/urn:li:activity:7368619407989760000/': Cleared data types: "storage".
+[INFO] Clear-Site-Data header on 'https://www.linkedin.com/feed/update/urn:li:activity:7368619407989760000/': Cleared data types: "storage".
+[INFO] Clear-Site-Data header on 'https://www.linkedin.com/feed/update/urn:li:activity:7368619407989760000/': Cleared data types: "storage".
+[INFO] Clear-Site-Data header on 'https://www.linkedin.com/feed/update/urn:li:activity:7368619407989760000/': Cleared data types: "storage".
+[INFO] Clear-Site-Data header on 'https://www.linkedin.com/feed/update/urn:li:activity:7368619407989760000/': Cleared data types: "storage".
+[INFO] Clear-Site-Data header on 'https://www.linkedin.com/feed/update/urn:li:activity:7368619407989760000/': Cleared data types: "storage".
+[INFO] Clear-Site-Data header on 'https://www.linkedin.com/feed/update/urn:li:activity:7368619407989760000/': Cleared data types: "storage".
+[INFO] Clear-Site-Data header on 'https://www.linkedin.com/feed/update/urn:li:activity:7368619407989760000/': Cleared data types: "storage".
+[INFO] Clear-Site-Data header on 'https://www.linkedin.com/feed/update/urn:li:activity:7368619407989760000/': Cleared data types: "storage".
+[INFO] Clear-Site-Data header on 'https://www.linkedin.com/feed/update/urn:li:activity:7368619407989760000/': Cleared data types: "storage".
+[INFO] Clear-Site-Data header on 'https://www.linkedin.com/feed/update/urn:li:activity:7368619407989760000/': Cleared data types: "storage".
+[INFO] Clear-Site-Data header on 'https://www.linkedin.com/feed/update/urn:li:activity:7368619407989760000/': Cleared data types: "storage".
+[INFO] Clear-Site-Data header on 'https://www.linkedin.com/feed/update/urn:li:activity:7368619407989760000/': Cleared data types: "storage".
+[INFO] Clear-Site-Data header on 'https://www.linkedin.com/feed/update/urn:li:activity:7368619407989760000/': Cleared data types: "storage".
+-------------------------------------------------
+
+--- BACKGROUND SERVICE WORKER LOGS ON FAILURE ---
+[2025-09-05T09:43:59.673Z] [BG_LOG] "AI Config updated and saved:" {"provider":"openrouter","apiKey":"","model":"anthropic/claude-3.5-sonnet","temperature":0.7,"top_p":1,"max_tokens":256,"stream":true,"reply":{"customPrompt":"Keep it warm, brief, specific; acknowledge their point; avoid salesy tone; 0–1 emoji."},"dm":{"customPrompt":"Thank them, reference comment, offer short helpful resource; soft opt-in; no pressure."},"attribution":{"httpReferer":"https://github.com/your-repo/linkedin-engagement-assistant","xTitle":"LinkedIn Engagement Assistant"},"modelFilters":{"onlyTextOutput":true,"minContext":8000}}
+[2025-09-05T09:43:59.706Z] [BG_LOG] "[E2E MOCK] Registered mock for pattern: /api/v1/chat/completions"
+[2025-09-05T09:43:59.749Z] [BG_LOG] "State saved for post URN: urn:li:activity:7368619407989760000"
+--------------------------------------------------
+
+--- PAGE & CONTENT SCRIPT LOGS ON FAILURE ---
+[INFO] Clear-Site-Data header on 'https://www.linkedin.com/feed/update/urn:li:activity:7123456789012345678/': Cleared data types: "storage".
+[INFO] Clear-Site-Data header on 'https://www.linkedin.com/feed/update/urn:li:activity:7123456789012345678/': Cleared data types: "storage".
+[INFO] Clear-Site-Data header on 'https://www.linkedin.com/feed/update/urn:li:activity:7123456789012345678/': Cleared data types: "storage".
+[INFO] Clear-Site-Data header on 'https://www.linkedin.com/feed/update/urn:li:activity:7123456789012345678/': Cleared data types: "storage".
+[INFO] Clear-Site-Data header on 'https://www.linkedin.com/feed/update/urn:li:activity:7123456789012345678/': Cleared data types: "storage".
+[INFO] Clear-Site-Data header on 'https://www.linkedin.com/feed/update/urn:li:activity:7123456789012345678/': Cleared data types: "storage".
+[INFO] Clear-Site-Data header on 'https://www.linkedin.com/feed/update/urn:li:activity:7123456789012345678/': Cleared data types: "storage".
+[INFO] Clear-Site-Data header on 'https://www.linkedin.com/feed/update/urn:li:activity:7123456789012345678/': Cleared data types: "storage".
+[INFO] Clear-Site-Data header on 'https://www.linkedin.com/feed/update/urn:li:activity:7123456789012345678/': Cleared data types: "storage".
+[INFO] Clear-Site-Data header on 'https://www.linkedin.com/feed/update/urn:li:activity:7123456789012345678/': Cleared data types: "storage".
+[INFO] Clear-Site-Data header on 'https://www.linkedin.com/feed/update/urn:li:activity:7123456789012345678/': Cleared data types: "storage".
+[INFO] Clear-Site-Data header on 'https://www.linkedin.com/feed/update/urn:li:activity:7123456789012345678/': Cleared data types: "storage".
+[INFO] Clear-Site-Data header on 'https://www.linkedin.com/feed/update/urn:li:activity:7123456789012345678/': Cleared data types: "storage".
+[INFO] Clear-Site-Data header on 'https://www.linkedin.com/feed/update/urn:li:activity:7123456789012345678/': Cleared data types: "storage".
+[INFO] Clear-Site-Data header on 'https://www.linkedin.com/feed/update/urn:li:activity:7123456789012345678/': Cleared data types: "storage".
+[INFO] Clear-Site-Data header on 'https://www.linkedin.com/feed/update/urn:li:activity:7123456789012345678/': Cleared data types: "storage".
+[INFO] Clear-Site-Data header on 'https://www.linkedin.com/feed/update/urn:li:activity:7123456789012345678/': Cleared data types: "storage".
+[INFO] Clear-Site-Data header on 'https://www.linkedin.com/feed/update/urn:li:activity:7123456789012345678/': Cleared data types: "storage".
+[INFO] Clear-Site-Data header on 'https://www.linkedin.com/feed/update/urn:li:activity:7123456789012345678/': Cleared data types: "storage".
+[INFO] Clear-Site-Data header on 'https://www.linkedin.com/feed/update/urn:li:activity:7123456789012345678/': Cleared data types: "storage".
+-------------------------------------------------
+  ✘  6 tests/e2e/real-time-ui.spec.ts:27:3 › Real-time UI Updates › should update Live Counters on STATE_UPDATE event (14.2s)
+
+--- PAGE & CONTENT SCRIPT LOGS ON FAILURE ---
+[INFO] Clear-Site-Data header on 'https://www.linkedin.com/feed/': Cleared data types: "storage".
+[INFO] Clear-Site-Data header on 'https://www.linkedin.com/feed/': Cleared data types: "storage".
+[INFO] Clear-Site-Data header on 'https://www.linkedin.com/feed/': Cleared data types: "storage".
+[INFO] Clear-Site-Data header on 'https://www.linkedin.com/feed/': Cleared data types: "storage".
+[INFO] Clear-Site-Data header on 'https://www.linkedin.com/feed/': Cleared data types: "storage".
+[INFO] Clear-Site-Data header on 'https://www.linkedin.com/feed/': Cleared data types: "storage".
+[INFO] Clear-Site-Data header on 'https://www.linkedin.com/feed/': Cleared data types: "storage".
+[INFO] Clear-Site-Data header on 'https://www.linkedin.com/feed/': Cleared data types: "storage".
+[INFO] Clear-Site-Data header on 'https://www.linkedin.com/feed/': Cleared data types: "storage".
+[INFO] Clear-Site-Data header on 'https://www.linkedin.com/feed/': Cleared data types: "storage".
+[INFO] Clear-Site-Data header on 'https://www.linkedin.com/feed/': Cleared data types: "storage".
+[INFO] Clear-Site-Data header on 'https://www.linkedin.com/feed/': Cleared data types: "storage".
+[INFO] Clear-Site-Data header on 'https://www.linkedin.com/feed/': Cleared data types: "storage".
+[INFO] Clear-Site-Data header on 'https://www.linkedin.com/feed/': Cleared data types: "storage".
+[INFO] Clear-Site-Data header on 'https://www.linkedin.com/feed/': Cleared data types: "storage".
+[INFO] Clear-Site-Data header on 'https://www.linkedin.com/feed/': Cleared data types: "storage".
+[INFO] Clear-Site-Data header on 'https://www.linkedin.com/feed/': Cleared data types: "storage".
+[INFO] Clear-Site-Data header on 'https://www.linkedin.com/feed/': Cleared data types: "storage".
+[INFO] Clear-Site-Data header on 'https://www.linkedin.com/feed/': Cleared data types: "storage".
+-------------------------------------------------
+
+--- BACKGROUND SERVICE WORKER LOGS ON FAILURE ---
+[2025-09-05T09:43:59.807Z] [BG_LOG] "AI Config updated and saved:" {"provider":"openrouter","apiKey":"","model":"anthropic/claude-3.5-sonnet","temperature":0.7,"top_p":1,"max_tokens":256,"stream":true,"reply":{"customPrompt":"Keep it warm, brief, specific; acknowledge their point; avoid salesy tone; 0–1 emoji."},"dm":{"customPrompt":"Thank them, reference comment, offer short helpful resource; soft opt-in; no pressure."},"attribution":{"httpReferer":"https://github.com/your-repo/linkedin-engagement-assistant","xTitle":"LinkedIn Engagement Assistant"},"modelFilters":{"onlyTextOutput":true,"minContext":8000}}
+[2025-09-05T09:43:59.820Z] [BG_LOG] "[E2E MOCK] Registered mock for pattern: /api/v1/chat/completions"
+[2025-09-05T09:43:59.843Z] [BG_LOG] "State saved for post URN: urn:li:activity:7123456789012345678"
+--------------------------------------------------
+
+--- BACKGROUND SERVICE WORKER LOGS ON FAILURE ---
+[2025-09-05T09:43:59.658Z] [BG_LOG] "AI Config updated and saved:" {"provider":"openrouter","apiKey":"","model":"anthropic/claude-3.5-sonnet","temperature":0.7,"top_p":1,"max_tokens":256,"stream":true,"reply":{"customPrompt":"Keep it warm, brief, specific; acknowledge their point; avoid salesy tone; 0–1 emoji."},"dm":{"customPrompt":"Thank them, reference comment, offer short helpful resource; soft opt-in; no pressure."},"attribution":{"httpReferer":"https://github.com/your-repo/linkedin-engagement-assistant","xTitle":"LinkedIn Engagement Assistant"},"modelFilters":{"onlyTextOutput":true,"minContext":8000}}
+[2025-09-05T09:43:59.690Z] [BG_LOG] "[E2E MOCK] Registered mock for pattern: /api/v1/models"
+--------------------------------------------------
+  ✘  1 tests/e2e/ui-injection.spec.ts:4:3 › Extension UI Injection and Initial State › should inject the sidebar with default components on a LinkedIn post page (14.7s)
+  ✘  5 tests/e2e/setup.spec.ts:4:3 › Extension E2E Setup › should load the extension and inject the content script on linkedin.com (14.7s)
+  ✘  3 tests/e2e/pipeline-controls.spec.ts:114:3 › Pipeline Control E2E Tests › should successfully control pipeline lifecycle: start, stop, and resume (14.9s)
+  ✘  2 tests/e2e/settings-persistence.spec.ts:4:3 › AI Settings Persistence › should save settings, reload, and verify they are persisted (15.1s)
+  ✘  4 tests/e2e/error-handling.spec.ts:87:3 › Error Handling E2E Tests › should display FAILED status and error log when AI call fails (15.1s)
+
+--- PAGE & CONTENT SCRIPT LOGS ON FAILURE ---
+[INFO] Clear-Site-Data header on 'https://www.linkedin.com/feed/update/urn:li:activity:7368619407989760000/': Cleared data types: "storage".
+[INFO] Clear-Site-Data header on 'https://www.linkedin.com/feed/update/urn:li:activity:7368619407989760000/': Cleared data types: "storage".
+[INFO] Clear-Site-Data header on 'https://www.linkedin.com/feed/update/urn:li:activity:7368619407989760000/': Cleared data types: "storage".
+[INFO] Clear-Site-Data header on 'https://www.linkedin.com/feed/update/urn:li:activity:7368619407989760000/': Cleared data types: "storage".
+[INFO] Clear-Site-Data header on 'https://www.linkedin.com/feed/update/urn:li:activity:7368619407989760000/': Cleared data types: "storage".
+[INFO] Clear-Site-Data header on 'https://www.linkedin.com/feed/update/urn:li:activity:7368619407989760000/': Cleared data types: "storage".
+[INFO] Clear-Site-Data header on 'https://www.linkedin.com/feed/update/urn:li:activity:7368619407989760000/': Cleared data types: "storage".
+[INFO] Clear-Site-Data header on 'https://www.linkedin.com/feed/update/urn:li:activity:7368619407989760000/': Cleared data types: "storage".
+[INFO] Clear-Site-Data header on 'https://www.linkedin.com/feed/update/urn:li:activity:7368619407989760000/': Cleared data types: "storage".
+[INFO] Clear-Site-Data header on 'https://www.linkedin.com/feed/update/urn:li:activity:7368619407989760000/': Cleared data types: "storage".
+[INFO] Clear-Site-Data header on 'https://www.linkedin.com/feed/update/urn:li:activity:7368619407989760000/': Cleared data types: "storage".
+[INFO] Clear-Site-Data header on 'https://www.linkedin.com/feed/update/urn:li:activity:7368619407989760000/': Cleared data types: "storage".
+[INFO] Clear-Site-Data header on 'https://www.linkedin.com/feed/update/urn:li:activity:7368619407989760000/': Cleared data types: "storage".
+[INFO] Clear-Site-Data header on 'https://www.linkedin.com/feed/update/urn:li:activity:7368619407989760000/': Cleared data types: "storage".
+[INFO] Clear-Site-Data header on 'https://www.linkedin.com/feed/update/urn:li:activity:7368619407989760000/': Cleared data types: "storage".
+[INFO] Clear-Site-Data header on 'https://www.linkedin.com/feed/update/urn:li:activity:7368619407989760000/': Cleared data types: "storage".
+[INFO] Clear-Site-Data header on 'https://www.linkedin.com/feed/update/urn:li:activity:7368619407989760000/': Cleared data types: "storage".
+[INFO] Clear-Site-Data header on 'https://www.linkedin.com/feed/update/urn:li:activity:7368619407989760000/': Cleared data types: "storage".
+[INFO] Clear-Site-Data header on 'https://www.linkedin.com/feed/update/urn:li:activity:7368619407989760000/': Cleared data types: "storage".
+[INFO] Clear-Site-Data header on 'https://www.linkedin.com/feed/update/urn:li:activity:7368619407989760000/': Cleared data types: "storage".
+-------------------------------------------------
+
+--- BACKGROUND SERVICE WORKER LOGS ON FAILURE ---
+No logs captured from service worker.
+--------------------------------------------------
+  ✘  7 tests/e2e/real-time-ui.spec.ts:49:3 › Real-time UI Updates › should update Pipeline Progress on STATE_UPDATE event (12.1s)
+
+--- PAGE & CONTENT SCRIPT LOGS ON FAILURE ---
+[INFO] Clear-Site-Data header on 'https://www.linkedin.com/feed/update/urn:li:activity:7368619407989760000/': Cleared data types: "storage".
+[INFO] Clear-Site-Data header on 'https://www.linkedin.com/feed/update/urn:li:activity:7368619407989760000/': Cleared data types: "storage".
+[INFO] Clear-Site-Data header on 'https://www.linkedin.com/feed/update/urn:li:activity:7368619407989760000/': Cleared data types: "storage".
+[INFO] Clear-Site-Data header on 'https://www.linkedin.com/feed/update/urn:li:activity:7368619407989760000/': Cleared data types: "storage".
+[INFO] Clear-Site-Data header on 'https://www.linkedin.com/feed/update/urn:li:activity:7368619407989760000/': Cleared data types: "storage".
+[INFO] Clear-Site-Data header on 'https://www.linkedin.com/feed/update/urn:li:activity:7368619407989760000/': Cleared data types: "storage".
+[INFO] Clear-Site-Data header on 'https://www.linkedin.com/feed/update/urn:li:activity:7368619407989760000/': Cleared data types: "storage".
+[INFO] Clear-Site-Data header on 'https://www.linkedin.com/feed/update/urn:li:activity:7368619407989760000/': Cleared data types: "storage".
+[INFO] Clear-Site-Data header on 'https://www.linkedin.com/feed/update/urn:li:activity:7368619407989760000/': Cleared data types: "storage".
+[INFO] Clear-Site-Data header on 'https://www.linkedin.com/feed/update/urn:li:activity:7368619407989760000/': Cleared data types: "storage".
+[INFO] Clear-Site-Data header on 'https://www.linkedin.com/feed/update/urn:li:activity:7368619407989760000/': Cleared data types: "storage".
+[INFO] Clear-Site-Data header on 'https://www.linkedin.com/feed/update/urn:li:activity:7368619407989760000/': Cleared data types: "storage".
+[INFO] Clear-Site-Data header on 'https://www.linkedin.com/feed/update/urn:li:activity:7368619407989760000/': Cleared data types: "storage".
+[INFO] Clear-Site-Data header on 'https://www.linkedin.com/feed/update/urn:li:activity:7368619407989760000/': Cleared data types: "storage".
+[INFO] Clear-Site-Data header on 'https://www.linkedin.com/feed/update/urn:li:activity:7368619407989760000/': Cleared data types: "storage".
+[INFO] Clear-Site-Data header on 'https://www.linkedin.com/feed/update/urn:li:activity:7368619407989760000/': Cleared data types: "storage".
+[INFO] Clear-Site-Data header on 'https://www.linkedin.com/feed/update/urn:li:activity:7368619407989760000/': Cleared data types: "storage".
+[INFO] Clear-Site-Data header on 'https://www.linkedin.com/feed/update/urn:li:activity:7368619407989760000/': Cleared data types: "storage".
+[INFO] Clear-Site-Data header on 'https://www.linkedin.com/feed/update/urn:li:activity:7368619407989760000/': Cleared data types: "storage".
+[INFO] Clear-Site-Data header on 'https://www.linkedin.com/feed/update/urn:li:activity:7368619407989760000/': Cleared data types: "storage".
+-------------------------------------------------
+
+--- BACKGROUND SERVICE WORKER LOGS ON FAILURE ---
+No logs captured from service worker.
+--------------------------------------------------
+  ✘  8 tests/e2e/real-time-ui.spec.ts:90:3 › Real-time UI Updates › should add new entry to Logs Panel on LOG_ENTRY event (11.2s)
 
 
-  1) tests/e2e/real-time-ui.spec.ts:49:3 › Real-time UI Updates › should update Pipeline Progress on STATE_UPDATE event 
+  1) tests/e2e/error-handling.spec.ts:87:3 › Error Handling E2E Tests › should display FAILED status and error log when AI call fails 
 
-    Error: page.goto: net::ERR_HTTP_RESPONSE_CODE_FAILURE at https://www.linkedin.com/feed/update/urn:li:activity:7368619407989760000/
+    Error: page.goto: net::ERR_TOO_MANY_REDIRECTS at https://www.linkedin.com/feed/update/urn:li:activity:7123456789012345678/
+    Call log:
+    [2m  - navigating to "https://www.linkedin.com/feed/update/urn:li:activity:7123456789012345678/", waiting until "domcontentloaded"[22m
+
+
+      77 |
+      78 |     // 3. Navigate to the target page and wait for the UI to be ready.
+    > 79 |     await page.goto(TEST_POST_URL, { waitUntil: 'domcontentloaded' });
+         |                ^
+      80 |
+      81 |     const sidebarRootLocator = page.locator(
+      82 |       '#linkedin-engagement-assistant-root'
+        at /home/moaz/code_machine/projects/linkedin_life_saver/project/tests/e2e/error-handling.spec.ts:79:16
+
+  2) tests/e2e/pipeline-controls.spec.ts:114:3 › Pipeline Control E2E Tests › should successfully control pipeline lifecycle: start, stop, and resume 
+
+    Error: page.goto: net::ERR_TOO_MANY_REDIRECTS at https://www.linkedin.com/feed/update/urn:li:activity:7368619407989760000/
+    Call log:
+    [2m  - navigating to "https://www.linkedin.com/feed/update/urn:li:activity:7368619407989760000/", waiting until "domcontentloaded"[22m
+
+
+      81 |
+      82 |     // Navigate to a LinkedIn post page
+    > 83 |     await page.goto(TEST_POST_URL, { waitUntil: 'domcontentloaded' });
+         |                ^
+      84 |
+      85 |     // Inject a mock DOM for the content script to interact with. This is done
+      86 |     // by appending to the body rather than replacing its content, which avoids
+        at /home/moaz/code_machine/projects/linkedin_life_saver/project/tests/e2e/pipeline-controls.spec.ts:83:16
+
+  3) tests/e2e/real-time-ui.spec.ts:27:3 › Real-time UI Updates › should update Live Counters on STATE_UPDATE event 
+
+    Error: page.goto: net::ERR_TOO_MANY_REDIRECTS at https://www.linkedin.com/feed/update/urn:li:activity:7368619407989760000/
     Call log:
     [2m  - navigating to "https://www.linkedin.com/feed/update/urn:li:activity:7368619407989760000/", waiting until "domcontentloaded"[22m
 
@@ -61,8 +298,94 @@ No logs captured from page.
       20 |     // Wait for the sidebar root element to be injected into the DOM
       21 |     await page.waitForSelector('#linkedin-engagement-assistant-root', { timeout: 30000 });
       22 |     // Wait for the Preact app container inside the shadow root to be visible and ready.
-        at /Users/bahy/Documents/playground/capstone_project/server/projects/linkedin_life_saver/project/tests/e2e/real-time-ui.spec.ts:19:16
+        at /home/moaz/code_machine/projects/linkedin_life_saver/project/tests/e2e/real-time-ui.spec.ts:19:16
 
-  1 failed
+  4) tests/e2e/real-time-ui.spec.ts:49:3 › Real-time UI Updates › should update Pipeline Progress on STATE_UPDATE event 
+
+    Error: page.goto: net::ERR_TOO_MANY_REDIRECTS at https://www.linkedin.com/feed/update/urn:li:activity:7368619407989760000/
+    Call log:
+    [2m  - navigating to "https://www.linkedin.com/feed/update/urn:li:activity:7368619407989760000/", waiting until "domcontentloaded"[22m
+
+
+      17 |
+      18 |   test.beforeEach(async ({ page }) => {
+    > 19 |     await page.goto(postUrl, { waitUntil: 'domcontentloaded' });
+         |                ^
+      20 |     // Wait for the sidebar root element to be injected into the DOM
+      21 |     await page.waitForSelector('#linkedin-engagement-assistant-root', { timeout: 30000 });
+      22 |     // Wait for the Preact app container inside the shadow root to be visible and ready.
+        at /home/moaz/code_machine/projects/linkedin_life_saver/project/tests/e2e/real-time-ui.spec.ts:19:16
+
+  5) tests/e2e/real-time-ui.spec.ts:90:3 › Real-time UI Updates › should add new entry to Logs Panel on LOG_ENTRY event 
+
+    Error: page.goto: net::ERR_TOO_MANY_REDIRECTS at https://www.linkedin.com/feed/update/urn:li:activity:7368619407989760000/
+    Call log:
+    [2m  - navigating to "https://www.linkedin.com/feed/update/urn:li:activity:7368619407989760000/", waiting until "domcontentloaded"[22m
+
+
+      17 |
+      18 |   test.beforeEach(async ({ page }) => {
+    > 19 |     await page.goto(postUrl, { waitUntil: 'domcontentloaded' });
+         |                ^
+      20 |     // Wait for the sidebar root element to be injected into the DOM
+      21 |     await page.waitForSelector('#linkedin-engagement-assistant-root', { timeout: 30000 });
+      22 |     // Wait for the Preact app container inside the shadow root to be visible and ready.
+        at /home/moaz/code_machine/projects/linkedin_life_saver/project/tests/e2e/real-time-ui.spec.ts:19:16
+
+  6) tests/e2e/settings-persistence.spec.ts:4:3 › AI Settings Persistence › should save settings, reload, and verify they are persisted 
+
+    Error: page.goto: net::ERR_TOO_MANY_REDIRECTS at https://www.linkedin.com/feed/
+    Call log:
+    [2m  - navigating to "https://www.linkedin.com/feed/", waiting until "domcontentloaded"[22m
+
+
+      39 |
+      40 |     // 1. Navigate to a valid page and wait for the extension's UI to be injected.
+    > 41 |     await page.goto('https://www.linkedin.com/feed/', {
+         |                ^
+      42 |       waitUntil: 'domcontentloaded',
+      43 |     });
+      44 |     const sidebarLocator = page.locator('#linkedin-engagement-assistant-root');
+        at /home/moaz/code_machine/projects/linkedin_life_saver/project/tests/e2e/settings-persistence.spec.ts:41:16
+
+  7) tests/e2e/setup.spec.ts:4:3 › Extension E2E Setup › should load the extension and inject the content script on linkedin.com 
+
+    Error: page.goto: net::ERR_TOO_MANY_REDIRECTS at https://www.linkedin.com/feed/
+    Call log:
+    [2m  - navigating to "https://www.linkedin.com/feed/", waiting until "load"[22m
+
+
+       5 |     // Navigate to a page where the content script is expected to run.
+       6 |     // Using /feed/ is more reliable as it's a standard logged-in page.
+    >  7 |     await page.goto('https://www.linkedin.com/feed/');
+         |                ^
+       8 |
+       9 |     // The content script injects a root element with a specific ID.
+      10 |     const sidebarRootLocator = page.locator(
+        at /home/moaz/code_machine/projects/linkedin_life_saver/project/tests/e2e/setup.spec.ts:7:16
+
+  8) tests/e2e/ui-injection.spec.ts:4:3 › Extension UI Injection and Initial State › should inject the sidebar with default components on a LinkedIn post page 
+
+    Error: page.goto: net::ERR_TOO_MANY_REDIRECTS at https://www.linkedin.com/feed/update/urn:li:activity:7368619407989760000/
+    Call log:
+    [2m  - navigating to "https://www.linkedin.com/feed/update/urn:li:activity:7368619407989760000/", waiting until "domcontentloaded"[22m
+
+
+       5 |     // 1. Navigate to a LinkedIn post page
+       6 |     const postUrl = 'https://www.linkedin.com/feed/update/urn:li:activity:7368619407989760000/';
+    >  7 |     await page.goto(postUrl, { 
+         |                ^
+       8 |       waitUntil: 'domcontentloaded',
+       9 |       timeout: 60000 
+      10 |     });
+        at /home/moaz/code_machine/projects/linkedin_life_saver/project/tests/e2e/ui-injection.spec.ts:7:16
+
+  8 failed
+    tests/e2e/error-handling.spec.ts:87:3 › Error Handling E2E Tests › should display FAILED status and error log when AI call fails 
+    tests/e2e/pipeline-controls.spec.ts:114:3 › Pipeline Control E2E Tests › should successfully control pipeline lifecycle: start, stop, and resume 
+    tests/e2e/real-time-ui.spec.ts:27:3 › Real-time UI Updates › should update Live Counters on STATE_UPDATE event 
     tests/e2e/real-time-ui.spec.ts:49:3 › Real-time UI Updates › should update Pipeline Progress on STATE_UPDATE event 
-  7 passed (12.1s)
+    tests/e2e/real-time-ui.spec.ts:90:3 › Real-time UI Updates › should add new entry to Logs Panel on LOG_ENTRY event 
+    tests/e2e/settings-persistence.spec.ts:4:3 › AI Settings Persistence › should save settings, reload, and verify they are persisted 
+    tests/e2e/setup.spec.ts:4:3 › Extension E2E Setup › should load the extension and inject the content script on linkedin.com 
+    tests/e2e/ui-injection.spec.ts:4:3 › Extension UI Injection and Initial State › should inject the sidebar with default components on a LinkedIn post page 
