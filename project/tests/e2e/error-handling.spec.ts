@@ -43,6 +43,16 @@ const mockPostState: PostState = {
 
 test.describe('Error Handling E2E Tests', () => {
   test.beforeEach(async ({ page, background }) => {
+    // 0. Set a dummy API key to bypass the config check and test network failure.
+    await background.evaluate(async () => {
+      // This is a test-only hook exposed by the service worker setup in fixtures.ts
+      await (
+        self as unknown as {
+          __E2E_TEST_UPDATE_CONFIG: (config: { apiKey: string }) => Promise<void>;
+        }
+      ).__E2E_TEST_UPDATE_CONFIG({ apiKey: 'DUMMY_KEY_FOR_TESTING' });
+    });
+
     // 1. Mock the network request to OpenRouter to simulate an API failure.
     // This is done by instrumenting the service worker's global fetch.
     await background.evaluate(() => {
@@ -102,7 +112,10 @@ test.describe('Error Handling E2E Tests', () => {
     const repliedStepIndicator = commentRowLocator.locator(
       '.step-item:has-text("Replied") .step-indicator'
     );
-    const errorLogLocator = sidebarRootLocator.locator('.log-entry--error');
+    // This locator is specific to the final error log, ignoring intermediate errors.
+    const errorLogLocator = sidebarRootLocator.locator(
+      '.log-entry--error:has-text("Failed to reply to comment")'
+    );
 
     await test.step('Start the pipeline', async () => {
       await expect(startButtonLocator).toBeVisible();
@@ -112,11 +125,13 @@ test.describe('Error Handling E2E Tests', () => {
     await test.step('Verify UI shows FAILED status for the reply step', async () => {
       // The assertion waits for the class 'step-failed' to be applied to the
       // indicator, confirming the UI has updated to reflect the error state.
-      await expect(repliedStepIndicator).toHaveClass(/step-failed/, { timeout: 10000 });
+      await expect(repliedStepIndicator).toHaveClass(/step-failed/, {
+        timeout: 10000,
+      });
     });
 
     await test.step('Verify a structured error log is displayed in the logs panel', async () => {
-      // The assertion waits for an error-level log entry to become visible.
+      // The assertion waits for the specific, final error log entry to become visible.
       await expect(errorLogLocator).toBeVisible();
       // It then checks that the log message contains the expected error text,
       // confirming that the specific failure was logged correctly.
