@@ -107,10 +107,10 @@ test.describe('Error Handling E2E Tests', () => {
     const commentRowLocator = sidebarRootLocator.locator(
       `[data-testid="pipeline-row-${mockComment.commentId}"]`
     );
-    // This selector is robust: it finds the step item containing the text "Replied"
-    // and then targets the status indicator within it.
+    // This selector targets the specific test ID for the "Replied" step's status indicator,
+    // making it more robust against UI structure and style changes.
     const repliedStepIndicator = commentRowLocator.locator(
-      '.step-item:has-text("Replied") .step-indicator'
+      '[data-testid="step-indicator-Replied"]'
     );
     // This locator is specific to the final error log, ignoring intermediate errors.
     const errorLogLocator = sidebarRootLocator.locator(
