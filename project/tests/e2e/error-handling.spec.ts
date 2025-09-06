@@ -5,6 +5,7 @@ import { getLinkedInUrl } from './helpers';
 // Test data constants
 const TEST_POST_URN = 'urn:li:activity:7369271078898126852'; // Use a different URN to avoid state conflicts
 const TEST_POST_URL = getLinkedInUrl('post', TEST_POST_URN);
+const OPENROUTER_API_URL = 'https://openrouter.ai/api/v1/chat/completions';
 
 // A mock comment designed to trigger the AI reply step immediately.
 // 'likeStatus' is 'DONE', so the pipeline moves to the 'reply' step.
@@ -46,20 +47,17 @@ test.describe('Error Handling E2E Tests', () => {
     background,
   }) => {
     // 1. Intercept the network request to OpenRouter and mock an error response.
-    await page.route(
-      'https://openrouter.ai/api/v1/chat/completions',
-      async (route) => {
-        await route.fulfill({
-          status: 500,
-          contentType: 'application/json',
-          body: JSON.stringify({
-            error: {
-              message: 'Simulated server error from test',
-            },
-          }),
-        });
-      }
-    );
+    await page.route(OPENROUTER_API_URL, async (route) => {
+      await route.fulfill({
+        status: 500,
+        contentType: 'application/json',
+        body: JSON.stringify({
+          error: {
+            message: 'Simulated server error from test',
+          },
+        }),
+      });
+    });
 
     // 2. Inject mock state into the service worker's storage.
     await background.evaluate(
@@ -110,17 +108,14 @@ test.describe('Error Handling E2E Tests', () => {
     // Wait for the first error log to appear.
     await expect(errorLogLocator.first()).toBeVisible({ timeout: 10000 });
 
-    // The pipeline manager logs a high-level error when the reply action fails.
-    // The openRouterClient logs a more specific error about the network failure.
-    // We'll assert that the final, user-facing error is logged.
     const allErrorLogs = await errorLogLocator.allTextContents();
     const combinedErrorLogs = allErrorLogs.join(' ');
 
-    // Check for the error logged when the reply step fails in the pipeline.
+    // Check for the high-level error logged by the pipelineManager.
     expect(combinedErrorLogs).toContain('Failed to reply to comment');
 
-    // Check for the specific error message from the mocked API response, which should be propagated up.
-    // The openRouterClient's retry logic will wrap this.
+    // Check for the specific error message from the mocked API response,
+    // which should be propagated through the system and logged.
     expect(combinedErrorLogs).toContain('Simulated server error from test');
   });
 });
