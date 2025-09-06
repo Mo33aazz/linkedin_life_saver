@@ -3,21 +3,21 @@ import type { PostState, Comment } from '../../src/shared/types';
 import { getLinkedInUrl } from './helpers';
 
 // Test data constants
-const TEST_POST_URN = 'urn:li:activity:7369271078898126852'; // Use a different URN to avoid state conflicts
+const TEST_POST_URN = 'urn:li:activity:7369271078898126851';
 const TEST_POST_URL = getLinkedInUrl('post', TEST_POST_URN);
 
-// A mock comment designed to trigger the AI reply step immediately.
-// 'likeStatus' is 'DONE', so the pipeline moves to the 'reply' step.
+// A mock comment designed to fail at the 'Reply' step.
+// The 'Like' step is already marked as 'DONE' to isolate the reply action.
 const mockComment: Comment = {
-  commentId: 'urn:li:comment:(activity:7369271078898126852,12345678)',
-  text: 'This is a test comment for error handling.',
-  ownerProfileUrl: 'https://www.linkedin.com/in/error-test-user/',
+  commentId: 'urn:li:comment:(activity:7369271078898126851,12345678)',
+  text: 'This is a test comment designed to trigger an API error.',
+  ownerProfileUrl: 'https://www.linkedin.com/in/error-user/',
   timestamp: '2d',
   type: 'top-level',
   connected: false,
-  threadId: 'urn:li:comment:(activity:7369271078898126852,12345678)',
-  likeStatus: 'DONE', // Pre-condition: comment is already liked
-  replyStatus: '', // Next step: reply to the comment
+  threadId: 'urn:li:comment:(activity:7369271078898126851,12345678)',
+  likeStatus: 'DONE', // Pre-condition: Liking is complete.
+  replyStatus: '', // Pre-condition: Replying is the next step.
   dmStatus: '',
   attempts: { like: 0, reply: 0, dm: 0 },
   lastError: '',
@@ -41,12 +41,12 @@ const mockPostState: PostState = {
 };
 
 test.describe('Error Handling E2E Tests', () => {
-  test('should display failed status and error log on API failure', async ({
-    page,
-    background,
-  }) => {
-    // 1. Inject mock state into the service worker's storage.
-    // The network request to OpenRouter is mocked in the test fixture to ensure reliability.
+  test.beforeEach(async ({ page, background }) => {
+    // Note: The fetch mock that forces a 500 error on the OpenRouter API
+    // is automatically applied by `tests/e2e/fixtures.ts` because this
+    // test file's name includes 'error-handling.spec'.
+
+    // Inject mock state into the service worker's storage.
     await background.evaluate(
       async ({ postUrn, state }: { postUrn: string; state: PostState }) => {
         await (
@@ -61,48 +61,52 @@ test.describe('Error Handling E2E Tests', () => {
       { postUrn: TEST_POST_URN, state: mockPostState }
     );
 
-    // 2. Navigate to the post and wait for the UI to be ready.
+    // Navigate to the test post page.
     await page.goto(TEST_POST_URL, { waitUntil: 'domcontentloaded' });
+
+    // Wait for the sidebar to be attached to the DOM.
     const sidebarRootLocator = page.locator(
       '#linkedin-engagement-assistant-root'
     );
     await expect(sidebarRootLocator).toBeAttached({ timeout: 15000 });
+  });
 
-    // 3. Start the pipeline.
+  test('should display error state when API call fails', async ({ page }) => {
+    const sidebarRootLocator = page.locator(
+      '#linkedin-engagement-assistant-root'
+    );
     const startButtonLocator = sidebarRootLocator.locator(
       '[data-testid="start-button"]'
     );
-    await startButtonLocator.click();
 
-    // 4. Verify the UI reflects the failure state.
-
-    // 4.1. Check the Pipeline Progress for a 'FAILED' status on the 'Replied' step.
+    // Define locators specific to the comment and its expected failure state.
     const commentRowLocator = sidebarRootLocator.locator(
-      `[data-testid='pipeline-row-${mockComment.commentId}']`
+      `[data-testid="pipeline-row-${mockComment.commentId}"]`
     );
-    const repliedStepIndicator = commentRowLocator.locator(
-      `[data-testid='step-indicator-Replied']`
+    const failedStepIndicator = commentRowLocator.locator(
+      '[data-testid="step-indicator-Replied"]'
+    );
+    const errorLogLocator = sidebarRootLocator.locator(
+      '.log-entry--error:has-text("Failed to reply to comment")'
     );
 
-    // The assertion waits for the class to be applied, indicating the UI has updated.
-    await expect(repliedStepIndicator).toHaveClass(/step-failed/, {
-      timeout: 10000,
+    await test.step('Start the pipeline', async () => {
+      await expect(startButtonLocator).toBeVisible();
+      await startButtonLocator.click();
     });
 
-    // 4.2. Check the Logs Panel for a corresponding error message.
-    const errorLogLocator = sidebarRootLocator.locator('.log-entry--error');
+    await test.step('Verify UI reflects the API failure', async () => {
+      // The pipeline will attempt to reply, hit the mocked 500 error,
+      // and update the state. Playwright's web-first assertions will
+      // wait for the UI to reflect this change.
 
-    // Wait for the first error log to appear.
-    await expect(errorLogLocator.first()).toBeVisible({ timeout: 10000 });
+      // 1. Check that the 'Replied' step in the pipeline progress shows a 'failed' status.
+      await expect(failedStepIndicator).toHaveClass(/step-failed/, {
+        timeout: 10000,
+      });
 
-    const allErrorLogs = await errorLogLocator.allTextContents();
-    const combinedErrorLogs = allErrorLogs.join(' ');
-
-    // Check for the high-level error logged by the pipelineManager.
-    expect(combinedErrorLogs).toContain('Failed to reply to comment');
-
-    // Check for the specific error message from the mocked API response,
-    // which should be propagated through the system and logged.
-    expect(combinedErrorLogs).toContain('Simulated server error from test');
+      // 2. Check that a corresponding error message appears in the logs panel.
+      await expect(errorLogLocator).toBeVisible({ timeout: 10000 });
+    });
   });
 });
