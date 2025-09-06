@@ -8,14 +8,14 @@ transforming...
 rendering chunks...
 computing gzip size...
 dist/background.js  190.68 kB │ gzip: 50.52 kB │ map: 102.48 kB
-✓ built in 1.15s
+✓ built in 328ms
 vite v5.4.19 building for test...
 transforming...
 ✓ 22 modules transformed.
 rendering chunks...
 computing gzip size...
 dist/content.js  289.92 kB │ gzip: 83.25 kB │ map: 148.07 kB
-✓ built in 1.29s
+✓ built in 517ms
 Patched dist/manifest.json to include example.com for tests.
 
 > linkedin-engagement-assistant@0.0.0 test
@@ -31,14 +31,14 @@ transforming...
 rendering chunks...
 computing gzip size...
 dist/background.js  190.68 kB │ gzip: 50.52 kB │ map: 102.48 kB
-✓ built in 499ms
+✓ built in 301ms
 vite v5.4.19 building for test...
 transforming...
 ✓ 22 modules transformed.
 rendering chunks...
 computing gzip size...
 dist/content.js  289.92 kB │ gzip: 83.25 kB │ map: 148.07 kB
-✓ built in 876ms
+✓ built in 526ms
 Live mode detected, skipping manifest patch.
 
 Running 10 tests using 6 workers
@@ -49,20 +49,20 @@ Running 10 tests using 6 workers
 [E2E LIVE] Added 26 LinkedIn cookies to context.
 [E2E LIVE] Added 26 LinkedIn cookies to context.
 [E2E LIVE] Added 26 LinkedIn cookies to context.
-  ✓   4 tests/e2e/export-json.spec.ts:13:3 › Export Post Comments JSON › downloads JSON containing real post comments (7.6s)
+  ✓   1 tests/e2e/export-json.spec.ts:13:3 › Export Post Comments JSON › downloads JSON containing real post comments (5.3s)
 [E2E LIVE] Added 26 LinkedIn cookies to context.
-  ✓   2 tests/e2e/pipeline-controls.spec.ts:114:3 › Pipeline Control E2E Tests › should successfully control pipeline lifecycle: start, stop, and resume (9.2s)
-  ✓   1 tests/e2e/real-time-ui.spec.ts:29:3 › Real-time UI Updates › should update Live Counters on STATE_UPDATE event (9.4s)
-  ✓   5 tests/e2e/settings-persistence.spec.ts:5:3 › AI Settings Persistence › should save settings, reload, and verify they are persisted (10.1s)
-  ✓   6 tests/e2e/error-handling.spec.ts:44:3 › Error Handling E2E Tests › should display failed status and error log on API failure (10.5s)
+  ✓   4 tests/e2e/pipeline-controls.spec.ts:114:3 › Pipeline Control E2E Tests › should successfully control pipeline lifecycle: start, stop, and resume (6.6s)
+  ✓   5 tests/e2e/real-time-ui.spec.ts:29:3 › Real-time UI Updates › should update Live Counters on STATE_UPDATE event (7.0s)
 [E2E LIVE] Added 26 LinkedIn cookies to context.
+  ✓   3 tests/e2e/settings-persistence.spec.ts:5:3 › AI Settings Persistence › should save settings, reload, and verify they are persisted (7.6s)
 [E2E LIVE] Added 26 LinkedIn cookies to context.
-  ✓   7 tests/e2e/setup.spec.ts:5:3 › Extension E2E Setup › should load the extension and inject the content script on linkedin.com (3.7s)
-  ✓   9 tests/e2e/real-time-ui.spec.ts:51:3 › Real-time UI Updates › should update Pipeline Progress on STATE_UPDATE event (4.4s)
+  ✓   7 tests/e2e/setup.spec.ts:5:3 › Extension E2E Setup › should load the extension and inject the content script on linkedin.com (2.8s)
+  ✓   2 tests/e2e/error-handling.spec.ts:74:3 › Error Handling E2E Tests › should display error state when API call fails (9.1s)
+  ✓   9 tests/e2e/real-time-ui.spec.ts:51:3 › Real-time UI Updates › should update Pipeline Progress on STATE_UPDATE event (2.9s)
 [E2E LIVE] Added 26 LinkedIn cookies to context.
-  ✓  10 tests/e2e/real-time-ui.spec.ts:92:3 › Real-time UI Updates › should add new entry to Logs Panel on LOG_ENTRY event (3.6s)
-  ✓   8 tests/e2e/ui-injection.spec.ts:5:3 › Extension UI Injection and Initial State › should inject the sidebar with default components on a LinkedIn post page (8.9s)
+  ✓  10 tests/e2e/real-time-ui.spec.ts:92:3 › Real-time UI Updates › should add new entry to Logs Panel on LOG_ENTRY event (2.7s)
+  ✓   8 tests/e2e/ui-injection.spec.ts:5:3 › Extension UI Injection and Initial State › should inject the sidebar with default components on a LinkedIn post page (7.8s)
 [LIVE] Extracted 0 comments -> /home/moaz/code_machine/projects/linkedin_life_saver/project/test-results/live/comments.json
-  ✓   3 tests/e2e/live-extract-comments.spec.ts:10:3 › Live Comment Extraction › captures real comments from the post (20.3s)
+  ✓   6 tests/e2e/live-extract-comments.spec.ts:10:3 › Live Comment Extraction › captures real comments from the post (17.9s)
 
-  10 passed (25.2s)
+  10 passed (20.5s)
