@@ -1,9 +1,4 @@
-import {
-  likeComment,
-  replyToComment,
-  sendDm,
-  capturePostStateFromDOM,
-} from './domInteractor';
+import { likeComment, replyToComment, sendDm } from './domInteractor';
 import { mountApp } from '../ui';
 import css from '../index.css?inline';
 
@@ -42,12 +37,26 @@ chrome.runtime.onMessage.addListener((message, _sender, sendResponse) => {
 
   if (message.type === 'CAPTURE_POST_STATE') {
     console.log('Content script received CAPTURE_POST_STATE');
-    try {
-      const postStateData = capturePostStateFromDOM();
-      sendResponse({ status: 'success', payload: postStateData });
-    } catch (error) {
-      sendResponse({ status: 'error', message: (error as Error).message });
-    }
+    (async () => {
+      try {
+        const mod = await import('./domInteractor');
+        const disableScroll = Boolean((message.payload as { noScroll?: boolean })?.noScroll);
+        if (!disableScroll) {
+          // Quick scroll to trigger lazy-loading without long waits
+          const delay = (ms: number) => new Promise(r => setTimeout(r, ms));
+          for (let i = 0; i < 6; i++) {
+            window.scrollTo(0, document.body.scrollHeight);
+            await delay(400);
+          }
+          window.scrollTo(0, 0);
+          await delay(200);
+        }
+        const postStateData = mod.capturePostStateFromDOM();
+        sendResponse({ status: 'success', payload: postStateData });
+      } catch (error) {
+        sendResponse({ status: 'error', message: (error as Error).message });
+      }
+    })();
     return true; // Indicates async response
   }
 

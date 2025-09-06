@@ -14,8 +14,11 @@ export default defineConfig({
   reporter: 'html',
   use: {
     trace: 'on-first-retry',
-    // Add default navigation timeout
+    screenshot: 'only-on-failure',
+    video: 'retain-on-failure',
+    // Add default navigation timeout and a modest action timeout
     navigationTimeout: 60000,
+    actionTimeout: 15000,
   },
   projects: [
     {

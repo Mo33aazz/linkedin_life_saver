@@ -1,85 +1,164 @@
 
 > linkedin-engagement-assistant@0.0.0 build:test
-> tsc && vite build --mode test && vite build --config vite.config.content.js --mode test
+> tsc && vite build --mode test && vite build --config vite.config.content.js --mode test && node tools/test-manifest/patch.mjs
 
 vite v5.4.19 building for test...
 transforming...
 ✓ 6 modules transformed.
 rendering chunks...
 computing gzip size...
-dist/background.js  172.52 kB │ gzip: 45.03 kB │ map: 93.71 kB
-✓ built in 268ms
+dist/background.js  190.68 kB │ gzip: 50.52 kB │ map: 102.48 kB
+✓ built in 339ms
 vite v5.4.19 building for test...
 transforming...
-✓ 21 modules transformed.
+✓ 22 modules transformed.
 rendering chunks...
 computing gzip size...
-dist/content.js  278.88 kB │ gzip: 79.83 kB │ map: 144.06 kB
-✓ built in 439ms
+dist/content.js  289.92 kB │ gzip: 83.25 kB │ map: 148.07 kB
+✓ built in 729ms
+Patched dist/manifest.json to include example.com for tests.
 
 > linkedin-engagement-assistant@0.0.0 test
-> playwright test
+> E2E_LIVE_LINKEDIN=1 npm run build:test && E2E_LIVE_LINKEDIN=1 playwright test
 
 
-Running 8 tests using 6 workers
+> linkedin-engagement-assistant@0.0.0 build:test
+> tsc && vite build --mode test && vite build --config vite.config.content.js --mode test && node tools/test-manifest/patch.mjs
 
-Adding LinkedIn cookie for testing...
-Adding LinkedIn cookie for testing...
-LinkedIn cookie added successfully
-Setting up navigation debugging...
-LinkedIn cookie added successfully
-Setting up navigation debugging...
-Adding LinkedIn cookie for testing...
-LinkedIn cookie added successfully
-Setting up navigation debugging...
-Adding LinkedIn cookie for testing...
-LinkedIn cookie added successfully
-Setting up navigation debugging...
-Adding LinkedIn cookie for testing...
-Adding LinkedIn cookie for testing...
-LinkedIn cookie added successfully
-Setting up navigation debugging...
-LinkedIn cookie added successfully
-Setting up navigation debugging...
-[DEBUG] Request to LinkedIn: https://www.linkedin.com/feed/update/urn:li:activity:7368619407989760000/
-[DEBUG] Response from LinkedIn: https://www.linkedin.com/feed/update/urn:li:activity:7368619407989760000/ - 200
-[DEBUG] Request to LinkedIn: https://www.linkedin.com/feed/
-[DEBUG] Response from LinkedIn: https://www.linkedin.com/feed/ - 200
-[DEBUG] Request to LinkedIn: https://www.linkedin.com/feed/update/urn:li:activity:7368619407989760000/
-[DEBUG] Response from LinkedIn: https://www.linkedin.com/feed/update/urn:li:activity:7368619407989760000/ - 200
-[DEBUG] Request to LinkedIn: https://www.linkedin.com/feed/
-[DEBUG] Request to LinkedIn: https://www.linkedin.com/feed/update/urn:li:activity:7123456789012345678/
-[DEBUG] Response from LinkedIn: https://www.linkedin.com/feed/ - 200
-[DEBUG] Response from LinkedIn: https://www.linkedin.com/feed/update/urn:li:activity:7123456789012345678/ - 200
-[DEBUG] Request to LinkedIn: https://www.linkedin.com/feed/update/urn:li:activity:7368619407989760000/
-[DEBUG] Response from LinkedIn: https://www.linkedin.com/feed/update/urn:li:activity:7368619407989760000/ - 200
-[HUMAN_RATE_LIMIT] Waiting 1712ms after test: should load the extension and inject the content script on linkedin.com
-[DEBUG] Request to LinkedIn: https://www.linkedin.com/feed/
-[DEBUG] Response from LinkedIn: https://www.linkedin.com/feed/ - 200
-[HUMAN_RATE_LIMIT] Waiting 3442ms after test: should update Live Counters on STATE_UPDATE event
-[HUMAN_RATE_LIMIT] Waiting 2802ms after test: should save settings, reload, and verify they are persisted
-[HUMAN_RATE_LIMIT] Waiting 3003ms after test: should successfully control pipeline lifecycle: start, stop, and resume
-  ✓  6 tests/e2e/setup.spec.ts:4:3 › Extension E2E Setup › should load the extension and inject the content script on linkedin.com (3.7s)
-[HUMAN_RATE_LIMIT] Waiting 1545ms after test: should display FAILED status and error log when AI call fails
-  ✓  2 tests/e2e/settings-persistence.spec.ts:4:3 › AI Settings Persistence › should save settings, reload, and verify they are persisted (5.9s)
-  ✓  4 tests/e2e/real-time-ui.spec.ts:27:3 › Real-time UI Updates › should update Live Counters on STATE_UPDATE event (6.4s)
-[HUMAN_RATE_LIMIT] Waiting 2024ms after test: should inject the sidebar with default components on a LinkedIn post page
-  ✓  5 tests/e2e/pipeline-controls.spec.ts:114:3 › Pipeline Control E2E Tests › should successfully control pipeline lifecycle: start, stop, and resume (6.8s)
-Adding LinkedIn cookie for testing...
-LinkedIn cookie added successfully
-Setting up navigation debugging...
-[DEBUG] Request to LinkedIn: https://www.linkedin.com/feed/update/urn:li:activity:7368619407989760000/
-  ✓  1 tests/e2e/error-handling.spec.ts:97:3 › Error Handling E2E Tests › should display FAILED status and error log when AI call fails (7.3s)
-[DEBUG] Response from LinkedIn: https://www.linkedin.com/feed/update/urn:li:activity:7368619407989760000/ - 200
-[HUMAN_RATE_LIMIT] Waiting 2786ms after test: should update Pipeline Progress on STATE_UPDATE event
-  ✓  3 tests/e2e/ui-injection.spec.ts:4:3 › Extension UI Injection and Initial State › should inject the sidebar with default components on a LinkedIn post page (8.8s)
-  ✓  7 tests/e2e/real-time-ui.spec.ts:49:3 › Real-time UI Updates › should update Pipeline Progress on STATE_UPDATE event (3.9s)
-Adding LinkedIn cookie for testing...
-LinkedIn cookie added successfully
-Setting up navigation debugging...
-[DEBUG] Request to LinkedIn: https://www.linkedin.com/feed/update/urn:li:activity:7368619407989760000/
-[DEBUG] Response from LinkedIn: https://www.linkedin.com/feed/update/urn:li:activity:7368619407989760000/ - 200
-[HUMAN_RATE_LIMIT] Waiting 1703ms after test: should add new entry to Logs Panel on LOG_ENTRY event
-  ✓  8 tests/e2e/real-time-ui.spec.ts:91:3 › Real-time UI Updates › should add new entry to Logs Panel on LOG_ENTRY event (3.2s)
+vite v5.4.19 building for test...
+transforming...
+✓ 6 modules transformed.
+rendering chunks...
+computing gzip size...
+dist/background.js  190.68 kB │ gzip: 50.52 kB │ map: 102.48 kB
+✓ built in 345ms
+vite v5.4.19 building for test...
+transforming...
+✓ 22 modules transformed.
+rendering chunks...
+computing gzip size...
+dist/content.js  289.92 kB │ gzip: 83.25 kB │ map: 148.07 kB
+✓ built in 690ms
+Live mode detected, skipping manifest patch.
 
-  8 passed (15.2s)
+Running 10 tests using 6 workers
+
+[E2E LIVE] Added 26 LinkedIn cookies to context.
+[E2E LIVE] Warming up session...
+[E2E LIVE] Added 26 LinkedIn cookies to context.
+[E2E LIVE] Added 26 LinkedIn cookies to context.
+[E2E LIVE] Warming up session...
+[E2E LIVE] Added 26 LinkedIn cookies to context.
+[E2E LIVE] Warming up session...
+[E2E LIVE] Warming up session...
+[E2E LIVE] Added 26 LinkedIn cookies to context.
+[E2E LIVE] Warming up session...
+[E2E LIVE] Added 26 LinkedIn cookies to context.
+[E2E LIVE] Warming up session...
+  ✘   1 tests/e2e/settings-persistence.spec.ts:5:3 › AI Settings Persistence › should save settings, reload, and verify they are persisted (30.0s)
+  ✘   2 tests/e2e/export-json.spec.ts:13:3 › Export Post Comments JSON › downloads JSON containing real post comments (30.0s)
+  ✘   4 tests/e2e/error-handling.spec.ts:44:3 › Error Handling E2E Tests › should display failed status and error log on API failure (30.0s)
+  ✘   3 tests/e2e/pipeline-controls.spec.ts:114:3 › Pipeline Control E2E Tests › should successfully control pipeline lifecycle: start, stop, and resume (30.0s)
+  ✘   5 tests/e2e/real-time-ui.spec.ts:29:3 › Real-time UI Updates › should update Live Counters on STATE_UPDATE event (30.0s)
+  ✘   6 tests/e2e/live-extract-comments.spec.ts:10:3 › Live Comment Extraction › captures real comments from the post (30.0s)
+[E2E LIVE] Added 26 LinkedIn cookies to context.
+[E2E LIVE] Warming up session...
+[E2E LIVE] Added 26 LinkedIn cookies to context.
+[E2E LIVE] Warming up session...
+[E2E LIVE] Added 26 LinkedIn cookies to context.
+[E2E LIVE] Warming up session...
+  ✘   7 tests/e2e/ui-injection.spec.ts:5:3 › Extension UI Injection and Initial State › should inject the sidebar with default components on a LinkedIn post page (30.0s)
+  ✘   8 tests/e2e/real-time-ui.spec.ts:51:3 › Real-time UI Updates › should update Pipeline Progress on STATE_UPDATE event (30.0s)
+  ✘   9 tests/e2e/setup.spec.ts:5:3 › Extension E2E Setup › should load the extension and inject the content script on linkedin.com (30.0s)
+[E2E LIVE] Added 26 LinkedIn cookies to context.
+[E2E LIVE] Warming up session...
+  ✘  10 tests/e2e/real-time-ui.spec.ts:92:3 › Real-time UI Updates › should add new entry to Logs Panel on LOG_ENTRY event (30.0s)
+
+
+  1) tests/e2e/error-handling.spec.ts:44:3 › Error Handling E2E Tests › should display failed status and error log on API failure 
+
+    [31mTest timeout of 30000ms exceeded while setting up "context".[39m
+
+  2) tests/e2e/export-json.spec.ts:13:3 › Export Post Comments JSON › downloads JSON containing real post comments 
+
+    [31mTest timeout of 30000ms exceeded while setting up "context".[39m
+
+  3) tests/e2e/live-extract-comments.spec.ts:10:3 › Live Comment Extraction › captures real comments from the post 
+
+    [31mTest timeout of 30000ms exceeded while setting up "context".[39m
+
+  4) tests/e2e/pipeline-controls.spec.ts:114:3 › Pipeline Control E2E Tests › should successfully control pipeline lifecycle: start, stop, and resume 
+
+    [31mTest timeout of 30000ms exceeded while running "beforeEach" hook.[39m
+
+      43 |
+      44 | test.describe('Pipeline Control E2E Tests', () => {
+    > 45 |   test.beforeEach(async ({ page, background }) => {
+         |        ^
+      46 |     // Intercept the AI call and prevent it from resolving using the service
+      47 |     // worker's internal fetch mock. This allows the pipeline to enter a "running"
+      48 |     // state that can be controlled (stopped/resumed) by the test, without the
+        at /home/moaz/code_machine/projects/linkedin_life_saver/project/tests/e2e/pipeline-controls.spec.ts:45:8
+
+  5) tests/e2e/real-time-ui.spec.ts:29:3 › Real-time UI Updates › should update Live Counters on STATE_UPDATE event 
+
+    [31mTest timeout of 30000ms exceeded while running "beforeEach" hook.[39m
+
+      17 |   const postUrl = getLinkedInUrl('post', 'urn:li:activity:7369271078898126851');
+      18 |
+    > 19 |   test.beforeEach(async ({ page }) => {
+         |        ^
+      20 |     await page.goto(postUrl, { waitUntil: 'domcontentloaded' });
+      21 |     await assertLiveLinkedIn(page);
+      22 |     // Wait for the sidebar root element to be injected into the DOM
+        at /home/moaz/code_machine/projects/linkedin_life_saver/project/tests/e2e/real-time-ui.spec.ts:19:8
+
+  6) tests/e2e/real-time-ui.spec.ts:51:3 › Real-time UI Updates › should update Pipeline Progress on STATE_UPDATE event 
+
+    [31mTest timeout of 30000ms exceeded while running "beforeEach" hook.[39m
+
+      17 |   const postUrl = getLinkedInUrl('post', 'urn:li:activity:7369271078898126851');
+      18 |
+    > 19 |   test.beforeEach(async ({ page }) => {
+         |        ^
+      20 |     await page.goto(postUrl, { waitUntil: 'domcontentloaded' });
+      21 |     await assertLiveLinkedIn(page);
+      22 |     // Wait for the sidebar root element to be injected into the DOM
+        at /home/moaz/code_machine/projects/linkedin_life_saver/project/tests/e2e/real-time-ui.spec.ts:19:8
+
+  7) tests/e2e/real-time-ui.spec.ts:92:3 › Real-time UI Updates › should add new entry to Logs Panel on LOG_ENTRY event 
+
+    [31mTest timeout of 30000ms exceeded while running "beforeEach" hook.[39m
+
+      17 |   const postUrl = getLinkedInUrl('post', 'urn:li:activity:7369271078898126851');
+      18 |
+    > 19 |   test.beforeEach(async ({ page }) => {
+         |        ^
+      20 |     await page.goto(postUrl, { waitUntil: 'domcontentloaded' });
+      21 |     await assertLiveLinkedIn(page);
+      22 |     // Wait for the sidebar root element to be injected into the DOM
+        at /home/moaz/code_machine/projects/linkedin_life_saver/project/tests/e2e/real-time-ui.spec.ts:19:8
+
+  8) tests/e2e/settings-persistence.spec.ts:5:3 › AI Settings Persistence › should save settings, reload, and verify they are persisted 
+
+    [31mTest timeout of 30000ms exceeded while setting up "context".[39m
+
+  9) tests/e2e/setup.spec.ts:5:3 › Extension E2E Setup › should load the extension and inject the content script on linkedin.com 
+
+    [31mTest timeout of 30000ms exceeded while setting up "context".[39m
+
+  10) tests/e2e/ui-injection.spec.ts:5:3 › Extension UI Injection and Initial State › should inject the sidebar with default components on a LinkedIn post page 
+
+    [31mTest timeout of 30000ms exceeded while setting up "context".[39m
+
+  10 failed
+    tests/e2e/error-handling.spec.ts:44:3 › Error Handling E2E Tests › should display failed status and error log on API failure 
+    tests/e2e/export-json.spec.ts:13:3 › Export Post Comments JSON › downloads JSON containing real post comments 
+    tests/e2e/live-extract-comments.spec.ts:10:3 › Live Comment Extraction › captures real comments from the post 
+    tests/e2e/pipeline-controls.spec.ts:114:3 › Pipeline Control E2E Tests › should successfully control pipeline lifecycle: start, stop, and resume 
+    tests/e2e/real-time-ui.spec.ts:29:3 › Real-time UI Updates › should update Live Counters on STATE_UPDATE event 
+    tests/e2e/real-time-ui.spec.ts:51:3 › Real-time UI Updates › should update Pipeline Progress on STATE_UPDATE event 
+    tests/e2e/real-time-ui.spec.ts:92:3 › Real-time UI Updates › should add new entry to Logs Panel on LOG_ENTRY event 
+    tests/e2e/settings-persistence.spec.ts:5:3 › AI Settings Persistence › should save settings, reload, and verify they are persisted 
+    tests/e2e/setup.spec.ts:5:3 › Extension E2E Setup › should load the extension and inject the content script on linkedin.com 
+    tests/e2e/ui-injection.spec.ts:5:3 › Extension UI Injection and Initial State › should inject the sidebar with default components on a LinkedIn post page 

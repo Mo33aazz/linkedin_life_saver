@@ -1,3 +1,4 @@
+/// <reference lib="dom" />
 // This is the service worker script.
 // It will house the core orchestration logic, state management, and API calls.
 import {
@@ -26,6 +27,7 @@ import {
   AIConfig,
   OpenRouterModel,
   LogEntry,
+  ParsedComment,
 } from '../shared/types';
 import { OpenRouterClient } from './services/openRouterClient';
 import { logger } from './logger';
@@ -259,6 +261,43 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
     return true; // Important for async response
   }
 
+  if (message.type === 'EXPORT_JSON') {
+    logger.info('Received EXPORT_JSON request');
+    (async () => {
+      try {
+        const explicitUrn = (message.postUrn as string) || undefined;
+        let postUrn = explicitUrn;
+        if (!postUrn) {
+          const postUrnRegex = /(urn:li:activity:\d+)/;
+          const match = sender.tab?.url?.match(postUrnRegex);
+          postUrn = match && match[1] ? match[1] : undefined;
+        }
+
+        if (!postUrn) {
+          sendResponse({ status: 'error', message: 'No post URN available for export.' });
+          return;
+        }
+
+        let state = getPostState(postUrn);
+        if (!state) {
+          state = await loadPostState(postUrn);
+        }
+        if (!state) {
+          sendResponse({ status: 'error', message: `No state found for post ${postUrn}` });
+          return;
+        }
+        // Expose for E2E verification without relying on downloads
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        (self as any).__E2E_LAST_EXPORTED_STATE = state;
+        sendResponse({ status: 'success', data: state });
+      } catch (error) {
+        logger.error('Failed to export JSON', error);
+        sendResponse({ status: 'error', message: (error as Error).message });
+      }
+    })();
+    return true;
+  }
+
   if (message.type === 'UPDATE_AI_CONFIG') {
     (async () => {
       try {
@@ -429,5 +468,119 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
 (self as any).__E2E_TEST_UPDATE_CONFIG = (config: Partial<AIConfig>) => updateConfig(config);
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 (self as any).__E2E_TEST_HOOKS_INSTALLED = true;
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+(self as any).__E2E_TEST_CAPTURE_NOW = (matchUrl?: string) => {
+  return new Promise((resolve, reject) => {
+    try {
+      const patterns = matchUrl ? [matchUrl] : ['https://www.linkedin.com/*'];
+      chrome.tabs.query({ url: patterns }, async (tabs) => {
+        const target = tabs && tabs[0];
+        if (!target || !target.id) {
+          reject(new Error('No matching LinkedIn tab found for capture.'));
+          return;
+        }
+        try {
+          const [{ result }] = await chrome.scripting.executeScript({
+            target: { tabId: target.id! },
+            world: 'MAIN',
+            func: async () => {
+              const delay = (ms: number) => new Promise(r => setTimeout(r, ms));
+              await delay(500);
+              for (let i = 0; i < 15; i++) {
+                window.scrollTo(0, document.body.scrollHeight);
+                // Try to click any visible 'more comments' buttons between scrolls
+                const buttons = Array.from(document.querySelectorAll('button, a')) as (HTMLButtonElement | HTMLAnchorElement)[];
+                for (const b of buttons) {
+                  const t = (b.textContent || '').toLowerCase();
+                  if (/more/.test(t) && /comment/.test(t)) {
+                    try { (b as HTMLElement).click(); } catch {}
+                  }
+                }
+                await delay(800);
+              }
+              window.scrollTo(0, 0);
+              await delay(300);
+
+              const pick = (el: Element | null, sel: string): Element | null => (el ? (el as Element).querySelector(sel) : null);
+              let nodes: HTMLElement[] = Array.from(document.querySelectorAll<HTMLElement>('article.comments-comment-entity'));
+              if (nodes.length === 0) {
+                nodes = Array.from(document.querySelectorAll<HTMLElement>('[data-id^="urn:li:comment:"]'));
+              }
+              if (nodes.length === 0) {
+                nodes = Array.from(document.querySelectorAll<HTMLElement>('[data-urn*="urn:li:comment:"]'));
+              }
+              const comments: { commentId: string; ownerProfileUrl: string; text: string; timestamp: string; type: string; threadId: string }[] = [];
+              nodes.forEach((commentElement) => {
+                const dataId = commentElement.getAttribute('data-id') || '';
+                const ownerRel = (pick(commentElement, 'a.comments-comment-meta__image-link, a.app-aware-link') as HTMLAnchorElement | null)?.getAttribute('href') || '';
+                const owner = ownerRel ? (ownerRel.startsWith('https://') ? ownerRel : `https://www.linkedin.com${ownerRel}`) : '';
+                const text = ((pick(commentElement, 'span.comments-comment-item__main-content') as HTMLElement | null)?.innerText
+                              || (pick(commentElement, 'span[dir="ltr"], p[dir="ltr"], span, p') as HTMLElement | null)?.innerText
+                              || ''
+                             ).trim();
+                const timestamp = (commentElement.querySelector('time, span[datetime], time[datetime]') as HTMLElement | null)?.innerText?.trim() || '';
+                const isReply = !!commentElement.parentElement?.closest('div.comments-comment-item__replies-container');
+                const threadId = isReply ? (commentElement.parentElement?.closest('div.comments-comment-item__replies-container')?.closest('article.comments-comment-entity')?.getAttribute('data-id') || '') : dataId;
+                if (dataId && owner && text && timestamp && threadId) {
+                  comments.push({ commentId: dataId, ownerProfileUrl: owner, text, timestamp, type: isReply ? 'reply' : 'top-level', threadId });
+                }
+              });
+              const m = location.href.match(/(urn:li:activity:\d+)/);
+              const postUrn = m && m[1] ? m[1] : null;
+              return { postUrn, comments, postUrl: location.href };
+            },
+          } as chrome.scripting.ScriptInjection<[], unknown>);
+
+          const response = (result || {}) as { postUrn?: string | null; comments?: unknown[]; postUrl?: string };
+          let postUrn = response?.postUrn;
+          if (!postUrn) {
+            const urlToParse = response?.postUrl || target.url || '';
+            const m = urlToParse.match(/(urn:li:activity:\d+)/);
+            postUrn = m && m[1] ? m[1] : null;
+          }
+          if (!postUrn) {
+            reject(new Error('Capture returned no postUrn.'));
+            return;
+          }
+          const state: PostState = {
+            _meta: {
+              postId: postUrn,
+              postUrl: target.url || `https://www.linkedin.com/feed/update/${postUrn}/`,
+              lastUpdated: new Date().toISOString(),
+              runState: 'idle',
+              userProfileUrl: '',
+            },
+            comments: (
+              Array.isArray(response.comments)
+                ? (response.comments as ParsedComment[])
+                : []
+            ).map((c) => ({
+              ...c,
+              likeStatus: '',
+              replyStatus: '',
+              dmStatus: '',
+              attempts: { like: 0, reply: 0, dm: 0 },
+              lastError: '',
+              pipeline: {
+                queuedAt: new Date().toISOString(),
+                likedAt: '',
+                repliedAt: '',
+                dmAt: '',
+              },
+            })),
+          };
+          await savePostState(postUrn, state);
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
+          (self as any).__E2E_LAST_EXPORTED_STATE = state;
+          resolve(state);
+        } catch (e) {
+          reject(e);
+        }
+      });
+    } catch (e) {
+      reject(e);
+    }
+  });
+};
 console.log('[BACKGROUND SCRIPT] E2E test hooks installed.');
 // }

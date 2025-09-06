@@ -151,7 +151,7 @@ const generateReply = async (
     return replyText;
   } catch (error) {
     logger.error('Failed to generate AI reply', error, context);
-    return null;
+    throw error; // Re-throw to allow the caller to handle it
   }
 };
 
@@ -362,7 +362,9 @@ const processComment = async (
         const replyText = await generateReply(comment, postState);
 
         if (replyText === null) {
-          throw new Error('AI reply generation failed after all retries.');
+          // This case now primarily handles non-error paths where a reply isn't generated,
+          // like a missing API key, which returns null without throwing.
+          throw new Error('AI reply generation failed. Check logs for details.');
         }
 
         if (replyText === '__SKIP__') {

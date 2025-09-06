@@ -1,7 +1,9 @@
 /// <reference lib="webworker" />
 /// <reference lib="dom" />
 import 'dotenv/config';
-import { test as base, chromium, type BrowserContext, type Worker } from '@playwright/test';
+import { test as base, type BrowserContext, type Worker, type Cookie } from '@playwright/test';
+import { chromium as extraChromium } from 'playwright-extra';
+import stealth from 'puppeteer-extra-plugin-stealth';
 import path from 'path';
 import { fileURLToPath } from 'url';
 
@@ -106,12 +108,35 @@ export const test = base.extend<{
 }>({
     context: async ({ }, use, testInfo) => {
         const pathToExtension = path.resolve(__dirname, '../../dist');
-        const context = await chromium.launchPersistentContext('', {
+        // Enable stealth evasions to reduce automation detection on LinkedIn.
+        extraChromium.use(stealth());
+        const proxy = process.env.LINKEDIN_PROXY
+          ? { server: process.env.LINKEDIN_PROXY as string,
+              username: process.env.LINKEDIN_PROXY_USER as string | undefined,
+              password: process.env.LINKEDIN_PROXY_PASS as string | undefined }
+          : undefined;
+
+        const context = await extraChromium.launchPersistentContext('', {
             headless: false,
+            userAgent: 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/125.0.0.0 Safari/537.36',
+            viewport: { width: 1366, height: 768 },
+            locale: 'en-US',
+            timezoneId: process.env.TZ || 'Africa/Cairo',
+            proxy,
             args: [
                 `--disable-extensions-except=${pathToExtension}`,
                 `--load-extension=${pathToExtension}`,
+                '--disable-blink-features=AutomationControlled',
             ],
+        });
+
+        // Apply additional headers to better match standard browser traffic.
+        // Avoid setting global extra HTTP headers that can break CORS/preflight for XHR/fetch.
+        // LinkedIn endpoints may reject requests when forbidden headers like
+        // 'upgrade-insecure-requests' are present in Access-Control-Request-Headers.
+        // Keep only a minimal, safe header for locale stability if needed.
+        await context.setExtraHTTPHeaders({
+            'accept-language': 'en-US,en;q=0.9'
         });
 
         const serviceWorkerPromise = new Promise<Worker>(resolve => {
@@ -128,25 +153,84 @@ export const test = base.extend<{
             serviceWorker = await serviceWorkerPromise;
         }
 
-        if (process.env.LINKEDIN_COOKIE) {
-            const cookie = {
-                name: 'li_at',
-                value: process.env.LINKEDIN_COOKIE,
-                domain: '.linkedin.com',
-                path: '/',
-                httpOnly: true,
-                secure: true,
-                sameSite: 'None' as const,
-                expires: Math.floor(Date.now() / 1000) + 365 * 24 * 60 * 60,
-            };
-            await context.addCookies([cookie]);
+        if (process.env.LINKEDIN_COOKIE || process.env.LINKEDIN_COOKIES_JSON) {
+            const cookies: Cookie[] = [];
+            if (process.env.LINKEDIN_COOKIE) {
+                cookies.push({
+                    name: 'li_at',
+                    value: process.env.LINKEDIN_COOKIE,
+                    domain: '.linkedin.com',
+                    path: '/',
+                    httpOnly: true,
+                    secure: true,
+                    sameSite: 'None' as const,
+                    expires: Math.floor(Date.now() / 1000) + 365 * 24 * 60 * 60,
+                });
+            }
+            if (process.env.LINKEDIN_COOKIES_JSON) {
+                try {
+                    const extra = JSON.parse(process.env.LINKEDIN_COOKIES_JSON);
+                    if (extra && typeof extra === 'object') {
+                        for (const [name, value] of Object.entries(extra)) {
+                            cookies.push({
+                                name,
+                                value: String(value),
+                                domain: '.linkedin.com',
+                                path: '/',
+                                httpOnly: true,
+                                secure: true,
+                                sameSite: 'None' as const,
+                                expires: Math.floor(Date.now() / 1000) + 180 * 24 * 60 * 60,
+                            });
+                        }
+                    }
+                } catch (e) {
+                    console.warn('Failed to parse LINKEDIN_COOKIES_JSON:', e);
+                }
+            }
+            if (cookies.length) {
+                await context.addCookies(cookies);
+                console.log(`[E2E LIVE] Added ${cookies.length} LinkedIn cookies to context.`);
+            }
         } else {
-            console.warn('LINKEDIN_COOKIE environment variable not set. Running tests in a logged-out state.');
+            console.warn('LINKEDIN_COOKIE or LINKEDIN_COOKIES_JSON not set. Running tests in a logged-out state.');
         }
 
+        // Mocks disabled by default: allow all LinkedIn requests to go to the real site.
+
         await context.addInitScript(() => {
-            // console.log('This is an init script running on a page, not the service worker.');
+            try {
+                Object.defineProperty(navigator, 'webdriver', { get: () => undefined });
+                // Basic language and plugins shims
+                Object.defineProperty(navigator, 'languages', { get: () => ['en-US', 'en'] });
+                Object.defineProperty(navigator, 'platform', { get: () => 'Win32' });
+                // Minimal plugins fake
+                if (!navigator.plugins || navigator.plugins.length === 0) {
+                    const mime = { type: 'application/x-google-chrome-pdf', suffixes: 'pdf', description: 'Portable Document Format' };
+                    // @ts-expect-error Overwriting readonly property for stealth.
+                    navigator.plugins = [{ name: 'Chrome PDF Plugin', filename: 'internal-pdf-viewer', description: 'Portable Document Format', 0: mime, length: 1 }];
+                }
+            } catch {}
         });
+
+        // Warm up the LinkedIn session in live mode to stabilize redirects and handle initial popups.
+        // The original warm-up was commented out due to causing crashes. This is a more stable version.
+        if (process.env.E2E_LIVE_LINKEDIN) {
+            try {
+                console.log('[E2E LIVE] Warming up session...');
+                const warmupPage = await context.newPage();
+                // Go to the feed, which is a more stable landing page than a specific post or login page.
+                await warmupPage.goto('https://www.linkedin.com/feed/', { waitUntil: 'domcontentloaded' });
+                // Wait for a key element of the feed to ensure the page is actually loaded and interactive.
+                await warmupPage.waitForSelector('main.scaffold-layout__main');
+                await new Promise(r => setTimeout(r, 2500)); // Extra wait for any lazy-loaded components or scripts.
+                await warmupPage.close();
+                console.log('[E2E LIVE] Session warmed up successfully on the main feed.');
+            } catch (e) {
+                console.warn('[E2E LIVE] Warm-up navigation failed. Tests may be unstable.', e);
+                // Do not re-throw; allow tests to proceed and fail, which gives more specific error contexts.
+            }
+        }
 
         await use(context);
 
