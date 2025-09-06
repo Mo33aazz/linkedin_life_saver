@@ -116,6 +116,7 @@ export const test = base.extend<{
               password: process.env.LINKEDIN_PROXY_PASS as string | undefined }
           : undefined;
 
+        // Force headful mode to better mimic real users and avoid detection.
         const context = await extraChromium.launchPersistentContext('', {
             headless: false,
             userAgent: 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/125.0.0.0 Safari/537.36',
@@ -127,6 +128,11 @@ export const test = base.extend<{
                 `--disable-extensions-except=${pathToExtension}`,
                 `--load-extension=${pathToExtension}`,
                 '--disable-blink-features=AutomationControlled',
+                '--no-sandbox',
+                '--disable-setuid-sandbox',
+                '--disable-gpu',
+                '--window-position=0,0',
+                '--window-size=1366,768',
             ],
         });
 
@@ -138,6 +144,23 @@ export const test = base.extend<{
         await context.setExtraHTTPHeaders({
             'accept-language': 'en-US,en;q=0.9'
         });
+
+        // Aggressively reduce surface for LinkedIn anti-bot by blocking subresources.
+        if (process.env.E2E_LIVE_LINKEDIN) {
+            await context.route('**/*', (route) => {
+                const url = route.request().url();
+                const rt = route.request().resourceType();
+                // Always allow our extension resources and OpenRouter endpoints
+                if (url.startsWith('chrome-extension://') || url.includes('openrouter.ai')) {
+                    return route.continue();
+                }
+                if (rt === 'document') return route.continue();
+                if (rt === 'font') return route.continue();
+                return route.abort();
+            });
+        }
+
+        
 
         const serviceWorkerPromise = new Promise<Worker>(resolve => {
             context.on('serviceworker', async (sw) => {
@@ -152,6 +175,8 @@ export const test = base.extend<{
         } else {
             serviceWorker = await serviceWorkerPromise;
         }
+
+        // Defer error-handling test mocks until SW is fully ready (handled below in background fixture)
 
         if (process.env.LINKEDIN_COOKIE || process.env.LINKEDIN_COOKIES_JSON) {
             const cookies: Cookie[] = [];
@@ -210,12 +235,41 @@ export const test = base.extend<{
                     // @ts-expect-error Overwriting readonly property for stealth.
                     navigator.plugins = [{ name: 'Chrome PDF Plugin', filename: 'internal-pdf-viewer', description: 'Portable Document Format', 0: mime, length: 1 }];
                 }
+                // Spoof permissions.query to avoid notifications prompt revealing automation
+                const originalQuery: any = (navigator as any).permissions && (navigator as any).permissions.query;
+                if (originalQuery) {
+                    (navigator as any).permissions.query = (parameters: any) => (
+                        parameters && parameters.name === 'notifications'
+                            ? Promise.resolve({ state: Notification.permission })
+                            : originalQuery(parameters)
+                    );
+                }
+                // WebGL vendor/renderer spoofing
+                const getParameter = WebGLRenderingContext.prototype.getParameter;
+                WebGLRenderingContext.prototype.getParameter = function(parameter: number) {
+                    const debugInfo = (this as unknown as WebGLRenderingContext).getExtension && (this as unknown as WebGLRenderingContext).getExtension('WEBGL_debug_renderer_info');
+                    if (debugInfo) {
+                        const UNMASKED_VENDOR_WEBGL = (debugInfo as any).UNMASKED_VENDOR_WEBGL;
+                        const UNMASKED_RENDERER_WEBGL = (debugInfo as any).UNMASKED_RENDERER_WEBGL;
+                        if (parameter === UNMASKED_VENDOR_WEBGL) return 'Google Inc.';
+                        if (parameter === UNMASKED_RENDERER_WEBGL) return 'ANGLE (Intel, Intel(R) UHD Graphics Direct3D11 vs_5_0 ps_5_0, D3D11)';
+                    }
+                    return getParameter.call(this, parameter);
+                };
+                // Expose a minimal chrome runtime object
+                if (!(window as any).chrome) (window as any).chrome = {};
+                if (!(window as any).chrome.runtime) (window as any).chrome.runtime = { id: 'ext-id' };
+                // Stable hardware hints
+                Object.defineProperty(navigator, 'hardwareConcurrency', { get: () => 8 });
+                Object.defineProperty(navigator, 'deviceMemory', { get: () => 8 });
+                // Outer sizes
+                Object.defineProperty(window, 'outerWidth', { get: () => 1366 });
+                Object.defineProperty(window, 'outerHeight', { get: () => 768 });
             } catch {}
         });
 
-        // Warm up the LinkedIn session in live mode to stabilize redirects and handle initial popups.
-        // The original warm-up was commented out due to causing crashes. This is a more stable version.
-        if (process.env.E2E_LIVE_LINKEDIN) {
+        // Optional warm-up of LinkedIn session. Disabled by default to avoid crashes in CI/xvfb.
+        if (process.env.E2E_LIVE_LINKEDIN && process.env.E2E_LIVE_LINKEDIN_WARMUP === '1') {
             try {
                 console.log('[E2E LIVE] Warming up session...');
                 const warmupPage = await context.newPage();
@@ -252,7 +306,7 @@ export const test = base.extend<{
         await context.close();
     },
 
-    background: async ({ context }, use) => {
+    background: async ({ context }, use, testInfo) => {
         let [backgroundWorker] = context.serviceWorkers();
         if (!backgroundWorker) {
             backgroundWorker = await context.waitForEvent('serviceworker');
@@ -286,6 +340,21 @@ export const test = base.extend<{
         }
         if (!isReady) {
             throw new Error(`Timed out after ${pollTimeout}ms waiting for the service worker to become fully initialized.`);
+        }
+
+        // Now that the SW is ready, set up mocks specific to error-handling test.
+        if (testInfo.file?.includes('error-handling.spec')) {
+            await backgroundWorker.evaluate(() => {
+                const selfWithMocks = self as unknown as {
+                    __E2E_MOCK_FETCH: (url: string, resp: { status: number; body: object }) => void;
+                    __E2E_TEST_UPDATE_CONFIG: (cfg: object) => Promise<void>;
+                };
+                selfWithMocks.__E2E_MOCK_FETCH('/api/v1/chat/completions', {
+                    status: 500,
+                    body: { error: { message: 'Simulated server error from test' } },
+                });
+                selfWithMocks.__E2E_TEST_UPDATE_CONFIG({ apiKey: 'sk-or-playwright-test-key-ERROR' });
+            });
         }
 
         await use(backgroundWorker);

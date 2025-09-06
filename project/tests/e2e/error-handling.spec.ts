@@ -5,7 +5,6 @@ import { getLinkedInUrl } from './helpers';
 // Test data constants
 const TEST_POST_URN = 'urn:li:activity:7369271078898126852'; // Use a different URN to avoid state conflicts
 const TEST_POST_URL = getLinkedInUrl('post', TEST_POST_URN);
-const OPENROUTER_API_URL = 'https://openrouter.ai/api/v1/chat/completions';
 
 // A mock comment designed to trigger the AI reply step immediately.
 // 'likeStatus' is 'DONE', so the pipeline moves to the 'reply' step.
@@ -46,20 +45,8 @@ test.describe('Error Handling E2E Tests', () => {
     page,
     background,
   }) => {
-    // 1. Intercept the network request to OpenRouter and mock an error response.
-    await page.route(OPENROUTER_API_URL, async (route) => {
-      await route.fulfill({
-        status: 500,
-        contentType: 'application/json',
-        body: JSON.stringify({
-          error: {
-            message: 'Simulated server error from test',
-          },
-        }),
-      });
-    });
-
-    // 2. Inject mock state into the service worker's storage.
+    // 1. Inject mock state into the service worker's storage.
+    // The network request to OpenRouter is mocked in the test fixture to ensure reliability.
     await background.evaluate(
       async ({ postUrn, state }: { postUrn: string; state: PostState }) => {
         await (
@@ -74,22 +61,22 @@ test.describe('Error Handling E2E Tests', () => {
       { postUrn: TEST_POST_URN, state: mockPostState }
     );
 
-    // 3. Navigate to the post and wait for the UI to be ready.
+    // 2. Navigate to the post and wait for the UI to be ready.
     await page.goto(TEST_POST_URL, { waitUntil: 'domcontentloaded' });
     const sidebarRootLocator = page.locator(
       '#linkedin-engagement-assistant-root'
     );
     await expect(sidebarRootLocator).toBeAttached({ timeout: 15000 });
 
-    // 4. Start the pipeline.
+    // 3. Start the pipeline.
     const startButtonLocator = sidebarRootLocator.locator(
       '[data-testid="start-button"]'
     );
     await startButtonLocator.click();
 
-    // 5. Verify the UI reflects the failure state.
+    // 4. Verify the UI reflects the failure state.
 
-    // 5.1. Check the Pipeline Progress for a 'FAILED' status on the 'Replied' step.
+    // 4.1. Check the Pipeline Progress for a 'FAILED' status on the 'Replied' step.
     const commentRowLocator = sidebarRootLocator.locator(
       `[data-testid='pipeline-row-${mockComment.commentId}']`
     );
@@ -102,7 +89,7 @@ test.describe('Error Handling E2E Tests', () => {
       timeout: 10000,
     });
 
-    // 5.2. Check the Logs Panel for a corresponding error message.
+    // 4.2. Check the Logs Panel for a corresponding error message.
     const errorLogLocator = sidebarRootLocator.locator('.log-entry--error');
 
     // Wait for the first error log to appear.

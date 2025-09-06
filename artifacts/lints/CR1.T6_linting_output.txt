@@ -1,1 +1,90 @@
-[]
+[
+  {
+    "type": "@typescript-eslint/no-explicit-any",
+    "path": "/home/moaz/code_machine/projects/linkedin_life_saver/project/tests/e2e/fixtures.ts",
+    "obj": "TSAnyKeyword",
+    "message": "Unexpected any. Specify a different type.",
+    "line": 239,
+    "column": 38
+  },
+  {
+    "type": "@typescript-eslint/no-explicit-any",
+    "path": "/home/moaz/code_machine/projects/linkedin_life_saver/project/tests/e2e/fixtures.ts",
+    "obj": "TSAnyKeyword",
+    "message": "Unexpected any. Specify a different type.",
+    "line": 239,
+    "column": 58
+  },
+  {
+    "type": "@typescript-eslint/no-explicit-any",
+    "path": "/home/moaz/code_machine/projects/linkedin_life_saver/project/tests/e2e/fixtures.ts",
+    "obj": "TSAnyKeyword",
+    "message": "Unexpected any. Specify a different type.",
+    "line": 239,
+    "column": 92
+  },
+  {
+    "type": "@typescript-eslint/no-explicit-any",
+    "path": "/home/moaz/code_machine/projects/linkedin_life_saver/project/tests/e2e/fixtures.ts",
+    "obj": "TSAnyKeyword",
+    "message": "Unexpected any. Specify a different type.",
+    "line": 241,
+    "column": 35
+  },
+  {
+    "type": "@typescript-eslint/no-explicit-any",
+    "path": "/home/moaz/code_machine/projects/linkedin_life_saver/project/tests/e2e/fixtures.ts",
+    "obj": "TSAnyKeyword",
+    "message": "Unexpected any. Specify a different type.",
+    "line": 241,
+    "column": 73
+  },
+  {
+    "type": "@typescript-eslint/no-explicit-any",
+    "path": "/home/moaz/code_machine/projects/linkedin_life_saver/project/tests/e2e/fixtures.ts",
+    "obj": "TSAnyKeyword",
+    "message": "Unexpected any. Specify a different type.",
+    "line": 252,
+    "column": 69
+  },
+  {
+    "type": "@typescript-eslint/no-explicit-any",
+    "path": "/home/moaz/code_machine/projects/linkedin_life_saver/project/tests/e2e/fixtures.ts",
+    "obj": "TSAnyKeyword",
+    "message": "Unexpected any. Specify a different type.",
+    "line": 253,
+    "column": 71
+  },
+  {
+    "type": "@typescript-eslint/no-explicit-any",
+    "path": "/home/moaz/code_machine/projects/linkedin_life_saver/project/tests/e2e/fixtures.ts",
+    "obj": "TSAnyKeyword",
+    "message": "Unexpected any. Specify a different type.",
+    "line": 260,
+    "column": 33
+  },
+  {
+    "type": "@typescript-eslint/no-explicit-any",
+    "path": "/home/moaz/code_machine/projects/linkedin_life_saver/project/tests/e2e/fixtures.ts",
+    "obj": "TSAnyKeyword",
+    "message": "Unexpected any. Specify a different type.",
+    "line": 260,
+    "column": 57
+  },
+  {
+    "type": "@typescript-eslint/no-explicit-any",
+    "path": "/home/moaz/code_machine/projects/linkedin_life_saver/project/tests/e2e/fixtures.ts",
+    "obj": "TSAnyKeyword",
+    "message": "Unexpected any. Specify a different type.",
+    "line": 261,
+    "column": 33
+  },
+  {
+    "type": "@typescript-eslint/no-explicit-any",
+    "path": "/home/moaz/code_machine/projects/linkedin_life_saver/project/tests/e2e/fixtures.ts",
+    "obj": "TSAnyKeyword",
+    "message": "Unexpected any. Specify a different type.",
+    "line": 261,
+    "column": 65
+  }
+]
