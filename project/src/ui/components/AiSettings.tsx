@@ -18,6 +18,7 @@ export const AiSettings = () => {
   // Prompts state
   const [replyPrompt, setReplyPrompt] = useState('');
   const [dmPrompt, setDmPrompt] = useState('');
+  const [nonConnectedTemplate, setNonConnectedTemplate] = useState('');
 
   // Other settings
   const [temperature, setTemperature] = useState(0.7);
@@ -69,6 +70,10 @@ export const AiSettings = () => {
         setTopP(config.top_p || 1.0);
         setReplyPrompt(config.reply?.customPrompt || '');
         setDmPrompt(config.dm?.customPrompt || '');
+        setNonConnectedTemplate(
+          config.reply?.nonConnectedTemplate ||
+            "Thanks for your comment! I'd love to connect first so we can continue the conversation."
+        );
 
         // If an API key is already present, fetch models automatically.
         if (config.apiKey) {
@@ -91,6 +96,7 @@ export const AiSettings = () => {
         top_p: topP,
         reply: {
           customPrompt: replyPrompt,
+          nonConnectedTemplate,
         },
         dm: {
           customPrompt: dmPrompt,
@@ -183,6 +189,20 @@ export const AiSettings = () => {
             setReplyPrompt((e.target as HTMLTextAreaElement).value)
           }
         />
+      </div>
+
+      <div className="form-group">
+        <label htmlFor="nonConnectedTemplate">Non-connected Reply Text</label>
+        <textarea
+          id="nonConnectedTemplate"
+          name="nonConnectedTemplate"
+          rows={3}
+          value={nonConnectedTemplate}
+          onInput={(e) =>
+            setNonConnectedTemplate((e.target as HTMLTextAreaElement).value)
+          }
+        />
+        <small>Used when the commenter is not a 1st-degree connection. Sent as-is.</small>
       </div>
 
       <div className="form-group">

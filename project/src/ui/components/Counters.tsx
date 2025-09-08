@@ -36,11 +36,11 @@ export const Counters = () => {
       <div className="counter-grid">
         <div className="counter-item">
           <span className="counter-value" data-testid="total-counter">{totalAnimated}</span>
-          <span className="counter-label">Total Top-Level (No Replies)</span>
+          <span className="counter-label">Total Top-Level Comments</span>
         </div>
         <div className="counter-item">
           <span className="counter-value" data-testid="user-counter">{userAnimated}</span>
-          <span className="counter-label">Your Top-Level (No Replies)</span>
+          <span className="counter-label">Without Your Reply</span>
         </div>
       </div>
     </div>

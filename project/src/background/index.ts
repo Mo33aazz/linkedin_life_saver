@@ -15,6 +15,8 @@ import {
   stopPipeline,
   resumePipeline,
 } from './services/pipelineManager';
+import { clearPostState } from './services/stateManager';
+import { resetPipeline } from './services/pipelineManager';
 import {
   initializeConfig,
   updateConfig,
@@ -55,6 +57,8 @@ const broadcastLog = (logEntry: LogEntry) => {
 
 // Initialize the logger
 logger.initialize(broadcastLog);
+// Enable verbose debug by default so users get full traces
+logger.setSettings({ minLevel: 'DEBUG' });
 
 logger.info('LinkedIn Engagement Assistant Service Worker loaded.');
 
@@ -69,7 +73,7 @@ const configInitializationPromise = initializeConfig();
  * @param state The partial state to broadcast.
  */
 const broadcastStateUpdate = (state: Partial<UIState>) => {
-  logger.info('Broadcasting state update', { state });
+  logger.debug('Broadcasting state update', { state });
   // This is a fire-and-forget broadcast. The promise it returns may be
   // rejected if no UI component is open to receive it. We can safely
   // ignore this rejection as it's an expected condition.
@@ -102,6 +106,7 @@ const sendMessageToTab = <T>(
   tabId: number,
   message: { type: string; payload?: unknown }
 ): Promise<T> => {
+  logger.debug('Sending message to tab', { tabId, messageType: message.type });
   return new Promise<T>((resolve, reject) => {
     chrome.tabs.sendMessage(tabId, message, (response) => {
       if (chrome.runtime.lastError) {
@@ -110,6 +115,7 @@ const sendMessageToTab = <T>(
         return reject(error);
       }
       if (response && response.status === 'success') {
+        logger.debug('Received success response from tab message', { tabId, messageType: message.type });
         resolve(response.payload as T);
       } else {
         const errorMsg =
@@ -145,6 +151,29 @@ const CURATED_MODELS = [
 ];
 
 chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
+  if (message.type === 'GET_LOG_SETTINGS') {
+    logger.debug('UI requested log settings');
+    sendResponse({ status: 'success', payload: logger.getSettings() });
+    return true;
+  }
+
+  if (message.type === 'UPDATE_LOG_SETTINGS') {
+    try {
+      logger.setSettings(message.payload || {});
+      sendResponse({ status: 'success' });
+    } catch (error) {
+      logger.error('Failed to update log settings', error);
+      sendResponse({ status: 'error', message: (error as Error).message });
+    }
+    return true;
+  }
+
+  if (message.type === 'EXPORT_LOGS') {
+    logger.debug('Received EXPORT_LOGS request');
+    const logs = logger.getBufferedLogs();
+    sendResponse({ status: 'success', logs });
+    return true;
+  }
   if (message.type === 'ping') {
     logger.info('Received ping from UI, sending pong back.');
     sendResponse({ payload: 'pong' });
@@ -435,11 +464,43 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
     (async () => {
       try {
         await configInitializationPromise;
-        logger.info('Received RESUME_PIPELINE message');
-        await resumePipeline();
+        const postUrn = (message.postUrn as string) || (message.payload?.postUrn as string) || undefined;
+        const tabId = sender.tab?.id;
+        logger.info('Received RESUME_PIPELINE message', { postUrn, tabId });
+        await resumePipeline(postUrn, tabId);
         sendResponse({ status: 'success' });
       } catch (error) {
         logger.error('Failed to resume pipeline', error);
+        sendResponse({ status: 'error', message: (error as Error).message });
+      }
+    })();
+    return true;
+  }
+
+  if (message.type === 'RESET_SESSION') {
+    (async () => {
+      try {
+        await configInitializationPromise;
+        const postUrn = (message.postUrn as string) || (message.payload?.postUrn as string) || (() => {
+          const m = sender.tab?.url?.match(/(urn:li:activity:\d+)/);
+          return m && m[1] ? m[1] : undefined;
+        })();
+        logger.info('Received RESET_SESSION request', { postUrn });
+        if (!postUrn) {
+          sendResponse({ status: 'error', message: 'No post URN available to reset.' });
+          return;
+        }
+        await resetPipeline(postUrn);
+        await clearPostState(postUrn);
+        broadcastStateUpdate({
+          isInitializing: false,
+          pipelineStatus: 'idle',
+          comments: [],
+          postUrn,
+        });
+        sendResponse({ status: 'success' });
+      } catch (error) {
+        logger.error('Failed to reset session', error);
         sendResponse({ status: 'error', message: (error as Error).message });
       }
     })();
@@ -450,6 +511,15 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
     const { postUrn, comments } = message.payload;
     logger.info('Received captured state from content script', { postUrn, commentCount: comments.length });
     mergeCapturedState(postUrn, { comments });
+    // Recompute and broadcast stats if we have user context
+    const state = getPostState(postUrn);
+    if (state) {
+      const stats = calculateCommentStats(
+        state.comments.map(c => ({ type: c.type, threadId: c.threadId, ownerProfileUrl: c.ownerProfileUrl })),
+        state._meta.userProfileUrl || ''
+      );
+      broadcastStateUpdate({ stats });
+    }
     // This is a fire-and-forget operation, no response needed.
     return false;
   }

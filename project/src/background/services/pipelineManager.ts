@@ -8,7 +8,7 @@ import {
   UIState,
   CapturedPostState,
 } from '../../shared/types';
-import { getPostState, savePostState, loadPostState, mergeCapturedState } from './stateManager';
+import { getPostState, savePostState, loadPostState, mergeCapturedState, calculateCommentStats } from './stateManager';
 import { getConfig } from './configManager';
 import { OpenRouterClient } from './openRouterClient';
 
@@ -217,6 +217,13 @@ const processComment = async (
     postId: postState._meta.postId,
     commentId: comment.commentId,
   };
+  logger.debug('Entering processComment with current statuses', {
+    ...context,
+    connected: typeof comment.connected === 'undefined' ? 'UNSET' : comment.connected,
+    likeStatus: comment.likeStatus,
+    replyStatus: comment.replyStatus,
+    dmStatus: comment.dmStatus,
+  });
   try {
     // STEP 1: Check connection status if it's unknown
     if (typeof comment.connected === 'undefined') {
@@ -227,6 +234,7 @@ const processComment = async (
       });
       let connectionTabId: number | undefined;
       try {
+        logger.debug('Creating background tab for profile', { ...stepContext });
         const tab = await chrome.tabs.create({
           url: comment.ownerProfileUrl,
           active: false,
@@ -235,9 +243,11 @@ const processComment = async (
         if (!connectionTabId) {
           throw new Error('Failed to create a new tab for connection check.');
         }
+        logger.debug('Created tab for connection check', { ...stepContext, connectionTabId });
 
         // Wait for the tab to complete loading with a timeout
         await new Promise<void>((resolve, reject) => {
+          logger.debug('Waiting for tab load to complete', { ...stepContext, connectionTabId });
           const timeout = setTimeout(() => {
             chrome.tabs.onUpdated.removeListener(listener);
             reject(new Error('Tab loading timed out after 30 seconds.'));
@@ -250,12 +260,13 @@ const processComment = async (
             if (tabId === connectionTabId && changeInfo.status === 'complete') {
               clearTimeout(timeout);
               chrome.tabs.onUpdated.removeListener(listener);
+              logger.debug('Tab reported complete status', { ...stepContext, connectionTabId });
               resolve();
             }
           };
           chrome.tabs.onUpdated.addListener(listener);
         });
-
+        logger.debug('Executing in-page script to detect connection badge', { ...stepContext, connectionTabId });
         const injectionResults = await chrome.scripting.executeScript({
           target: { tabId: connectionTabId },
           func: () => {
@@ -268,7 +279,7 @@ const processComment = async (
             );
           },
         });
-
+        logger.debug('Script injection completed', { ...stepContext, resultsCount: injectionResults?.length ?? 0 });
         if (injectionResults && injectionResults.length > 0) {
           comment.connected = injectionResults[0].result as boolean;
           logger.info('Connection status determined successfully', {
@@ -287,13 +298,20 @@ const processComment = async (
         comment.lastError = (error as Error).message;
       } finally {
         if (connectionTabId) {
+          logger.debug('Closing connection check tab', { ...stepContext, connectionTabId });
           await chrome.tabs.remove(connectionTabId);
+          logger.debug('Closed connection check tab', { ...stepContext, connectionTabId });
         }
       }
 
       await savePostState(activePostUrn!, postState);
       broadcastState({ pipelineStatus, postUrn: activePostUrn ?? undefined, comments: postState.comments });
-      return; // Atomic step complete
+      // Do NOT return here; continue processing this same comment so we don't
+      // get stuck doing connection checks for all comments before acting.
+      logger.debug('Connection check complete; proceeding to next steps for same comment', {
+        ...context,
+        connected: comment.connected,
+      });
     }
 
     // STATE: QUEUED -> LIKED
@@ -308,6 +326,7 @@ const processComment = async (
       try {
         await retryAsyncFunction(
           async () => {
+            logger.debug('Attempting like action', { ...stepContext, attempt: comment.attempts.like + 1 });
             comment.attempts.like++;
             const likeSuccess = await sendMessageToTab<boolean>(activeTabId!, {
               type: 'LIKE_COMMENT',
@@ -349,7 +368,8 @@ const processComment = async (
 
       await savePostState(activePostUrn!, postState);
       broadcastState({ pipelineStatus, postUrn: activePostUrn ?? undefined, comments: postState.comments });
-      return; // Atomic step complete
+      // Continue to reply step in same invocation
+      logger.debug('Like step complete; continuing to reply evaluation', context);
     }
 
     // STATE: LIKED -> REPLIED
@@ -359,7 +379,21 @@ const processComment = async (
       comment.attempts.reply = 0;
 
       try {
-        const replyText = await generateReply(comment, postState);
+        // If the commenter is not connected, use the configured non-connected template (no LLM call)
+        const aiConfig = getConfig();
+        let replyText: string | null = null;
+
+        if (comment.connected === false) {
+          replyText =
+            aiConfig.reply?.nonConnectedTemplate ||
+            "Thanks for your comment! I'd love to connect first so we can continue the conversation.";
+          logger.info('Using non-connected reply template', {
+            ...stepContext,
+            connected: comment.connected,
+          });
+        } else {
+          replyText = await generateReply(comment, postState);
+        }
 
         if (replyText === null) {
           // This case now primarily handles non-error paths where a reply isn't generated,
@@ -434,7 +468,7 @@ const processComment = async (
 
       await savePostState(activePostUrn!, postState);
       broadcastState({ pipelineStatus, postUrn: activePostUrn ?? undefined, comments: postState.comments });
-      return;
+      logger.debug('Reply step complete; continuing to DM evaluation (if applicable)', context);
     }
 
     // STATE: REPLIED -> DM_SENT (for connected users)
@@ -476,6 +510,7 @@ const processComment = async (
             throw new Error('Failed to create a new tab for sending DM.');
           }
 
+          logger.debug('Created tab for DM', { ...stepContext, dmTabId });
           await new Promise<void>((resolve, reject) => {
             const timeout = setTimeout(
               () => reject(new Error('DM tab loading timed out')),
@@ -488,6 +523,7 @@ const processComment = async (
               if (tabId === dmTabId && changeInfo.status === 'complete') {
                 clearTimeout(timeout);
                 chrome.tabs.onUpdated.removeListener(listener);
+                logger.debug('DM tab reported complete', { ...stepContext, dmTabId });
                 resolve();
               }
             };
@@ -498,6 +534,7 @@ const processComment = async (
 
           await retryAsyncFunction(
             async () => {
+              logger.debug('Attempting DM send', { ...stepContext, attempt: comment.attempts.dm + 1 });
               comment.attempts.dm++;
               const dmSuccess = await sendMessageToTab<boolean>(dmTabId!, {
                 type: 'SEND_DM',
@@ -541,7 +578,7 @@ const processComment = async (
 
       await savePostState(activePostUrn!, postState);
       broadcastState({ pipelineStatus, postUrn: activePostUrn ?? undefined, comments: postState.comments });
-      return;
+      logger.debug('DM step complete for comment', context);
     }
   } catch (error) {
     logger.error('An unexpected error occurred while processing comment', error, {
@@ -588,6 +625,11 @@ const processQueue = async (): Promise<void> => {
     }
 
     const nextComment = findNextComment(postState);
+    logger.debug('Evaluated next comment to process', {
+      postUrn: activePostUrn,
+      hasNext: !!nextComment,
+      nextCommentId: nextComment?.commentId,
+    });
 
     if (!nextComment) {
       logger.info('All comments have been processed. Capturing final state.', {
@@ -604,6 +646,16 @@ const processQueue = async (): Promise<void> => {
               // Send the data to the background script's main listener for processing
               const { postUrn, comments } = response;
               mergeCapturedState(postUrn, { comments });
+
+              // After merging, compute updated stats and broadcast
+              const state = getPostState(postUrn);
+              if (state) {
+                const stats = calculateCommentStats(
+                  (state.comments || []).map(c => ({ type: c.type, threadId: c.threadId, ownerProfileUrl: c.ownerProfileUrl })),
+                  state._meta.userProfileUrl || ''
+                );
+                broadcastState({ stats });
+              }
             } else {
               logger.warn('Captured post state but postUrn was missing.', {
                 response,
@@ -684,19 +736,46 @@ export const startPipeline = async (
       });
       console.log('Response from CAPTURE_POST_STATE:', response);
       if (response && response.postUrn) {
-        const { postUrn, comments } = response;
+        const { postUrn, comments, userProfileUrl } = response;
+        // Normalize captured comments into full pipeline-aware Comment objects
+        const normalizedComments: Comment[] = (Array.isArray(comments)
+          ? (comments as unknown as import('../../shared/types').ParsedComment[])
+          : []
+        ).map((c) => ({
+          ...c,
+          connected: undefined,
+          likeStatus: '',
+          replyStatus: '',
+          dmStatus: '',
+          attempts: { like: 0, reply: 0, dm: 0 },
+          lastError: '',
+          pipeline: {
+            queuedAt: new Date().toISOString(),
+            likedAt: '',
+            repliedAt: '',
+            dmAt: '',
+          },
+        }));
+
         const newPostState: PostState = {
           _meta: {
             postId: postUrn,
             postUrl: `https://www.linkedin.com/feed/update/${postUrn}`,
             runState: 'idle',
             lastUpdated: new Date().toISOString(),
-            userProfileUrl: '', // Not critical for this test
+            userProfileUrl: userProfileUrl || '',
           },
-          comments: comments as Comment[],
+          comments: normalizedComments,
         };
         await savePostState(postUrn, newPostState);
         postState = newPostState;
+
+        // Calculate and broadcast initial stats
+        const stats = calculateCommentStats(
+          (postState.comments || []).map(c => ({ type: c.type, threadId: c.threadId, ownerProfileUrl: c.ownerProfileUrl })),
+          postState._meta.userProfileUrl || ''
+        );
+        broadcastState({ stats });
       }
     } catch (error) {
       logger.error('Failed to capture initial post state', error, { postUrn });
@@ -747,37 +826,55 @@ export const stopPipeline = async (): Promise<void> => {
   broadcastState({ pipelineStatus: 'paused', postUrn: activePostUrn });
 };
 
-export const resumePipeline = async (): Promise<void> => {
-  if (pipelineStatus !== 'paused') {
-    logger.warn('Pipeline is not paused, cannot resume.', {
-      status: pipelineStatus,
-    });
-    return;
-  }
-  if (!activePostUrn) {
-    logger.error('Cannot resume, no active post was paused.');
+export const resumePipeline = async (postUrn?: string, tabId?: number): Promise<void> => {
+  logger.info('Resume requested', { currentStatus: pipelineStatus, activePostUrn, providedUrn: postUrn, providedTabId: tabId, step: 'PIPELINE_RESUME_REQUEST' });
+
+  // If already running, no-op
+  if (pipelineStatus === 'running') {
+    logger.warn('Pipeline already running; ignoring resume request.', { activePostUrn, activeTabId });
     return;
   }
 
-  const postState = getPostState(activePostUrn);
+  // Determine target URN
+  const targetUrn = postUrn || activePostUrn;
+  if (!targetUrn) {
+    logger.error('Cannot resume: no post URN provided or active.');
+    return;
+  }
 
+  // Ensure we have a state to resume
+  let postState = getPostState(targetUrn);
   if (!postState) {
-    logger.error('Cannot resume, no state found for post', undefined, {
-      postUrn: activePostUrn,
-    });
+    postState = await loadPostState(targetUrn);
+  }
+  if (!postState) {
+    logger.error('Cannot resume: no saved state found for post', undefined, { postUrn: targetUrn });
     return;
   }
 
-  logger.info('Resuming pipeline', {
-    postUrn: activePostUrn,
-    step: 'PIPELINE_RESUME',
-  });
+  // Update manager state
+  activePostUrn = targetUrn;
+  if (tabId) activeTabId = tabId;
+
+  logger.info('Resuming pipeline', { postUrn: activePostUrn, tabId: activeTabId, previousRunState: postState._meta.runState, step: 'PIPELINE_RESUME' });
   pipelineStatus = 'running';
   postState._meta.runState = 'running';
   await savePostState(activePostUrn, postState);
 
-  broadcastState({ pipelineStatus: 'running', postUrn: activePostUrn });
+  broadcastState({ pipelineStatus: 'running', postUrn: activePostUrn, comments: postState.comments });
   processQueue();
+};
+
+export const resetPipeline = async (postUrn?: string): Promise<void> => {
+  logger.info('Resetting pipeline session', { postUrn, activePostUrn, step: 'PIPELINE_RESET' });
+  // If resetting the current active post, drop runtime pointers
+  if (!postUrn || postUrn === activePostUrn) {
+    pipelineStatus = 'idle';
+    activePostUrn = null;
+    activeTabId = null;
+    isProcessing = false;
+  }
+  broadcastState({ pipelineStatus: 'idle', postUrn: postUrn ?? undefined });
 };
 
 export const getPipelineStatus = (): RunState => {

@@ -33,6 +33,7 @@ export interface CapturedPostState {
   comments: ParsedComment[];
   postUrn: string | null;
   postUrl: string;
+  userProfileUrl?: string;
 }
 
 export interface ChatMessage {
@@ -107,6 +108,8 @@ export interface AIConfig {
   stream?: boolean;
   reply?: {
     customPrompt?: string;
+    // Used as a direct reply when the commenter is not connected (no LLM call)
+    nonConnectedTemplate?: string;
   };
   dm?: {
     customPrompt?: string;
@@ -121,6 +124,11 @@ export interface AIConfig {
   };
 }
 
+export interface LogSettings {
+  // Minimum level to emit and broadcast
+  minLevel: LogLevel; // 'DEBUG' | 'INFO' | 'WARN' | 'ERROR'
+}
+
 export type ExtensionMessage =
   | { type: 'STATE_UPDATE'; payload: Partial<UIState> }
   | { type: 'LOG_ENTRY'; payload: LogEntry }
@@ -133,6 +141,9 @@ export type ExtensionMessage =
   | { type: 'GET_MODELS'; payload?: never }
   | { type: 'REQUEST_POST_STATE_FOR_EXPORT'; payload?: never }
   | { type: 'CAPTURE_POST_STATE'; payload?: never }
+  | { type: 'GET_LOG_SETTINGS' }
+  | { type: 'UPDATE_LOG_SETTINGS'; payload: Partial<LogSettings> }
+  | { type: 'EXPORT_LOGS' }
   | {
       type: 'PROCESS_CAPTURED_STATE';
       payload: Omit<CapturedPostState, 'postUrn'> & { postUrn: string };

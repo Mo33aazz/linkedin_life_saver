@@ -19,8 +19,8 @@ type CommentLike = {
  * An object representing the calculated statistics for comments.
  */
 export interface CommentStats {
-  totalTopLevelNoReplies: number;
-  userTopLevelNoReplies: number;
+  totalTopLevelNoReplies: number; // Repurposed: total top-level comments
+  userTopLevelNoReplies: number; // Repurposed: top-level without my reply
 }
 
 /**
@@ -47,36 +47,30 @@ export const calculateCommentStats = (
   comments: CommentLike[],
   userProfileUrl: string
 ): CommentStats => {
-  // First pass: Identify all thread IDs that have at least one reply.
-  const repliedThreadIds = new Set<string>();
-  comments.forEach(comment => {
-    if (comment.type === 'reply') {
-      repliedThreadIds.add(comment.threadId);
+  // Identify all threads that contain at least one reply authored by me
+  const threadsWithMyReply = new Set<string>();
+  comments.forEach((c) => {
+    if (c.type === 'reply' && userProfileUrl && c.ownerProfileUrl === userProfileUrl) {
+      threadsWithMyReply.add(c.threadId);
     }
   });
 
-  // Second pass: Count top-level comments that are in threads with no replies.
-  let totalTopLevelNoReplies = 0;
-  let userTopLevelNoReplies = 0;
+  let totalTopLevel = 0; // total post top-level comments
+  let topLevelWithoutMyReply = 0; // top-level comments without my reply
 
-  comments.forEach(comment => {
-    // Check if it's a top-level comment and its thread has no replies.
-    if (
-      comment.type === 'top-level' &&
-      !repliedThreadIds.has(comment.threadId)
-    ) {
-      totalTopLevelNoReplies++;
-
-      // Additionally, check if this comment belongs to the user.
-      if (comment.ownerProfileUrl === userProfileUrl) {
-        userTopLevelNoReplies++;
+  comments.forEach((c) => {
+    if (c.type === 'top-level') {
+      totalTopLevel++;
+      const authoredByMe = !!userProfileUrl && c.ownerProfileUrl === userProfileUrl;
+      if (!authoredByMe && !threadsWithMyReply.has(c.threadId)) {
+        topLevelWithoutMyReply++;
       }
     }
   });
 
   return {
-    totalTopLevelNoReplies,
-    userTopLevelNoReplies,
+    totalTopLevelNoReplies: totalTopLevel,
+    userTopLevelNoReplies: topLevelWithoutMyReply,
   };
 };
 
@@ -167,6 +161,20 @@ export const loadAllStates = async (): Promise<void> => {
  */
 export const getPostState = (postUrn: string): PostState | undefined => {
   return stateCache.get(postUrn);
+};
+
+/**
+ * Clears a post's state from storage and cache.
+ * @param postUrn - The unique URN of the post.
+ */
+export const clearPostState = async (postUrn: string): Promise<void> => {
+  try {
+    await chrome.storage.local.remove(postUrn);
+    stateCache.delete(postUrn);
+    console.log(`Cleared state for post URN: ${postUrn}`);
+  } catch (error) {
+    console.error(`Error clearing state for post URN ${postUrn}:`, error);
+  }
 };
 
 /**

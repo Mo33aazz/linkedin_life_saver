@@ -339,6 +339,7 @@ export const sendDm = async (dmText: string): Promise<boolean> => {
 export const capturePostStateFromDOM = (): CapturedPostState => {
   console.log('Capturing post-state from the DOM...');
   const comments = extractComments();
+  const userProfileUrl = getSignedInUserProfileUrl() || '';
 
   const postUrnRegex = /(urn:li:activity:\d+)/;
   const match = window.location.href.match(postUrnRegex);
@@ -346,5 +347,5 @@ export const capturePostStateFromDOM = (): CapturedPostState => {
   const postUrl = window.location.href;
 
   console.log(`Capture complete. Found ${comments.length} comments.`);
-  return { comments, postUrn, postUrl };
+  return { comments, postUrn, postUrl, userProfileUrl };
 };

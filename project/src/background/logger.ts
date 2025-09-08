@@ -1,4 +1,4 @@
-import { LogEntry, LogLevel } from '../shared/types';
+import { LogEntry, LogLevel, LogSettings } from '../shared/types';
 
 /**
  * A structured logger that follows the Singleton pattern.
@@ -8,6 +8,16 @@ export class Logger {
   private static instance: Logger;
   private broadcaster: (log: LogEntry) => void = () => {};
   private isInitialized = false;
+  private settings: LogSettings = { minLevel: 'INFO' };
+  private buffer: LogEntry[] = [];
+  private maxBuffer = 1000;
+
+  private levelPriority: Record<LogLevel, number> = {
+    DEBUG: 10,
+    INFO: 20,
+    WARN: 30,
+    ERROR: 40,
+  };
 
   // The constructor is private to enforce the Singleton pattern.
   // eslint-disable-next-line no-useless-constructor
@@ -39,6 +49,19 @@ export class Logger {
     this.info('Logger initialized.');
   }
 
+  public setSettings(next: Partial<LogSettings>): void {
+    this.settings = { ...this.settings, ...next };
+    this.debug('Logger settings updated', { settings: this.settings });
+  }
+
+  public getSettings(): LogSettings {
+    return this.settings;
+  }
+
+  public getBufferedLogs(): LogEntry[] {
+    return [...this.buffer];
+  }
+
   private log(
     level: LogLevel,
     message: string,
@@ -50,6 +73,19 @@ export class Logger {
       message,
       context,
     };
+
+    // Respect level filtering
+    const minPriority = this.levelPriority[this.settings.minLevel];
+    const curPriority = this.levelPriority[level];
+    if (curPriority < minPriority) {
+      return; // Filter out logs below minLevel
+    }
+
+    // Buffer logs for export
+    this.buffer.push(logEntry);
+    if (this.buffer.length > this.maxBuffer) {
+      this.buffer.splice(0, this.buffer.length - this.maxBuffer);
+    }
 
     // Also log to the service worker console for debugging purposes
     const consoleArgs = [
@@ -75,7 +111,12 @@ export class Logger {
 
     // Broadcast the structured log
     if (this.isInitialized) {
-      this.broadcaster(logEntry);
+      try {
+        this.broadcaster(logEntry);
+      } catch (e) {
+        // Avoid recursive logging
+        console.warn('Logger broadcaster threw', e);
+      }
     }
   }
 

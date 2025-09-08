@@ -45,7 +45,7 @@ const LogEntryItem = ({ log }: { log: LogEntry }) => {
 
 export const LogsPanel = () => {
   const logs = useStore(state => state.logs);
-  const [activeFilters, setActiveFilters] = useState<Set<LogLevel>>(new Set(['INFO', 'WARN', 'ERROR']));
+  const [activeFilters, setActiveFilters] = useState<Set<LogLevel>>(new Set(['DEBUG', 'INFO', 'WARN', 'ERROR']));
   const logContainerRef = useRef<HTMLDivElement>(null);
 
   const toggleFilter = (level: LogLevel) => {
