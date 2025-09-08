@@ -184,18 +184,68 @@ export const extractComments = (): ParsedComment[] => {
 export const likeComment = async (commentId: string): Promise<boolean> => {
   console.log(`Attempting to like comment: ${commentId}`);
 
-  const commentSelector = `${SELECTORS.comment.container}[data-id='${commentId}']`;
-  const commentElement =
-    document.querySelector<HTMLElement>(commentSelector);
+  // Try to locate the comment element robustly.
+  // Some pages expose different ID formats; derive common variants.
+  const numericMatch = commentId.match(/urn:li:comment:(?:\(activity:\d+,)?(\d+)\)?/);
+  const numericId = numericMatch && numericMatch[1] ? numericMatch[1] : '';
+  const plainUrnVariant = numericId ? `urn:li:comment:${numericId}` : '';
+
+  const exactIdSelector = `${SELECTORS.comment.container}[data-id='${commentId}']`;
+  const exactUrnSelector = `${SELECTORS.comment.container}[data-urn='${commentId}']`;
+  const altIdSelector = plainUrnVariant ? `${SELECTORS.comment.container}[data-id='${plainUrnVariant}']` : '';
+  const altUrnSelector = plainUrnVariant ? `${SELECTORS.comment.container}[data-urn='${plainUrnVariant}']` : '';
+  // Sometimes nested nodes (not the article) carry the data-urn/id; grab closest article.
+  const looseSelector = `[data-id='${commentId}'], [data-urn='${commentId}']`;
+  const looseAltSelector = plainUrnVariant ? `[data-id='${plainUrnVariant}'], [data-urn='${plainUrnVariant}']` : '';
+
+  let commentElement = document.querySelector<HTMLElement>(exactIdSelector)
+    || document.querySelector<HTMLElement>(exactUrnSelector)
+    || (altIdSelector ? document.querySelector<HTMLElement>(altIdSelector) : null)
+    || (altUrnSelector ? document.querySelector<HTMLElement>(altUrnSelector) : null)
+    || (document.querySelector<HTMLElement>(looseSelector)?.closest(
+      SELECTORS.comment.container
+    ) as HTMLElement | null);
+  if (!commentElement && looseAltSelector) {
+    const el = document.querySelector<HTMLElement>(looseAltSelector);
+    if (el) commentElement = el.closest(SELECTORS.comment.container) as HTMLElement | null;
+  }
+
+  // If not found, try a short scroll-and-search loop to trigger lazy loading
+  if (!commentElement) {
+    for (let i = 0; i < 6 && !commentElement; i++) {
+      window.scrollBy(0, 600);
+      await delay(300);
+      commentElement = document.querySelector<HTMLElement>(exactIdSelector)
+        || document.querySelector<HTMLElement>(exactUrnSelector)
+        || (altIdSelector ? document.querySelector<HTMLElement>(altIdSelector) : null)
+        || (altUrnSelector ? document.querySelector<HTMLElement>(altUrnSelector) : null)
+        || (document.querySelector<HTMLElement>(looseSelector)?.closest(
+          SELECTORS.comment.container
+        ) as HTMLElement | null);
+      if (!commentElement && looseAltSelector) {
+        const el2 = document.querySelector<HTMLElement>(looseAltSelector);
+        if (el2) commentElement = el2.closest(SELECTORS.comment.container) as HTMLElement | null;
+      }
+    }
+  }
 
   if (!commentElement) {
     console.warn(`Could not find comment element with ID: ${commentId}`);
     return false;
   }
 
-  const likeButton = commentElement.querySelector<HTMLButtonElement>(
-    SELECTORS.comment.likeButton
-  );
+  // Ensure the target is in view for more reliable interactions
+  try {
+    commentElement.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    await delay(400);
+  } catch {}
+
+  // Broaden the like button selector to account for UI variations
+  const likeButton =
+    commentElement.querySelector<HTMLButtonElement>(SELECTORS.comment.likeButton) ||
+    commentElement.querySelector<HTMLButtonElement>('button.comments-comment-social-bar__reaction-button') ||
+    commentElement.querySelector<HTMLButtonElement>('button[aria-label*="Like" i]') ||
+    commentElement.querySelector<HTMLButtonElement>('button[aria-label*="React" i]');
 
   if (!likeButton) {
     console.warn(`Could not find 'Like' button for comment: ${commentId}`);
@@ -208,8 +258,24 @@ export const likeComment = async (commentId: string): Promise<boolean> => {
     return true;
   }
 
+  // Perform a more realistic click sequence and wait for state change
+  likeButton.focus();
+  likeButton.dispatchEvent(new MouseEvent('mousedown', { bubbles: true, cancelable: true, view: window }));
+  likeButton.dispatchEvent(new MouseEvent('mouseup', { bubbles: true, cancelable: true, view: window }));
   likeButton.click();
-  await delay(500); // Brief delay to simulate human interaction
+
+  // Wait up to ~1.5s for aria-pressed to flip to true
+  const start = Date.now();
+  while (Date.now() - start < 1500) {
+    if (likeButton.getAttribute('aria-pressed') === 'true') break;
+    await delay(150);
+  }
+
+  // Final verification
+  if (likeButton.getAttribute('aria-pressed') !== 'true') {
+    console.warn(`Like click did not register for comment: ${commentId}`);
+    return false;
+  }
 
   console.log(`Successfully liked comment: ${commentId}`);
   return true;

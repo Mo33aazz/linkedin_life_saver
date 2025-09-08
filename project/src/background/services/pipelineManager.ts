@@ -724,6 +724,30 @@ export const startPipeline = async (
     const loadedState = await loadPostState(postUrn);
     postState = loadedState || undefined;
   }
+  // If we have an existing state, ensure comments are normalized
+  if (postState) {
+    const needsNormalization = (postState.comments || []).some(
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      (c: any) => typeof c.likeStatus === 'undefined' || typeof c.attempts === 'undefined'
+    );
+    if (needsNormalization) {
+      logger.warn('Normalizing existing post state comments for pipeline fields', { postUrn });
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      postState.comments = (postState.comments as any[]).map((c) => ({
+        ...c,
+        connected: typeof c.connected === 'undefined' ? undefined : c.connected,
+        likeStatus: typeof c.likeStatus === 'string' ? c.likeStatus : '',
+        replyStatus: typeof c.replyStatus === 'string' ? c.replyStatus : '',
+        dmStatus: typeof c.dmStatus === 'string' ? c.dmStatus : '',
+        attempts: c.attempts && typeof c.attempts === 'object' ? c.attempts : { like: 0, reply: 0, dm: 0 },
+        lastError: typeof c.lastError === 'string' ? c.lastError : '',
+        pipeline: c.pipeline && typeof c.pipeline === 'object'
+          ? c.pipeline
+          : { queuedAt: new Date().toISOString(), likedAt: '', repliedAt: '', dmAt: '' },
+      }));
+      await savePostState(postUrn, postState);
+    }
+  }
 
   if (!postState) {
     logger.info(

@@ -30,6 +30,7 @@ import {
   OpenRouterModel,
   LogEntry,
   ParsedComment,
+  Comment,
 } from '../shared/types';
 import { OpenRouterClient } from './services/openRouterClient';
 import { logger } from './logger';
@@ -241,7 +242,7 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
     // Log the results to meet acceptance criteria
     logger.info('Calculated Comment Stats', { stats });
 
-    // Create and save the full post state
+    // Create and save the full post state (normalize comments into pipeline-aware objects)
     const postMeta: Post = {
       postId: postUrn,
       postUrl,
@@ -249,9 +250,25 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
       runState: 'idle',
     };
 
+    const normalizedComments: Comment[] = (comments as ParsedComment[]).map((c): Comment => ({
+      ...c,
+      connected: undefined,
+      likeStatus: '',
+      replyStatus: '',
+      dmStatus: '',
+      attempts: { like: 0, reply: 0, dm: 0 },
+      lastError: '',
+      pipeline: {
+        queuedAt: new Date().toISOString(),
+        likedAt: '',
+        repliedAt: '',
+        dmAt: '',
+      },
+    }));
+
     const postState: PostState = {
       _meta: postMeta,
-      comments,
+      comments: normalizedComments,
     };
 
     // Asynchronously save state. No need to await for the response to the content script.
