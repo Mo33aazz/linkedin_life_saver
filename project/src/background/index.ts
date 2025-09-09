@@ -172,6 +172,9 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
   if (message.type === 'EXPORT_LOGS') {
     logger.debug('Received EXPORT_LOGS request');
     const logs = logger.getBufferedLogs();
+    // Expose for E2E verification without relying on downloads
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    (self as any).__E2E_LAST_EXPORTED_LOGS = logs;
     sendResponse({ status: 'success', logs });
     return true;
   }
@@ -551,6 +554,8 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
 // if (import.meta.env.MODE !== 'production') {
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 (self as any).__E2E_TEST_SAVE_POST_STATE = (postUrn: string, state: PostState) => savePostState(postUrn, state);
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+(self as any).__E2E_TEST_GET_POST_STATE = (postUrn: string) => getPostState(postUrn);
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 (self as any).__E2E_TEST_UPDATE_CONFIG = (config: Partial<AIConfig>) => updateConfig(config);
 // eslint-disable-next-line @typescript-eslint/no-explicit-any

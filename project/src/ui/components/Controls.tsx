@@ -223,13 +223,13 @@ export const Controls = () => {
       </div>
 
       <div className="control-actions">
-        <button onClick={handleExportJSON} className="action-button">
+        <button onClick={handleExportJSON} className="action-button" data-testid="export-json-button">
           Export JSON
         </button>
-        <button onClick={handleExportLogs} className="action-button">
+        <button onClick={handleExportLogs} className="action-button" data-testid="export-logs-button">
           Export Logs
         </button>
-        <button onClick={handleResetSession} className="action-button danger">
+        <button onClick={handleResetSession} className="action-button danger" data-testid="reset-session-button">
           Reset Session
         </button>
       </div>
