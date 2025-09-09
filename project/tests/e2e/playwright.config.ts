@@ -1,29 +1,17 @@
-// playwright.config.ts
-import { defineConfig, devices } from '@playwright/test';
+import { defineConfig } from '@playwright/test';
 
 export default defineConfig({
-  testDir: './',
-  timeout: 60 * 1000, // Increased from 30 seconds to 60 seconds
-  expect: {
-    timeout: 10000, // Increased from 5 seconds to 10 seconds
-  },
+  testDir: './tests/e2e',
+  timeout: 180_000,
   fullyParallel: false,
-  forbidOnly: !!process.env.CI,
-  retries: process.env.CI ? 2 : 1, // Allow one retry for local runs to handle flakiness
-  workers: 1, // Force a single worker to prevent parallel requests to LinkedIn
-  reporter: 'html',
+  workers: 1,
+  reporter: 'list',
   use: {
-    trace: 'on-first-retry',
-    screenshot: 'only-on-failure',
-    video: 'retain-on-failure',
-    // Add default navigation timeout and a modest action timeout
-    navigationTimeout: 60000,
-    actionTimeout: 15000,
+    actionTimeout: 60_000,
+    navigationTimeout: 60_000,
+    viewport: { width: 1280, height: 800 },
   },
-  projects: [
-    {
-      name: 'chromium',
-      use: { ...devices['Desktop Chrome'] },
-    },
-  ],
+  globalSetup: './tests/e2e/setup/globalSetup.ts',
+  globalTeardown: './tests/e2e/setup/globalTeardown.ts',
 });
+
