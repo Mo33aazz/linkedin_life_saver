@@ -143,7 +143,7 @@ test.describe('Header Component', () => {
 
   test('should display configuration info correctly', async () => {
     // Test N/A state
-    await updateUIState(pageId, { aiConfig: undefined });
+    await updateUIState(pageId, { aiConfig: null });
     let configInfo = await action({
       action: 'evaluate',
       pageId,
@@ -178,7 +178,7 @@ test.describe('Header Component', () => {
 
   test('should display user info correctly', async () => {
     // Test "Not available" state
-    await updateUIState(pageId, { userProfileUrl: undefined });
+    await updateUIState(pageId, { userProfileUrl: null });
     let userInfo = await action({
       action: 'evaluate',
       pageId,
