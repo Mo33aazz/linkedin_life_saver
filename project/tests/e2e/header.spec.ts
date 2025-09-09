@@ -1,5 +1,5 @@
 import { test, expect } from '@playwright/test';
-import type { UIState, RunState, AIConfig } from '../../src/shared/types';
+import type { RunState, AIConfig } from '../../src/shared/types';
 
 const SERVER_PORT = Number(process.env.SHARED_BROWSER_PORT || 9333);
 const BASE = `http://localhost:${SERVER_PORT}`;
@@ -24,6 +24,18 @@ async function action(payload: Record<string, unknown>) {
     throw new Error(`Action failed: ${res.status} ${JSON.stringify(data)}`);
   }
   return data.result;
+}
+
+async function newTestPageId(retries = 8, delayMs = 300): Promise<string> {
+  for (let i = 0; i < retries; i += 1) {
+    try {
+      const np = await action({ action: 'newPage' });
+      const pageId = np?.pageId as string | undefined;
+      if (pageId) return pageId;
+    } catch {}
+    await new Promise((r) => setTimeout(r, delayMs));
+  }
+  return '';
 }
 
 // Fallback wait helper that verifies visibility (faster fail default)
@@ -78,8 +90,7 @@ test.describe('Header Component', () => {
     const up = await serverUp();
     expect(up, 'Shared browser server must be running').toBeTruthy();
 
-    const np = await action({ action: 'newPage' });
-    pageId = np?.pageId;
+    pageId = await newTestPageId();
     expect(pageId, 'A new page should be created').toBeTruthy();
 
     const targetUrl = 'https://www.linkedin.com/feed/update/urn:li:activity:7368619407989760000/';

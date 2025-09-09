@@ -25,6 +25,18 @@ async function action(payload: Record<string, unknown>) {
   return data.result;
 }
 
+async function newTestPageId(retries = 8, delayMs = 300): Promise<string> {
+  for (let i = 0; i < retries; i += 1) {
+    try {
+      const np = await action({ action: 'newPage' });
+      const pageId = np?.pageId as string | undefined;
+      if (pageId) return pageId;
+    } catch {}
+    await new Promise((r) => setTimeout(r, delayMs));
+  }
+  return '';
+}
+
 // Fallback wait helper that works even if the server does not
 // implement a native `waitForSelector` action.
 async function waitForSelectorEval(
@@ -61,8 +73,7 @@ test('Extension UI renders and toggle works on LinkedIn post', async () => {
   expect(up).toBeTruthy();
 
   // 1) Open a dedicated page via the shared browser server
-  const np = await action({ action: 'newPage' });
-  const pageId = np?.pageId;
+  const pageId = await newTestPageId();
   expect(pageId).toBeTruthy();
 
   // 2) Navigate to the LinkedIn post URL

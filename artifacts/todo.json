@@ -2233,25 +2233,26 @@
         "input_files": [],
         "files": []
     },
-    {
-        "name": "DR1.T3",
+       {
+        "name": "DR1.T5",
         "context": {
-            "task_id": "DR1.T3",
+            "task_id": "DR1.T5",
             "iteration_id": "DR1",
             "iteration_goal": "End-to-end testing and final validation of the LinkedIn Engagement Assistant",
-            "description": "Create tests for Live Counters functionality. Verify 'Total Top-Level (No Replies)' and 'Your Top-Level (No Replies)' counters update correctly. This includes testing: 1) Initial counter values are zero, 2) Counters update when comments are loaded, 3) Counters differentiate between user's comments and others, 4) Counters exclude replies to comments.",
+            "description": "Create tests for Controls section functionality after pipeline execution. Verify Start button, Max Replies, Delay Between Replies, Max Open Tabs, Max Scrolls, Rate Limit Profile, Export JSON, Export Logs, and Reset Session work correctly after running actual comments and DMs. This includes testing: 1) Controls reflect final state after execution, 2) Export JSON downloads complete pipeline data, 3) Export Logs includes all execution logs, 4) Reset Session clears all data and resets UI.",
             "agent_type_hint": "QualityAssuranceSpecialist",
-            "inputs": "Counters component implementation",
+            "inputs": "Controls component implementation",
             "target_files": [
-                "tests/e2e/counters.spec.ts"
+                "tests/e2e/controls.spec.ts"
             ],
             "input_files": [
-                "src/ui/components/Counters.tsx"
+                "src/ui/components/Controls.tsx"
             ],
-            "deliverables": "Test suite validating Live Counters functionality.",
-            "acceptance_criteria": "Counters update accurately based on comment processing in all scenarios.",
+            "deliverables": "Test suite validating Controls section functionality after pipeline execution.",
+            "acceptance_criteria": "All controls function correctly and trigger expected actions after pipeline execution in all scenarios.",
             "dependencies": [
-                "DR1.T0"
+                "DR1.T0",
+                "DR1.T10e"
             ],
             "parallelizable": false,
             "tools": [
@@ -2263,10 +2264,10 @@
             "validation": [
                 "Meets acceptance_criteria exactly",
                 "Shared browser healthy: GET http://localhost:9333/api/status returns ok",
-                "Actions via /api/action succeed (newPage, goto)",
+                "Actions via /api/action succeed (newPage, click, evaluate)",
                 "Tests green: npm run build:test && npm test"
             ],
-            "estimated_duration": 30
+            "estimated_duration": 40
         },
         "output": "",
         "iteration_id": "",
@@ -2307,49 +2308,6 @@
                 "Meets acceptance_criteria exactly",
                 "Shared browser healthy: GET http://localhost:9333/api/status returns ok",
                 "Actions via /api/action succeed (newPage, goto, waitForSelector)",
-                "Tests green: npm run build:test && npm test"
-            ],
-            "estimated_duration": 40
-        },
-        "output": "",
-        "iteration_id": "",
-        "completed": false,
-        "target_files": [],
-        "input_files": [],
-        "files": []
-    },
-    {
-        "name": "DR1.T5",
-        "context": {
-            "task_id": "DR1.T5",
-            "iteration_id": "DR1",
-            "iteration_goal": "End-to-end testing and final validation of the LinkedIn Engagement Assistant",
-            "description": "Create tests for Controls section functionality after pipeline execution. Verify Start button, Max Replies, Delay Between Replies, Max Open Tabs, Max Scrolls, Rate Limit Profile, Export JSON, Export Logs, and Reset Session work correctly after running actual comments and DMs. This includes testing: 1) Controls reflect final state after execution, 2) Export JSON downloads complete pipeline data, 3) Export Logs includes all execution logs, 4) Reset Session clears all data and resets UI.",
-            "agent_type_hint": "QualityAssuranceSpecialist",
-            "inputs": "Controls component implementation",
-            "target_files": [
-                "tests/e2e/controls.spec.ts"
-            ],
-            "input_files": [
-                "src/ui/components/Controls.tsx"
-            ],
-            "deliverables": "Test suite validating Controls section functionality after pipeline execution.",
-            "acceptance_criteria": "All controls function correctly and trigger expected actions after pipeline execution in all scenarios.",
-            "dependencies": [
-                "DR1.T0",
-                "DR1.T10e"
-            ],
-            "parallelizable": false,
-            "tools": [
-                "projects\\linkedin_life_saver\\project\\AGENTS.md (procedural guidelines)",
-                "From Byterover memory tools: byterover-retrieve-knowledge, byterover-store-knowledge",
-                "Shared browser server (port 9333): projects\\linkedin_life_saver\\project\\tools\\shared-browser",
-                "Playwright test runner"
-            ],
-            "validation": [
-                "Meets acceptance_criteria exactly",
-                "Shared browser healthy: GET http://localhost:9333/api/status returns ok",
-                "Actions via /api/action succeed (newPage, click, evaluate)",
                 "Tests green: npm run build:test && npm test"
             ],
             "estimated_duration": 40
