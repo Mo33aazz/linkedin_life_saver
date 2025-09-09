@@ -2226,7 +2226,7 @@
             ],
             "estimated_duration": 35
         },
-        "output": "I have analyzed the task instructions and the provided design artifacts. My goal is to create a comprehensive end-to-end test suite for the `Header` component to validate its functionality according to the acceptance criteria.\n\nThe plan is as follows:\n1.  **Structure the Test Suite:** I will create a new test file, `tests/e2e/header.spec.ts`. Inside this file, I will use Playwright's `test.describe` to group all tests for the `Header` component.\n2.  **Implement Setup and Teardown:** I will use `test.beforeEach` to prepare the browser environment for each test. This involves launching a new page, navigating to a sample LinkedIn post, and waiting for the extension's UI to be injected. `test.afterEach` will be used to close the page and clean up resources.\n3.  **Write Test Cases:** I will write four distinct test cases, each targeting a specific part of the `Header` component's functionality:\n    *   **Pipeline Status:** Verify that the status indicator and text change correctly for all possible states (`idle`, `running`, `paused`, `error`).\n    *   **Configuration Info:** Verify that the display correctly shows both the \"N/A\" state when no configuration is present and the populated state with specific values for reply limits and delays.\n    *   **User Info:** Verify the display for the user's profile URL, testing both the \"Not available\" state and a populated state with a valid link.\n    *   **Post Info:** Verify the display for the target post's details (URN, author, timestamp), testing both the \"N/A\" state and a populated state.\n4.  **Use State Injection:** For each test scenario, I will use the provided `updateUIState` helper function. This function sends a `postMessage` to the content script, which in turn updates the UI's Zustand store. This is the most efficient and reliable way to test the component's reaction to state changes.\n5.  **Query the Shadow DOM:** To verify the UI updates, my tests will execute JavaScript within the browser context using the `action` helper. These scripts will correctly query elements inside the extension's Shadow DOM to get their text content, classes, and attributes for assertions.\n\nThis approach ensures complete coverage of the `Header` component's functionality as required by the task, leading to a robust and reliable test suite.\n\n~~~typescript\n#- file: tests/e2e/header.spec.ts\nimport { test, expect } from '@playwright/test';\nimport type { UIState, RunState, AIConfig } from '../../src/shared/types';\n\nconst SERVER_PORT = Number(process.env.SHARED_BROWSER_PORT || 9333);\nconst BASE = `http://localhost:${SERVER_PORT}`;\nconst STATUS_URL = `${BASE}/api/status`;\nconst ACTION_URL = `${BASE}/api/action`;\n\nasync function serverUp() {\n  const res = await fetch(STATUS_URL).catch(() => null);\n  if (!res || !res.ok) return false;\n  const body = await res.json().catch(() => null);\n  return Boolean(body?.ok);\n}\n\nasync function action(payload: Record<string, unknown>) {\n  const res = await fetch(ACTION_URL, {\n    method: 'POST',\n    headers: { 'content-type': 'application/json' },\n    body: JSON.stringify(payload),\n  });\n  const data = await res.json();\n  if (!res.ok || !data?.ok) {\n    throw new Error(`Action failed: ${res.status} ${JSON.stringify(data)}`);\n  }\n  return data.result;\n}\n\nasync function waitForSelectorEval(\n  pageId: string,\n  selector: string,\n  timeoutMs = 45_000\n) {\n  const start = Date.now();\n  while (Date.now() - start < timeoutMs) {\n    const res = await action({\n      action: 'evaluate',\n      pageId,\n      expression: `!!document.querySelector(${JSON.stringify(selector)})`,\n    }).catch(() => ({ result: false }));\n    if (res && (res.result === true || res.result === 'true')) return;\n    await new Promise((r) => setTimeout(r, 300));\n  }\n  throw new Error(`Timeout waiting for selector: ${selector}`);\n}\n\n// Helper to send state updates to the UI via postMessage\nasync function updateUIState(pageId: string, payload: Partial<UIState>) {\n  await action({\n    action: 'evaluate',\n    pageId,\n    expression: `\n      window.postMessage({\n        source: '__E2E_TEST__',\n        type: 'STATE_UPDATE',\n        payload: ${JSON.stringify(payload)},\n      }, '*');\n    `,\n  });\n  // Give React a moment to re-render\n  await new Promise(r => setTimeout(r, 100));\n}\n\ntest.describe('Header Component', () => {\n  let pageId: string;\n\n  test.beforeEach(async () => {\n    test.setTimeout(120_000);\n    const up = await serverUp();\n    expect(up, 'Shared browser server must be running').toBeTruthy();\n\n    const np = await action({ action: 'newPage' });\n    pageId = np?.pageId;\n    expect(pageId, 'A new page should be created').toBeTruthy();\n\n    const targetUrl = 'https://www.linkedin.com/feed/update/urn:li:activity:7368619407989760000/';\n    await action({ action: 'goto', pageId, url: targetUrl, waitUntil: 'domcontentloaded', timeoutMs: 60_000 });\n\n    await waitForSelectorEval(pageId, '#linkedin-engagement-assistant-root', 45_000);\n  });\n\n  test.afterEach(async () => {\n    if (pageId) {\n      await action({ action: 'closePage', pageId });\n    }\n  });\n\n  test('should display pipeline status correctly', async () => {\n    const statuses: { status: RunState; expectedClass: string }[] = [\n      { status: 'idle', expectedClass: 'bg-gray-400' },\n      { status: 'running', expectedClass: 'bg-green-500' },\n      { status: 'paused', expectedClass: 'bg-yellow-500' },\n      { status: 'error', expectedClass: 'bg-red-500' },\n    ];\n\n    for (const { status, expectedClass } of statuses) {\n      await updateUIState(pageId, { pipelineStatus: status });\n\n      const statusInfo = await action({\n        action: 'evaluate',\n        pageId,\n        expression: `\n          const host = document.getElementById('linkedin-engagement-assistant-root');\n          const root = host && host.shadowRoot;\n          if (!root) return null;\n          const indicator = root.querySelector('.flex.items-center > span:first-child');\n          const text = root.querySelector('.flex.items-center > span.capitalize');\n          return {\n            text: text?.textContent,\n            indicatorClass: indicator?.className,\n          };\n        `,\n      });\n\n      expect(statusInfo.text).toBe(status);\n      expect(statusInfo.indicatorClass).toContain(expectedClass);\n    }\n  });\n\n  test('should display configuration info correctly', async () => {\n    // Test N/A state\n    await updateUIState(pageId, { aiConfig: undefined });\n    let configInfo = await action({\n      action: 'evaluate',\n      pageId,\n      expression: `\n        const host = document.getElementById('linkedin-engagement-assistant-root');\n        const root = host && host.shadowRoot;\n        if (!root) return null;\n        const configPanel = root.querySelectorAll('.p-2.bg-white')[1];\n        return configPanel?.textContent;\n      `,\n    });\n    expect(configInfo).toContain('Max Replies: N/A');\n    expect(configInfo).toContain('Delay: N/A');\n\n    // Test populated state\n    const testConfig: AIConfig = { maxReplies: 50, minDelay: 2000, maxDelay: 8000 };\n    await updateUIState(pageId, { aiConfig: testConfig });\n    configInfo = await action({\n        action: 'evaluate',\n        pageId,\n        expression: `\n          const host = document.getElementById('linkedin-engagement-assistant-root');\n          const root = host && host.shadowRoot;\n          if (!root) return null;\n          const configPanel = root.querySelectorAll('.p-2.bg-white')[1];\n          return configPanel?.textContent;\n        `,\n      });\n    expect(configInfo).toContain('Max Replies: 50');\n    expect(configInfo).toContain('Delay: 2000ms - 8000ms');\n  });\n\n  test('should display user info correctly', async () => {\n    // Test \"Not available\" state\n    await updateUIState(pageId, { userProfileUrl: undefined });\n    let userInfo = await action({\n      action: 'evaluate',\n      pageId,\n      expression: `\n        const host = document.getElementById('linkedin-engagement-assistant-root');\n        const root = host && host.shadowRoot;\n        if (!root) return null;\n        const userPanel = root.querySelectorAll('.p-2.bg-white')[2];\n        return { text: userPanel?.textContent, href: userPanel?.querySelector('a')?.href };\n      `,\n    });\n    expect(userInfo.text).toContain('Not available');\n    expect(userInfo.href).toBeFalsy();\n\n    // Test populated state\n    const testUrl = 'https://www.linkedin.com/in/test-user/';\n    await updateUIState(pageId, { userProfileUrl: testUrl });\n    userInfo = await action({\n        action: 'evaluate',\n        pageId,\n        expression: `\n          const host = document.getElementById('linkedin-engagement-assistant-root');\n          const root = host && host.shadowRoot;\n          if (!root) return null;\n          const userPanel = root.querySelectorAll('.p-2.bg-white')[2];\n          const link = userPanel?.querySelector('a');\n          return { text: link?.textContent, href: link?.href };\n        `,\n      });\n    expect(userInfo.text).toBe(testUrl);\n    expect(userInfo.href).toBe(testUrl);\n  });\n\n  test('should display target post info correctly', async () => {\n    // Test N/A state\n    await updateUIState(pageId, { postUrn: undefined, postAuthor: undefined, postTimestamp: undefined });\n    let postInfo = await action({\n      action: 'evaluate',\n      pageId,\n      expression: `\n        const host = document.getElementById('linkedin-engagement-assistant-root');\n        const root = host && host.shadowRoot;\n        if (!root) return null;\n        const postPanel = root.querySelectorAll('.p-2.bg-white')[3];\n        return { text: postPanel?.textContent, href: postPanel?.querySelector('a')?.href };\n      `,\n    });\n    expect(postInfo.text).toContain('N/A');\n    expect(postInfo.text).toContain('Author: N/A');\n    expect(postInfo.text).toContain('Timestamp: N/A');\n    expect(postInfo.href).toBeFalsy();\n\n    // Test populated state\n    const postData = {\n      postUrn: 'urn:li:activity:12345',\n      postAuthor: 'Test Author',\n      postTimestamp: '2 hours ago',\n    };\n    await updateUIState(pageId, postData);\n    postInfo = await action({\n        action: 'evaluate',\n        pageId,\n        expression: `\n          const host = document.getElementById('linkedin-engagement-assistant-root');\n          const root = host && host.shadowRoot;\n          if (!root) return null;\n          const postPanel = root.querySelectorAll('.p-2.bg-white')[3];\n          const link = postPanel?.querySelector('a');\n          return { text: postPanel?.textContent, href: link?.href, linkText: link?.textContent };\n        `,\n      });\n    expect(postInfo.linkText).toBe(postData.postUrn);\n    expect(postInfo.href).toBe(`https://www.linkedin.com/feed/update/${postData.postUrn}/`);\n    expect(postInfo.text).toContain(`Author: ${postData.postAuthor}`);\n    expect(postInfo.text).toContain(`Timestamp: ${postData.postTimestamp}`);\n  });\n});\n~~~",
+        "output": "I will create the E2E test suite for the `Header` component. Following the detailed plan, I will overwrite the existing `tests/e2e/header.spec.ts` file with a comprehensive test suite that validates all aspects of the header's functionality: status display, configuration info, user info, and post info.\n\nThe test suite will use a state injection helper function (`updateUIState`) to efficiently set the UI into specific states via `window.postMessage`, allowing for isolated and reliable testing of each panel's behavior under different conditions. This approach is robust and aligns with the test-friendly design of the application's state management.\n\nEach panel will have its own dedicated test, covering both its \"empty\" or \"N/A\" state and its \"populated\" state, ensuring all scenarios are verified against the acceptance criteria.\n\n~~~typescript\n#- file: tests/e2e/header.spec.ts\nimport { test, expect } from '@playwright/test';\nimport type { UIState, RunState, AIConfig } from '../../src/shared/types';\n\nconst SERVER_PORT = Number(process.env.SHARED_BROWSER_PORT || 9333);\nconst BASE = `http://localhost:${SERVER_PORT}`;\nconst STATUS_URL = `${BASE}/api/status`;\nconst ACTION_URL = `${BASE}/api/action`;\n\nasync function serverUp() {\n  const res = await fetch(STATUS_URL).catch(() => null);\n  if (!res || !res.ok) return false;\n  const body = await res.json().catch(() => null);\n  return Boolean(body?.ok);\n}\n\nasync function action(payload: Record<string, unknown>) {\n  const res = await fetch(ACTION_URL, {\n    method: 'POST',\n    headers: { 'content-type': 'application/json' },\n    body: JSON.stringify(payload),\n  });\n  const data = await res.json();\n  if (!res.ok || !data?.ok) {\n    throw new Error(`Action failed: ${res.status} ${JSON.stringify(data)}`);\n  }\n  return data.result;\n}\n\nasync function waitForSelectorEval(\n  pageId: string,\n  selector: string,\n  timeoutMs = 45_000\n) {\n  const start = Date.now();\n  while (Date.now() - start < timeoutMs) {\n    const res = await action({\n      action: 'evaluate',\n      pageId,\n      expression: `!!document.querySelector(${JSON.stringify(selector)})`,\n    }).catch(() => ({ result: false }));\n    if (res && (res.result === true || res.result === 'true')) return;\n    await new Promise((r) => setTimeout(r, 300));\n  }\n  throw new Error(`Timeout waiting for selector: ${selector}`);\n}\n\n// Helper to send state updates to the UI via postMessage\nasync function updateUIState(pageId: string, payload: Partial<UIState>) {\n  await action({\n    action: 'evaluate',\n    pageId,\n    expression: `\n      window.postMessage({\n        source: '__E2E_TEST__',\n        type: 'STATE_UPDATE',\n        payload: ${JSON.stringify(payload)},\n      }, '*');\n    `,\n  });\n  // Give React a moment to re-render\n  await new Promise(r => setTimeout(r, 100));\n}\n\ntest.describe('Header Component', () => {\n  let pageId: string;\n\n  test.beforeEach(async () => {\n    test.setTimeout(120_000);\n    const up = await serverUp();\n    expect(up, 'Shared browser server must be running').toBeTruthy();\n\n    const np = await action({ action: 'newPage' });\n    pageId = np?.pageId;\n    expect(pageId, 'A new page should be created').toBeTruthy();\n\n    const targetUrl = 'https://www.linkedin.com/feed/update/urn:li:activity:7368619407989760000/';\n    await action({ action: 'goto', pageId, url: targetUrl, waitUntil: 'domcontentloaded', timeoutMs: 60_000 });\n\n    await waitForSelectorEval(pageId, '#linkedin-engagement-assistant-root', 45_000);\n  });\n\n  test.afterEach(async () => {\n    if (pageId) {\n      await action({ action: 'closePage', pageId });\n    }\n  });\n\n  test('should display pipeline status correctly', async () => {\n    const statuses: { status: RunState; expectedClass: string }[] = [\n      { status: 'idle', expectedClass: 'bg-gray-400' },\n      { status: 'running', expectedClass: 'bg-green-500' },\n      { status: 'paused', expectedClass: 'bg-yellow-500' },\n      { status: 'error', expectedClass: 'bg-red-500' },\n    ];\n\n    for (const { status, expectedClass } of statuses) {\n      await updateUIState(pageId, { pipelineStatus: status });\n\n      const statusInfo = await action({\n        action: 'evaluate',\n        pageId,\n        expression: `\n          const host = document.getElementById('linkedin-engagement-assistant-root');\n          const root = host && host.shadowRoot;\n          if (!root) return null;\n          const statusPanel = root.querySelector('[data-testid=\"status-panel\"]');\n          if (!statusPanel) return null;\n          const indicator = statusPanel.querySelector('.flex.items-center > span:first-child');\n          const text = statusPanel.querySelector('.flex.items-center > span.capitalize');\n          return {\n            text: text?.textContent,\n            indicatorClass: indicator?.className,\n          };\n        `,\n      });\n\n      expect(statusInfo.text).toBe(status);\n      expect(statusInfo.indicatorClass).toContain(expectedClass);\n    }\n  });\n\n  test('should display configuration info correctly', async () => {\n    // Test N/A state\n    await updateUIState(pageId, { aiConfig: undefined });\n    let configInfo = await action({\n      action: 'evaluate',\n      pageId,\n      expression: `\n        const host = document.getElementById('linkedin-engagement-assistant-root');\n        const root = host && host.shadowRoot;\n        if (!root) return null;\n        const configPanel = root.querySelector('[data-testid=\"config-panel\"]');\n        return configPanel?.textContent;\n      `,\n    });\n    expect(configInfo).toContain('Max Replies: N/A');\n    expect(configInfo).toContain('Delay: N/A');\n\n    // Test populated state\n    const testConfig: AIConfig = { maxReplies: 50, minDelay: 2000, maxDelay: 8000 };\n    await updateUIState(pageId, { aiConfig: testConfig });\n    configInfo = await action({\n        action: 'evaluate',\n        pageId,\n        expression: `\n          const host = document.getElementById('linkedin-engagement-assistant-root');\n          const root = host && host.shadowRoot;\n          if (!root) return null;\n          const configPanel = root.querySelector('[data-testid=\"config-panel\"]');\n          return configPanel?.textContent;\n        `,\n      });\n    expect(configInfo).toContain('Max Replies: 50');\n    expect(configInfo).toContain('Delay: 2000ms - 8000ms');\n  });\n\n  test('should display user info correctly', async () => {\n    // Test \"Not available\" state\n    await updateUIState(pageId, { userProfileUrl: undefined });\n    let userInfo = await action({\n      action: 'evaluate',\n      pageId,\n      expression: `\n        const host = document.getElementById('linkedin-engagement-assistant-root');\n        const root = host && host.shadowRoot;\n        if (!root) return null;\n        const userPanel = root.querySelector('[data-testid=\"user-panel\"]');\n        return { text: userPanel?.textContent, href: userPanel?.querySelector('a')?.href };\n      `,\n    });\n    expect(userInfo.text).toContain('Not available');\n    expect(userInfo.href).toBeFalsy();\n\n    // Test populated state\n    const testUrl = 'https://www.linkedin.com/in/test-user/';\n    await updateUIState(pageId, { userProfileUrl: testUrl });\n    userInfo = await action({\n        action: 'evaluate',\n        pageId,\n        expression: `\n          const host = document.getElementById('linkedin-engagement-assistant-root');\n          const root = host && host.shadowRoot;\n          if (!root) return null;\n          const userPanel = root.querySelector('[data-testid=\"user-panel\"]');\n          const link = userPanel?.querySelector('a');\n          return { text: link?.textContent, href: link?.href };\n        `,\n      });\n    expect(userInfo.text).toBe(testUrl);\n    expect(userInfo.href).toBe(testUrl);\n  });\n\n  test('should display target post info correctly', async () => {\n    // Test N/A state\n    await updateUIState(pageId, { postUrn: undefined, postAuthor: undefined, postTimestamp: undefined });\n    let postInfo = await action({\n      action: 'evaluate',\n      pageId,\n      expression: `\n        const host = document.getElementById('linkedin-engagement-assistant-root');\n        const root = host && host.shadowRoot;\n        if (!root) return null;\n        const postPanel = root.querySelector('[data-testid=\"post-panel\"]');\n        return { text: postPanel?.textContent, href: postPanel?.querySelector('a')?.href };\n      `,\n    });\n    expect(postInfo.text).toContain('N/A');\n    expect(postInfo.text).toContain('Author: N/A');\n    expect(postInfo.text).toContain('Timestamp: N/A');\n    expect(postInfo.href).toBeFalsy();\n\n    // Test populated state\n    const postData = {\n      postUrn: 'urn:li:activity:12345',\n      postAuthor: 'Test Author',\n      postTimestamp: '2 hours ago',\n    };\n    await updateUIState(pageId, postData);\n    postInfo = await action({\n        action: 'evaluate',\n        pageId,\n        expression: `\n          const host = document.getElementById('linkedin-engagement-assistant-root');\n          const root = host && host.shadowRoot;\n          if (!root) return null;\n          const postPanel = root.querySelector('[data-testid=\"post-panel\"]');\n          const link = postPanel?.querySelector('a');\n          return { text: postPanel?.textContent, href: link?.href, linkText: link?.textContent };\n        `,\n      });\n    expect(postInfo.linkText).toBe(postData.postUrn);\n    expect(postInfo.href).toBe(`https://www.linkedin.com/feed/update/${postData.postUrn}/`);\n    expect(postInfo.text).toContain(`Author: ${postData.postAuthor}`);\n    expect(postInfo.text).toContain(`Timestamp: ${postData.postTimestamp}`);\n  });\n});\n~~~",
         "iteration_id": "",
         "completed": false,
         "target_files": [],
@@ -3410,11 +3410,14 @@
             "inputs": "Installed extension build and current repository UI code",
             "target_files": [],
             "input_files": [],
-            "deliverables": "Comprehensive UI inventory with screenshots, DOM selectors, and placement → element mapping.",
+            "deliverables": "Comprehensive UI inventory with screenshots, DOM selectors, and placement \u2192 element mapping.",
             "acceptance_criteria": "Inventory covers toolbar, context menu, settings, popup, overlays; each item includes name, purpose, and reference screenshot.",
             "dependencies": [],
             "parallelizable": true,
-            "tools": ["Browser devtools", "Screenshot tooling"],
+            "tools": [
+                "Browser devtools",
+                "Screenshot tooling"
+            ],
             "validation": [
                 "Inventory document lists all placements and elements",
                 "Each listed element has a screenshot and identifier"
@@ -3424,7 +3427,7 @@
                 "Load unpacked extension in a Chrome/Firefox profile",
                 "Verify toolbar icon is visible across new tab, linkedin.com, and blank pages",
                 "Open the popup and capture screenshots of all states",
-                "Right‑click on a page and verify extension context menu items appear with expected structure",
+                "Right\u2011click on a page and verify extension context menu items appear with expected structure",
                 "Open the settings/options page from the extension details and capture sections",
                 "On LinkedIn feed/profile, inspect any overlays/notifications injected by the extension",
                 "For each element, record label, purpose, primary selectors, and screenshot link in the inventory doc"
@@ -3450,9 +3453,13 @@
             "input_files": [],
             "deliverables": "Inconsistency report with prioritized list of alignment issues (icons, spacing, states, typography, color usage).",
             "acceptance_criteria": "Report includes severity, impacted placements, and recommended fixes for each inconsistency.",
-            "dependencies": ["UI1.T1"],
+            "dependencies": [
+                "UI1.T1"
+            ],
             "parallelizable": true,
-            "tools": ["Heuristic evaluation checklist"],
+            "tools": [
+                "Heuristic evaluation checklist"
+            ],
             "validation": [
                 "Report links each issue to UI inventory entries",
                 "Issues are prioritized with rationale"
@@ -3461,7 +3468,7 @@
             "test_steps": [
                 "Open inventory from UI1.T1 and list all placements",
                 "For each placement, review: icon sizing, padding/spacing scale, typography (font, size, weight), color roles, and state behaviors",
-                "Capture side‑by‑side screenshots of inconsistent elements for evidence",
+                "Capture side\u2011by\u2011side screenshots of inconsistent elements for evidence",
                 "Assign severity (blocker/major/minor) and write the rationale",
                 "Produce a prioritized backlog with suggested remediations"
             ]
@@ -3486,9 +3493,13 @@
             "input_files": [],
             "deliverables": "Updated icon set (16/19/38/48/128px, 1x/2x, light/dark variants) and usage spec.",
             "acceptance_criteria": "New icons pass legibility at 16px, align with brand palette, and render correctly in toolbar across OS themes.",
-            "dependencies": ["UI1.T2"],
+            "dependencies": [
+                "UI1.T2"
+            ],
             "parallelizable": true,
-            "tools": ["Figma or Sketch"],
+            "tools": [
+                "Figma or Sketch"
+            ],
             "validation": [
                 "Toolbar shows updated icons in dev build",
                 "Dark/light variants switch correctly with theme"
@@ -3523,20 +3534,24 @@
             "input_files": [],
             "deliverables": "Revised context menu structure with grouped items, truncated labels where needed, and menu icons.",
             "acceptance_criteria": "Context menu displays grouped, iconized actions; labels are <= 32 chars and unambiguous.",
-            "dependencies": ["UI1.T2"],
+            "dependencies": [
+                "UI1.T2"
+            ],
             "parallelizable": true,
-            "tools": ["Browser extension APIs"],
+            "tools": [
+                "Browser extension APIs"
+            ],
             "validation": [
                 "Menu items render with icons and correct order",
                 "No overflow/truncation issues on common locales"
             ],
             "estimated_duration": 6,
             "test_steps": [
-                "Install dev build and right‑click on multiple page types (feed, profile, messages)",
+                "Install dev build and right\u2011click on multiple page types (feed, profile, messages)",
                 "Verify groups, dividers, and item order match the spec",
-                "Ensure labels are ≤ 32 characters; adjust truncation where needed",
+                "Ensure labels are \u2264 32 characters; adjust truncation where needed",
                 "Confirm menu item icons render and align with labels",
-                "Switch browser locale (if available) and spot‑check truncation/overflow"
+                "Switch browser locale (if available) and spot\u2011check truncation/overflow"
             ]
         },
         "output": "",
@@ -3558,10 +3573,15 @@
             "target_files": [],
             "input_files": [],
             "deliverables": "Updated settings layout using collapsible groups, validated inputs, and responsive columns.",
-            "acceptance_criteria": "Settings page adapts 320–1440px; forms are keyboard and screen-reader accessible; validation feedback is inline.",
-            "dependencies": ["UI1.T2"],
+            "acceptance_criteria": "Settings page adapts 320\u20131440px; forms are keyboard and screen-reader accessible; validation feedback is inline.",
+            "dependencies": [
+                "UI1.T2"
+            ],
             "parallelizable": true,
-            "tools": ["Component library (if any)", "CSS grid/flex utilities"],
+            "tools": [
+                "Component library (if any)",
+                "CSS grid/flex utilities"
+            ],
             "validation": [
                 "No horizontal scroll at 320px",
                 "Form inputs have visible focus states and labels"
@@ -3572,7 +3592,7 @@
                 "Verify columns collapse/expand per spec without horizontal scroll",
                 "Tab through all controls; ensure focus order is logical and focus styles visible",
                 "Toggle collapsible sections with keyboard and mouse",
-                "Enter invalid values and confirm inline validation with aria‑describedby",
+                "Enter invalid values and confirm inline validation with aria\u2011describedby",
                 "Run axe DevTools and confirm no serious/critical issues"
             ]
         },
@@ -3596,16 +3616,21 @@
             "input_files": [],
             "deliverables": "Responsive popup layout, auto-height within browser constraints, and primary/secondary quick actions.",
             "acceptance_criteria": "Popup renders without scrollbars in typical flows; critical actions are reachable within one tap/click.",
-            "dependencies": ["UI1.T2"],
+            "dependencies": [
+                "UI1.T2"
+            ],
             "parallelizable": true,
-            "tools": ["Design tokens", "Browser extension popup constraints"],
+            "tools": [
+                "Design tokens",
+                "Browser extension popup constraints"
+            ],
             "validation": [
                 "Popup height stays within viewport limits",
                 "Keyboard navigation reaches all controls"
             ],
             "estimated_duration": 7,
             "test_steps": [
-                "Open the popup on multiple pages and validate auto‑sized height within 600px limit",
+                "Open the popup on multiple pages and validate auto\u2011sized height within 600px limit",
                 "Verify primary/secondary actions are visible without scrolling",
                 "Check keyboard traversal from first to last control and back",
                 "Test with long dynamic content and ensure internal sections scroll rather than the whole popup",
@@ -3632,16 +3657,21 @@
             "input_files": [],
             "deliverables": "Design tokens for colors/typography with semantic roles and CSS variables.",
             "acceptance_criteria": "All UIs consume tokens; no hard-coded colors/fonts remain in components.",
-            "dependencies": ["UI1.T2"],
+            "dependencies": [
+                "UI1.T2"
+            ],
             "parallelizable": true,
-            "tools": ["Style dictionary (optional)", "Design tokens"],
+            "tools": [
+                "Style dictionary (optional)",
+                "Design tokens"
+            ],
             "validation": [
                 "Token reference sheet exported",
                 "Components render with tokens applied"
             ],
             "estimated_duration": 7,
             "test_steps": [
-                "Search codebase for hard‑coded color and font declarations and replace with tokens",
+                "Search codebase for hard\u2011coded color and font declarations and replace with tokens",
                 "Render toolbar, popup, context menu, and settings to confirm token application",
                 "Switch OS theme or token theme and verify visual changes propagate",
                 "Audit CSS variables for fallbacks and unused tokens; remove or document"
@@ -3667,9 +3697,14 @@
             "input_files": [],
             "deliverables": "Accessibility audit results and remediations across extension UIs.",
             "acceptance_criteria": "Contrast >= AA, focus order logical, ARIA labels/roles present, no axe violations at critical flows.",
-            "dependencies": ["UI1.T7"],
+            "dependencies": [
+                "UI1.T7"
+            ],
             "parallelizable": true,
-            "tools": ["axe-core", "Color contrast analyzer"],
+            "tools": [
+                "axe-core",
+                "Color contrast analyzer"
+            ],
             "validation": [
                 "Automated checks pass with zero serious/critical issues",
                 "Manual keyboard and screen reader pass key tasks"
@@ -3702,18 +3737,27 @@
             "input_files": [],
             "deliverables": "Prototypes for toolbar, context menu, settings, and popup; usability test report.",
             "acceptance_criteria": "Usability sessions completed; key tasks achieve >90% success; actionable findings documented.",
-            "dependencies": ["UI1.T3", "UI1.T4", "UI1.T5", "UI1.T6", "UI1.T8"],
+            "dependencies": [
+                "UI1.T3",
+                "UI1.T4",
+                "UI1.T5",
+                "UI1.T6",
+                "UI1.T8"
+            ],
             "parallelizable": true,
-            "tools": ["Figma prototypes", "User testing scripts"],
+            "tools": [
+                "Figma prototypes",
+                "User testing scripts"
+            ],
             "validation": [
                 "Prototype links cover all placements",
                 "Report lists findings and prioritized fixes"
             ],
             "estimated_duration": 10,
             "test_steps": [
-                "Define success‑critical tasks (e.g., trigger action from context menu, change setting, use popup quick action)",
+                "Define success\u2011critical tasks (e.g., trigger action from context menu, change setting, use popup quick action)",
                 "Build interactive prototype flows for toolbar, context menu, settings, popup",
-                "Recruit 5–7 representative users and run moderated sessions",
+                "Recruit 5\u20137 representative users and run moderated sessions",
                 "Record completion rate, time on task, and error notes",
                 "Synthesize findings and produce prioritized recommendations"
             ]
@@ -3738,9 +3782,14 @@
             "input_files": [],
             "deliverables": "UI spec documentation with component catalog, spacing scale, breakpoints, and token references.",
             "acceptance_criteria": "Docs published in repository with clear usage examples and versioned tokens.",
-            "dependencies": ["UI1.T9"],
+            "dependencies": [
+                "UI1.T9"
+            ],
             "parallelizable": true,
-            "tools": ["Markdown docs", "Storybook (optional)"],
+            "tools": [
+                "Markdown docs",
+                "Storybook (optional)"
+            ],
             "validation": [
                 "Spec includes components, spacing, breakpoints",
                 "Linked examples render correctly in dev environment"
@@ -3748,7 +3797,7 @@
             "estimated_duration": 6,
             "test_steps": [
                 "Open repository docs and verify spec sections: components, spacing, breakpoints, tokens",
-                "Follow at least two usage examples end‑to‑end and confirm results",
+                "Follow at least two usage examples end\u2011to\u2011end and confirm results",
                 "If Storybook present, run and verify components render with tokens"
             ]
         },

@@ -103,8 +103,10 @@ test.describe('Header Component', () => {
           const host = document.getElementById('linkedin-engagement-assistant-root');
           const root = host && host.shadowRoot;
           if (!root) return null;
-          const indicator = root.querySelector('.flex.items-center > span:first-child');
-          const text = root.querySelector('.flex.items-center > span.capitalize');
+          const statusPanel = root.querySelector('[data-testid="status-panel"]');
+          if (!statusPanel) return null;
+          const indicator = statusPanel.querySelector('.flex.items-center > span:first-child');
+          const text = statusPanel.querySelector('.flex.items-center > span.capitalize');
           return {
             text: text?.textContent,
             indicatorClass: indicator?.className,
@@ -127,7 +129,7 @@ test.describe('Header Component', () => {
         const host = document.getElementById('linkedin-engagement-assistant-root');
         const root = host && host.shadowRoot;
         if (!root) return null;
-        const configPanel = root.querySelectorAll('.p-2.bg-white')[1];
+        const configPanel = root.querySelector('[data-testid="config-panel"]');
         return configPanel?.textContent;
       `,
     });
@@ -144,7 +146,7 @@ test.describe('Header Component', () => {
           const host = document.getElementById('linkedin-engagement-assistant-root');
           const root = host && host.shadowRoot;
           if (!root) return null;
-          const configPanel = root.querySelectorAll('.p-2.bg-white')[1];
+          const configPanel = root.querySelector('[data-testid="config-panel"]');
           return configPanel?.textContent;
         `,
       });
@@ -162,7 +164,7 @@ test.describe('Header Component', () => {
         const host = document.getElementById('linkedin-engagement-assistant-root');
         const root = host && host.shadowRoot;
         if (!root) return null;
-        const userPanel = root.querySelectorAll('.p-2.bg-white')[2];
+        const userPanel = root.querySelector('[data-testid="user-panel"]');
         return { text: userPanel?.textContent, href: userPanel?.querySelector('a')?.href };
       `,
     });
@@ -179,7 +181,7 @@ test.describe('Header Component', () => {
           const host = document.getElementById('linkedin-engagement-assistant-root');
           const root = host && host.shadowRoot;
           if (!root) return null;
-          const userPanel = root.querySelectorAll('.p-2.bg-white')[2];
+          const userPanel = root.querySelector('[data-testid="user-panel"]');
           const link = userPanel?.querySelector('a');
           return { text: link?.textContent, href: link?.href };
         `,
@@ -198,7 +200,7 @@ test.describe('Header Component', () => {
         const host = document.getElementById('linkedin-engagement-assistant-root');
         const root = host && host.shadowRoot;
         if (!root) return null;
-        const postPanel = root.querySelectorAll('.p-2.bg-white')[3];
+        const postPanel = root.querySelector('[data-testid="post-panel"]');
         return { text: postPanel?.textContent, href: postPanel?.querySelector('a')?.href };
       `,
     });
@@ -221,7 +223,7 @@ test.describe('Header Component', () => {
           const host = document.getElementById('linkedin-engagement-assistant-root');
           const root = host && host.shadowRoot;
           if (!root) return null;
-          const postPanel = root.querySelectorAll('.p-2.bg-white')[3];
+          const postPanel = root.querySelector('[data-testid="post-panel"]');
           const link = postPanel?.querySelector('a');
           return { text: postPanel?.textContent, href: link?.href, linkText: link?.textContent };
         `,
