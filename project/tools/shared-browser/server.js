@@ -356,6 +356,21 @@ async function handleAction(action, payload) {
         return { ok: true };
       });
     }
+    case 'waitForSelector': {
+      const { pageId, selector, state = 'visible', timeoutMs } = payload;
+      const page = pages.get(String(pageId));
+      if (!page) throw new Error(`Unknown pageId ${pageId}`);
+      return enqueue(String(pageId), async () => {
+        const evt = { level: 'info', type: 'action:waitForSelector', pageId: String(pageId), selector, state };
+        logLine(evt);
+        broadcast(evt);
+        await page.waitForSelector(selector, {
+          state,
+          timeout: typeof timeoutMs === 'number' ? timeoutMs : DEFAULT_TIMEOUT_MS,
+        });
+        return { ok: true };
+      });
+    }
     case 'type': {
       const { pageId, selector, text, delay } = payload;
       const page = pages.get(String(pageId));

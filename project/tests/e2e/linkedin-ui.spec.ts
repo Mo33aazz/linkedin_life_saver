@@ -25,6 +25,35 @@ async function action(payload: Record<string, unknown>) {
   return data.result;
 }
 
+// Fallback wait helper that works even if the server does not
+// implement a native `waitForSelector` action.
+async function waitForSelectorEval(
+  pageId: string,
+  selector: string,
+  timeoutMs = 45_000
+) {
+  const start = Date.now();
+  while (Date.now() - start < timeoutMs) {
+    const res = await action({
+      action: 'evaluate',
+      pageId,
+      expression: `
+        const sel = ${JSON.stringify(selector)};
+        const el = document.querySelector(sel);
+        if (!el) return false;
+        const style = window.getComputedStyle(el);
+        // consider element visible if rendered and not hidden
+        const isVisible =
+          style && style.display !== 'none' && style.visibility !== 'hidden' && Number(style.opacity || '1') > 0;
+        return !!isVisible;
+      `,
+    }).catch(() => ({ result: false }));
+    if (res && (res.result === true || res.result === 'true')) return; // found
+    await new Promise((r) => setTimeout(r, 300));
+  }
+  throw new Error(`Timeout waiting for selector: ${selector}`);
+}
+
 test('Extension UI renders and toggle works on LinkedIn post', async () => {
   test.setTimeout(180_000);
 
@@ -42,8 +71,8 @@ test('Extension UI renders and toggle works on LinkedIn post', async () => {
   await action({ action: 'goto', pageId, url: targetUrl, waitUntil: 'domcontentloaded', timeoutMs: 60_000 });
 
   // 3) Wait for our content script UI elements to appear
-  await action({ action: 'waitForSelector', pageId, selector: '#lea-toggle', timeoutMs: 45_000 });
-  await action({ action: 'waitForSelector', pageId, selector: '#linkedin-engagement-assistant-root', timeoutMs: 45_000 });
+  await waitForSelectorEval(pageId, '#lea-toggle', 45_000);
+  await waitForSelectorEval(pageId, '#linkedin-engagement-assistant-root', 45_000);
 
   // 4) Verify heading text inside shadow root
   const header = await action({
@@ -89,7 +118,7 @@ test('Extension UI renders and toggle works on LinkedIn post', async () => {
 
   // 7) Toggle open again, verify visible with heading
   await action({ action: 'click', pageId, selector: '#lea-toggle', timeoutMs: 20_000 });
-  await action({ action: 'waitForSelector', pageId, selector: '#linkedin-engagement-assistant-root', timeoutMs: 20_000 });
+  await waitForSelectorEval(pageId, '#linkedin-engagement-assistant-root', 20_000);
 
   const reHeader = await action({
     action: 'evaluate',
@@ -112,4 +141,3 @@ test('Extension UI renders and toggle works on LinkedIn post', async () => {
   // 8) Cleanup this page
   await action({ action: 'closePage', pageId });
 });
-
