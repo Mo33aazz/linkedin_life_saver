@@ -1,0 +1,28 @@
+
+> linkedin-engagement-assistant@0.0.0 build:test
+> tsc && vite build --mode test && vite build --config vite.config.content.js --mode test
+
+vite v5.4.19 building for test...
+transforming...
+✓ 6 modules transformed.
+rendering chunks...
+computing gzip size...
+dist/background.js  222.57 kB │ gzip: 57.92 kB │ map: 118.86 kB
+✓ built in 519ms
+vite v5.4.19 building for test...
+transforming...
+✓ 22 modules transformed.
+rendering chunks...
+computing gzip size...
+dist/content.js  315.40 kB │ gzip: 89.85 kB │ map: 160.71 kB
+✓ built in 1.31s
+
+> linkedin-engagement-assistant@0.0.0 test
+> playwright test
+
+
+Running 1 test using 1 worker
+
+  ✓  1 tests/e2e/linkedin-ui.spec.ts:57:1 › Extension UI renders and toggle works on LinkedIn post (7.3s)
+
+  1 passed (8.7s)

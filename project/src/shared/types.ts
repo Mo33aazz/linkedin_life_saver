@@ -77,6 +77,10 @@ export interface UIState {
   };
   comments: Comment[];
   postUrn?: string;
+  userProfileUrl?: string;
+  postAuthor?: string;
+  postTimestamp?: string;
+  aiConfig?: AIConfig;
 }
 
 export interface Post {
@@ -85,6 +89,8 @@ export interface Post {
   lastUpdated: string;
   runState: RunState;
   userProfileUrl?: string;
+  author?: string;
+  timestamp?: string;
 }
 
 export interface PostState {
@@ -106,6 +112,9 @@ export interface AIConfig {
   top_p?: number;
   max_tokens?: number;
   stream?: boolean;
+  maxReplies?: number;
+  minDelay?: number;
+  maxDelay?: number;
   reply?: {
     customPrompt?: string;
     // Used as a direct reply when the commenter is not connected (no LLM call)

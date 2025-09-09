@@ -19,6 +19,10 @@ export const useStore = create<Store>((set) => ({
   comments: [],
   logs: [],
   postUrn: undefined,
+  userProfileUrl: undefined,
+  postAuthor: undefined,
+  postTimestamp: undefined,
+  aiConfig: undefined,
   updateState: (newState) => set((state) => ({ ...state, ...newState })),
   addLog: (newLog) => set(state => ({
     logs: [...state.logs, newLog].slice(-500) // Cap at 500 logs for performance
