@@ -7,15 +7,15 @@ transforming...
 ✓ 6 modules transformed.
 rendering chunks...
 computing gzip size...
-dist/background.js  222.57 kB │ gzip: 57.92 kB │ map: 118.86 kB
-✓ built in 519ms
+dist/background.js  222.46 kB │ gzip: 57.98 kB │ map: 118.78 kB
+✓ built in 2.46s
 vite v5.4.19 building for test...
 transforming...
 ✓ 22 modules transformed.
 rendering chunks...
 computing gzip size...
-dist/content.js  315.40 kB │ gzip: 89.85 kB │ map: 160.71 kB
-✓ built in 1.31s
+dist/content.js  318.20 kB │ gzip: 90.59 kB │ map: 162.07 kB
+✓ built in 3.11s
 
 > linkedin-engagement-assistant@0.0.0 test
 > playwright test
@@ -23,6 +23,6 @@ dist/content.js  315.40 kB │ gzip: 89.85 kB │ map: 160.71 kB
 
 Running 1 test using 1 worker
 
-  ✓  1 tests/e2e/linkedin-ui.spec.ts:57:1 › Extension UI renders and toggle works on LinkedIn post (7.3s)
+  ✓  1 tests/e2e/linkedin-ui.spec.ts:57:1 › Extension UI renders and toggle works on LinkedIn post (26.3s)
 
-  1 passed (8.7s)
+  1 passed (30.8s)

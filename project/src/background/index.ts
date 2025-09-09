@@ -8,15 +8,15 @@ import {
   getPostState,
   mergeCapturedState,
   loadPostState,
+  clearPostState,
 } from './services/stateManager';
 import {
   initPipelineManager,
   startPipeline,
   stopPipeline,
   resumePipeline,
+  resetPipeline,
 } from './services/pipelineManager';
-import { clearPostState } from './services/stateManager';
-import { resetPipeline } from './services/pipelineManager';
 import {
   initializeConfig,
   updateConfig,
