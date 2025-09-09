@@ -26,26 +26,35 @@ async function action(payload: Record<string, unknown>) {
   return data.result;
 }
 
+// Fallback wait helper that verifies visibility (faster fail default)
 async function waitForSelectorEval(
   pageId: string,
   selector: string,
-  timeoutMs = 45_000
+  timeoutMs = 12_000
 ) {
   const start = Date.now();
   while (Date.now() - start < timeoutMs) {
     const res = await action({
       action: 'evaluate',
       pageId,
-      expression: `!!document.querySelector(${JSON.stringify(selector)})`,
+      expression: `
+        const sel = ${JSON.stringify(selector)};
+        const el = document.querySelector(sel);
+        if (!el) return false;
+        const style = window.getComputedStyle(el);
+        const isVisible = style && style.display !== 'none' && style.visibility !== 'hidden' && Number(style.opacity || '1') > 0;
+        return !!isVisible;
+      `,
     }).catch(() => ({ result: false }));
     if (res && (res.result === true || res.result === 'true')) return;
-    await new Promise((r) => setTimeout(r, 300));
+    await new Promise((r) => setTimeout(r, 250));
   }
   throw new Error(`Timeout waiting for selector: ${selector}`);
 }
 
 // Helper to send state updates to the UI via postMessage
-async function updateUIState(pageId: string, payload: Partial<UIState>) {
+// Accept a generic payload so we can use nulls to explicitly clear values.
+async function updateUIState(pageId: string, payload: Record<string, unknown>) {
   await action({
     action: 'evaluate',
     pageId,
@@ -65,7 +74,7 @@ test.describe('Header Component', () => {
   let pageId: string;
 
   test.beforeEach(async () => {
-    test.setTimeout(120_000);
+    test.setTimeout(60_000);
     const up = await serverUp();
     expect(up, 'Shared browser server must be running').toBeTruthy();
 
@@ -74,8 +83,10 @@ test.describe('Header Component', () => {
     expect(pageId, 'A new page should be created').toBeTruthy();
 
     const targetUrl = 'https://www.linkedin.com/feed/update/urn:li:activity:7368619407989760000/';
-    await action({ action: 'goto', pageId, url: targetUrl, waitUntil: 'load', timeoutMs: 60_000 });
+    await action({ action: 'goto', pageId, url: targetUrl, waitUntil: 'domcontentloaded', timeoutMs: 60_000 });
 
+    // Wait for toggle and host like the main UI test to avoid races
+    await waitForSelectorEval(pageId, '#lea-toggle', 45_000);
     await waitForSelectorEval(pageId, '#linkedin-engagement-assistant-root', 45_000);
   });
 
@@ -96,7 +107,7 @@ test.describe('Header Component', () => {
     for (const { status, expectedClass } of statuses) {
       await updateUIState(pageId, { pipelineStatus: status });
 
-      const statusInfo = await action({
+      const { result: statusInfo } = await action({
         action: 'evaluate',
         pageId,
         expression: `
@@ -133,8 +144,8 @@ test.describe('Header Component', () => {
         return configPanel?.textContent;
       `,
     });
-    expect(configInfo).toContain('Max Replies: N/A');
-    expect(configInfo).toContain('Delay: N/A');
+    expect(configInfo.result).toContain('Max Replies: N/A');
+    expect(configInfo.result).toContain('Delay: N/A');
 
     // Test populated state
     const testConfig: AIConfig = { maxReplies: 50, minDelay: 2000, maxDelay: 8000 };
@@ -150,8 +161,8 @@ test.describe('Header Component', () => {
           return configPanel?.textContent;
         `,
       });
-    expect(configInfo).toContain('Max Replies: 50');
-    expect(configInfo).toContain('Delay: 2000ms - 8000ms');
+    expect(configInfo.result).toContain('Max Replies: 50');
+    expect(configInfo.result).toContain('Delay: 2000ms - 8000ms');
   });
 
   test('should display user info correctly', async () => {
@@ -168,8 +179,8 @@ test.describe('Header Component', () => {
         return { text: userPanel?.textContent, href: userPanel?.querySelector('a')?.href };
       `,
     });
-    expect(userInfo.text).toContain('Not available');
-    expect(userInfo.href).toBeFalsy();
+    expect(userInfo.result.text).toContain('Not available');
+    expect(userInfo.result.href).toBeFalsy();
 
     // Test populated state
     const testUrl = 'https://www.linkedin.com/in/test-user/';
@@ -186,13 +197,14 @@ test.describe('Header Component', () => {
           return { text: link?.textContent, href: link?.href };
         `,
       });
-    expect(userInfo.text).toBe(testUrl);
-    expect(userInfo.href).toBe(testUrl);
+    expect(userInfo.result.text).toBe(testUrl);
+    expect(userInfo.result.href).toBe(testUrl);
   });
 
   test('should display target post info correctly', async () => {
     // Test N/A state
-    await updateUIState(pageId, { postUrn: undefined, postAuthor: undefined, postTimestamp: undefined });
+    // Use null for postUrn so JSON.stringify preserves the field and clears it in the store
+    await updateUIState(pageId, { postUrn: null });
     let postInfo = await action({
       action: 'evaluate',
       pageId,
@@ -204,10 +216,10 @@ test.describe('Header Component', () => {
         return { text: postPanel?.textContent, href: postPanel?.querySelector('a')?.href };
       `,
     });
-    expect(postInfo.text).toContain('N/A');
-    expect(postInfo.text).toContain('Author: N/A');
-    expect(postInfo.text).toContain('Timestamp: N/A');
-    expect(postInfo.href).toBeFalsy();
+    expect(postInfo.result.text).toContain('N/A');
+    expect(postInfo.result.text).toContain('Author: N/A');
+    expect(postInfo.result.text).toContain('Timestamp: N/A');
+    expect(postInfo.result.href).toBeFalsy();
 
     // Test populated state
     const postData = {
@@ -228,9 +240,9 @@ test.describe('Header Component', () => {
           return { text: postPanel?.textContent, href: link?.href, linkText: link?.textContent };
         `,
       });
-    expect(postInfo.linkText).toBe(postData.postUrn);
-    expect(postInfo.href).toBe(`https://www.linkedin.com/feed/update/${postData.postUrn}/`);
-    expect(postInfo.text).toContain(`Author: ${postData.postAuthor}`);
-    expect(postInfo.text).toContain(`Timestamp: ${postData.postTimestamp}`);
+    expect(postInfo.result.linkText).toBe(postData.postUrn);
+    expect(postInfo.result.href).toBe(`https://www.linkedin.com/feed/update/${postData.postUrn}/`);
+    expect(postInfo.result.text).toContain(`Author: ${postData.postAuthor}`);
+    expect(postInfo.result.text).toContain(`Timestamp: ${postData.postTimestamp}`);
   });
 });

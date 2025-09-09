@@ -19,6 +19,7 @@
 - `npm run preview` — preview built assets.
 - `npm run lint` / `npm run format` — ESLint and Prettier.
 - `npm test` — run Playwright tests. Helpers: `tools/run.sh`, `tools/test.sh`.
+- `node tools/shared-browser/server.js --port 9333 --extensions dist` — start shared browser server.
 
 ## Coding Style & Naming
 - Language: TypeScript (strict). UI: Preact.
