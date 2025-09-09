@@ -2152,39 +2152,6 @@
         "files": []
     },
     {
-        "name": "CR1.T6",
-        "context": {
-            "task_id": "CR1.T6",
-            "iteration_id": "CR1",
-            "iteration_goal": "Implement a comprehensive end-to-end testing suite using Playwright. And FIX what's not working.",
-            "description": "Create an E2E test for error handling. This test will use Playwright's network interception (`page.route`) to mock an API call to OpenRouter and force an error response. It will then start the pipeline and verify that the UI correctly displays an error state for the relevant comment in the Pipeline Progress view and that a corresponding error message appears in the Logs Panel.",
-            "agent_type_hint": "QualityAssuranceSpecialist",
-            "inputs": "Error handling logic in the pipeline, UI components, and Playwright setup.",
-            "target_files": [
-                "tests/e2e/error-handling.spec.ts"
-            ],
-            "input_files": [
-                "src/background/services/pipelineManager.ts",
-                "src/background/services/openRouterClient.ts",
-                "src/ui/components/PipelineProgress.tsx",
-                "src/ui/components/LogsPanel.tsx"
-            ],
-            "deliverables": "A Playwright test that simulates a network failure and validates the UI's error-state reporting.",
-            "acceptance_criteria": "When a mocked network request fails, the test asserts that the UI updates to show a 'FAILED' status for the item and that a structured error log appears in the logging panel.",
-            "dependencies": [
-                "CR1.T1",
-                "CR1.T3"
-            ],
-            "parallelizable": true
-        },
-        "output": "I will now proceed with generating the required code for the task.\n\nI will create a new file `tests/e2e/error-handling.spec.ts` to implement the end-to-end test for error handling as described in the instructions. This test will simulate an API failure and verify that the UI correctly updates to show a 'FAILED' status and logs the error.\n\n~~~typescript\n#- file: tests/e2e/error-handling.spec.ts\nimport { test, expect } from './fixtures';\nimport type { PostState, Comment } from '../../src/shared/types';\nimport { getLinkedInUrl } from './helpers';\n\n// Test data constants\nconst TEST_POST_URN = 'urn:li:activity:7369271078898126851';\nconst TEST_POST_URL = getLinkedInUrl('post', TEST_POST_URN);\n\n// A mock comment designed to fail at the 'Reply' step.\n// The 'Like' step is already marked as 'DONE' to isolate the reply action.\nconst mockComment: Comment = {\n  commentId: 'urn:li:comment:(activity:7369271078898126851,12345678)',\n  text: 'This is a test comment designed to trigger an API error.',\n  ownerProfileUrl: 'https://www.linkedin.com/in/error-user/',\n  timestamp: '2d',\n  type: 'top-level',\n  connected: false,\n  threadId: 'urn:li:comment:(activity:7369271078898126851,12345678)',\n  likeStatus: 'DONE', // Pre-condition: Liking is complete.\n  replyStatus: '', // Pre-condition: Replying is the next step.\n  dmStatus: '',\n  attempts: { like: 0, reply: 0, dm: 0 },\n  lastError: '',\n  pipeline: {\n    queuedAt: new Date().toISOString(),\n    likedAt: new Date().toISOString(),\n    repliedAt: '',\n    dmAt: '',\n  },\n};\n\nconst mockPostState: PostState = {\n  _meta: {\n    postId: TEST_POST_URN,\n    postUrl: TEST_POST_URL,\n    lastUpdated: new Date().toISOString(),\n    runState: 'idle',\n    userProfileUrl: 'https://www.linkedin.com/in/signed-in-user/',\n  },\n  comments: [mockComment],\n};\n\ntest.describe('Error Handling E2E Tests', () => {\n  test.beforeEach(async ({ page, background }) => {\n    // Note: The fetch mock that forces a 500 error on the OpenRouter API\n    // is automatically applied by `tests/e2e/fixtures.ts` because this\n    // test file's name includes 'error-handling.spec'.\n\n    // Inject mock state into the service worker's storage.\n    await background.evaluate(\n      async ({ postUrn, state }: { postUrn: string; state: PostState }) => {\n        await (\n          self as unknown as {\n            __E2E_TEST_SAVE_POST_STATE: (\n              postUrn: string,\n              state: PostState\n            ) => Promise<void>;\n          }\n        ).__E2E_TEST_SAVE_POST_STATE(postUrn, state);\n      },\n      { postUrn: TEST_POST_URN, state: mockPostState }\n    );\n\n    // Navigate to the test post page.\n    await page.goto(TEST_POST_URL, { waitUntil: 'domcontentloaded' });\n\n    // Wait for the sidebar to be attached to the DOM.\n    const sidebarRootLocator = page.locator(\n      '#linkedin-engagement-assistant-root'\n    );\n    await expect(sidebarRootLocator).toBeAttached({ timeout: 15000 });\n  });\n\n  test('should display error state when API call fails', async ({ page }) => {\n    const sidebarRootLocator = page.locator(\n      '#linkedin-engagement-assistant-root'\n    );\n    const startButtonLocator = sidebarRootLocator.locator(\n      '[data-testid=\"start-button\"]'\n    );\n\n    // Define locators specific to the comment and its expected failure state.\n    const commentRowLocator = sidebarRootLocator.locator(\n      `[data-testid=\"pipeline-row-${mockComment.commentId}\"]`\n    );\n    const failedStepIndicator = commentRowLocator.locator(\n      '[data-testid=\"step-indicator-Replied\"]'\n    );\n    const errorLogLocator = sidebarRootLocator.locator(\n      '.log-entry--error:has-text(\"Failed to reply to comment\")'\n    );\n\n    await test.step('Start the pipeline', async () => {\n      await expect(startButtonLocator).toBeVisible();\n      await startButtonLocator.click();\n    });\n\n    await test.step('Verify UI reflects the API failure', async () => {\n      // The pipeline will attempt to reply, hit the mocked 500 error,\n      // and update the state. Playwright's web-first assertions will\n      // wait for the UI to reflect this change.\n\n      // 1. Check that the 'Replied' step in the pipeline progress shows a 'failed' status.\n      await expect(failedStepIndicator).toHaveClass(/step-failed/, {\n        timeout: 10000,\n      });\n\n      // 2. Check that a corresponding error message appears in the logs panel.\n      await expect(errorLogLocator).toBeVisible({ timeout: 10000 });\n    });\n  });\n});\n~~~",
-        "iteration_id": "CR1",
-        "completed": false,
-        "target_files": [],
-        "input_files": [],
-        "files": []
-    },
-    {
         "name": "DR1.T2a",
         "context": {
             "task_id": "DR1.T2a",
@@ -2202,9 +2169,21 @@
             "deliverables": "Header component with status, controls configured info, user info, and post info.",
             "acceptance_criteria": "Header displays all required information correctly including pipeline status, configuration summary, user profile, and post details.",
             "dependencies": [],
-            "parallelizable": false
+            "parallelizable": false,
+            "tools": [
+                "projects\\linkedin_life_saver\\project\\AGENTS.md (procedural guidelines)",
+                "From Byterover memory tools: byterover-retrieve-knowledge, byterover-store-knowledge",
+                "Vite/TypeScript toolchain",
+                "Playwright (for validation)"
+            ],
+            "validation": [
+                "Meets acceptance_criteria exactly",
+                "Build passes: npm run build",
+                "According to Byterover memory layer, steps align with AGENTS.md"
+            ],
+            "estimated_duration": 45
         },
-        "output": "",
+        "output": "I will now implement the `Header` component as per the task instructions. My plan is to completely overwrite the existing placeholder file `src/ui/components/Header.tsx` with a new implementation that fulfills all the requirements.\n\nThe new `Header` component will:\n1.  Connect to the Zustand store to get the `pipelineStatus` and `postUrn`.\n2.  Use a 2x2 grid layout with Tailwind CSS for a modern, organized appearance.\n3.  Display the pipeline status with a dynamically colored indicator dot.\n4.  Show placeholders for configuration details (Max Replies, Delay), user information, and post author/timestamp, as this data is not yet available in the store.\n5.  Render a clickable link to the target LinkedIn post if the `postUrn` is available.\n6.  Handle cases where data is not yet available to prevent errors.\n\nThis approach will satisfy the acceptance criteria by creating a functional and correctly styled header that is ready for future data integration.\n\n~~~tsx\n#- file: src/ui/components/Header.tsx\nimport { useStore } from '../store';\nimport { RunState } from '../../shared/types';\n\nexport const Header = () => {\n  const pipelineStatus = useStore((state) => state.pipelineStatus);\n  const postUrn = useStore((state) => state.postUrn);\n\n  const getStatusIndicatorClass = (status: RunState) => {\n    switch (status) {\n      case 'running':\n        return 'bg-green-500 animate-pulse';\n      case 'paused':\n        return 'bg-yellow-500';\n      case 'error':\n        return 'bg-red-500';\n      case 'idle':\n      default:\n        return 'bg-gray-400';\n    }\n  };\n\n  const postUrl = postUrn ? `https://www.linkedin.com/feed/update/${postUrn}/` : '#';\n\n  return (\n    <div className=\"grid grid-cols-2 gap-2 p-2 bg-gray-50 dark:bg-gray-800 rounded-lg shadow-sm mb-4\">\n      {/* Status Panel */}\n      <div className=\"p-2 bg-white dark:bg-gray-700 rounded-md\">\n        <h3 className=\"text-xs font-semibold text-gray-600 dark:text-gray-300 mb-1\">Status</h3>\n        <div className=\"flex items-center\">\n          <span className={`w-2.5 h-2.5 rounded-full mr-2 ${getStatusIndicatorClass(pipelineStatus)}`}></span>\n          <span className=\"text-xs capitalize text-gray-700 dark:text-gray-200\">{pipelineStatus}</span>\n        </div>\n      </div>\n\n      {/* Configuration Info Panel */}\n      <div className=\"p-2 bg-white dark:bg-gray-700 rounded-md\">\n        <h3 className=\"text-xs font-semibold text-gray-600 dark:text-gray-300 mb-1\">Config</h3>\n        <div className=\"text-xs text-gray-500 dark:text-gray-400 space-y-0.5\">\n          <div>Max Replies: <span className=\"font-medium text-gray-700 dark:text-gray-300\">N/A</span></div>\n          <div>Delay: <span className=\"font-medium text-gray-700 dark:text-gray-300\">N/A</span></div>\n        </div>\n      </div>\n\n      {/* User Info Panel */}\n      <div className=\"p-2 bg-white dark:bg-gray-700 rounded-md\">\n        <h3 className=\"text-xs font-semibold text-gray-600 dark:text-gray-300 mb-1\">Current User</h3>\n        <div className=\"text-xs text-gray-500 dark:text-gray-400 truncate\">\n          <a href=\"#\" className=\"text-blue-500 dark:text-blue-400 hover:underline\">\n            Not available\n          </a>\n        </div>\n      </div>\n\n      {/* Post Info Panel */}\n      <div className=\"p-2 bg-white dark:bg-gray-700 rounded-md\">\n        <h3 className=\"text-xs font-semibold text-gray-600 dark:text-gray-300 mb-1\">Target Post</h3>\n        <div className=\"text-xs text-gray-500 dark:text-gray-400 truncate\">\n          {postUrn ? (\n            <a href={postUrl} target=\"_blank\" rel=\"noopener noreferrer\" className=\"text-blue-500 dark:text-blue-400 hover:underline\">\n              {postUrn}\n            </a>\n          ) : (\n            <span className=\"text-gray-500 dark:text-gray-400\">N/A</span>\n          )}\n        </div>\n        <div className=\"text-xs text-gray-500 dark:text-gray-400 mt-1 space-y-0.5\">\n          <div>Author: N/A</div>\n          <div>Timestamp: N/A</div>\n        </div>\n      </div>\n    </div>\n  );\n};\n~~~",
         "iteration_id": "",
         "completed": false,
         "target_files": [],
@@ -2229,9 +2208,23 @@
             "deliverables": "Test suite validating Header section functionality.",
             "acceptance_criteria": "Header displays status, controls configured info, user info, and post info correctly in all scenarios.",
             "dependencies": [
+                "DR1.T0",
                 "DR1.T2a"
             ],
-            "parallelizable": false
+            "parallelizable": false,
+            "tools": [
+                "projects\\linkedin_life_saver\\project\\AGENTS.md (procedural guidelines)",
+                "From Byterover memory tools: byterover-retrieve-knowledge, byterover-store-knowledge",
+                "Shared browser server (port 9333): projects\\linkedin_life_saver\\project\\tools\\shared-browser",
+                "Playwright test runner"
+            ],
+            "validation": [
+                "Meets acceptance_criteria exactly",
+                "Shared browser healthy: GET http://localhost:9333/api/status returns ok",
+                "Actions via /api/action succeed (newPage, goto)",
+                "Tests green: npm run build:test && npm test"
+            ],
+            "estimated_duration": 35
         },
         "output": "",
         "iteration_id": "",
@@ -2257,8 +2250,23 @@
             ],
             "deliverables": "Test suite validating Live Counters functionality.",
             "acceptance_criteria": "Counters update accurately based on comment processing in all scenarios.",
-            "dependencies": [],
-            "parallelizable": false
+            "dependencies": [
+                "DR1.T0"
+            ],
+            "parallelizable": false,
+            "tools": [
+                "projects\\linkedin_life_saver\\project\\AGENTS.md (procedural guidelines)",
+                "From Byterover memory tools: byterover-retrieve-knowledge, byterover-store-knowledge",
+                "Shared browser server (port 9333): projects\\linkedin_life_saver\\project\\tools\\shared-browser",
+                "Playwright test runner"
+            ],
+            "validation": [
+                "Meets acceptance_criteria exactly",
+                "Shared browser healthy: GET http://localhost:9333/api/status returns ok",
+                "Actions via /api/action succeed (newPage, goto)",
+                "Tests green: npm run build:test && npm test"
+            ],
+            "estimated_duration": 30
         },
         "output": "",
         "iteration_id": "",
@@ -2285,9 +2293,23 @@
             "deliverables": "Test suite validating Pipeline Progress functionality after pipeline execution.",
             "acceptance_criteria": "Pipeline status and individual comment progress steps update correctly after pipeline execution in all scenarios.",
             "dependencies": [
+                "DR1.T0",
                 "DR1.T10e"
             ],
-            "parallelizable": false
+            "parallelizable": false,
+            "tools": [
+                "projects\\linkedin_life_saver\\project\\AGENTS.md (procedural guidelines)",
+                "From Byterover memory tools: byterover-retrieve-knowledge, byterover-store-knowledge",
+                "Shared browser server (port 9333): projects\\linkedin_life_saver\\project\\tools\\shared-browser",
+                "Playwright test runner"
+            ],
+            "validation": [
+                "Meets acceptance_criteria exactly",
+                "Shared browser healthy: GET http://localhost:9333/api/status returns ok",
+                "Actions via /api/action succeed (newPage, goto, waitForSelector)",
+                "Tests green: npm run build:test && npm test"
+            ],
+            "estimated_duration": 40
         },
         "output": "",
         "iteration_id": "",
@@ -2314,9 +2336,23 @@
             "deliverables": "Test suite validating Controls section functionality after pipeline execution.",
             "acceptance_criteria": "All controls function correctly and trigger expected actions after pipeline execution in all scenarios.",
             "dependencies": [
+                "DR1.T0",
                 "DR1.T10e"
             ],
-            "parallelizable": false
+            "parallelizable": false,
+            "tools": [
+                "projects\\linkedin_life_saver\\project\\AGENTS.md (procedural guidelines)",
+                "From Byterover memory tools: byterover-retrieve-knowledge, byterover-store-knowledge",
+                "Shared browser server (port 9333): projects\\linkedin_life_saver\\project\\tools\\shared-browser",
+                "Playwright test runner"
+            ],
+            "validation": [
+                "Meets acceptance_criteria exactly",
+                "Shared browser healthy: GET http://localhost:9333/api/status returns ok",
+                "Actions via /api/action succeed (newPage, click, evaluate)",
+                "Tests green: npm run build:test && npm test"
+            ],
+            "estimated_duration": 40
         },
         "output": "",
         "iteration_id": "",
@@ -2343,7 +2379,19 @@
             "deliverables": "Modified AiSettings component with non-prompt options collapsed by default.",
             "acceptance_criteria": "Non-prompt options in AI Settings are collapsed by default and can be expanded/collapsed by user interaction.",
             "dependencies": [],
-            "parallelizable": false
+            "parallelizable": false,
+            "tools": [
+                "projects\\linkedin_life_saver\\project\\AGENTS.md (procedural guidelines)",
+                "From Byterover memory tools: byterover-retrieve-knowledge, byterover-store-knowledge",
+                "Vite/TypeScript toolchain",
+                "Preact component testing (Playwright for UI validation)"
+            ],
+            "validation": [
+                "Meets acceptance_criteria exactly",
+                "Build passes: npm run build",
+                "According to Byterover memory layer, steps align with AGENTS.md"
+            ],
+            "estimated_duration": 40
         },
         "output": "",
         "iteration_id": "",
@@ -2372,7 +2420,19 @@
             "dependencies": [
                 "DR1.T6a"
             ],
-            "parallelizable": false
+            "parallelizable": false,
+            "tools": [
+                "projects\\linkedin_life_saver\\project\\AGENTS.md (procedural guidelines)",
+                "From Byterover memory tools: byterover-retrieve-knowledge, byterover-store-knowledge",
+                "Vite/TypeScript toolchain",
+                "Preact component testing (Playwright for UI validation)"
+            ],
+            "validation": [
+                "Meets acceptance_criteria exactly",
+                "Build passes: npm run build",
+                "According to Byterover memory layer, steps align with AGENTS.md"
+            ],
+            "estimated_duration": 45
         },
         "output": "",
         "iteration_id": "",
@@ -2399,9 +2459,23 @@
             "deliverables": "Test suite validating non-prompt options collapsed by default.",
             "acceptance_criteria": "Non-prompt options are collapsed by default in AI Settings and collapse/expand functionality works correctly.",
             "dependencies": [
+                "DR1.T0",
                 "DR1.T6a"
             ],
-            "parallelizable": false
+            "parallelizable": false,
+            "tools": [
+                "projects\\linkedin_life_saver\\project\\AGENTS.md (procedural guidelines)",
+                "From Byterover memory tools: byterover-retrieve-knowledge, byterover-store-knowledge",
+                "Shared browser server (port 9333): projects\\linkedin_life_saver\\project\\tools\\shared-browser",
+                "Playwright test runner"
+            ],
+            "validation": [
+                "Meets acceptance_criteria exactly",
+                "Shared browser healthy: GET http://localhost:9333/api/status returns ok",
+                "Actions via /api/action succeed (newPage, goto, waitForSelector)",
+                "Tests green: npm run build:test && npm test"
+            ],
+            "estimated_duration": 30
         },
         "output": "",
         "iteration_id": "",
@@ -2428,9 +2502,23 @@
             "deliverables": "Test suite validating prompt for people not connected.",
             "acceptance_criteria": "Prompt for people not connected works correctly in all scenarios, with appropriate replies generated and no DMs sent to non-connected users.",
             "dependencies": [
+                "DR1.T0",
                 "DR1.T6b"
             ],
-            "parallelizable": false
+            "parallelizable": false,
+            "tools": [
+                "projects\\linkedin_life_saver\\project\\AGENTS.md (procedural guidelines)",
+                "From Byterover memory tools: byterover-retrieve-knowledge, byterover-store-knowledge",
+                "Shared browser server (port 9333): projects\\linkedin_life_saver\\project\\tools\\shared-browser",
+                "Playwright test runner"
+            ],
+            "validation": [
+                "Meets acceptance_criteria exactly",
+                "Shared browser healthy: GET http://localhost:9333/api/status returns ok",
+                "Actions via /api/action succeed (newPage, click, evaluate)",
+                "Tests green: npm run build:test && npm test"
+            ],
+            "estimated_duration": 35
         },
         "output": "",
         "iteration_id": "",
@@ -2457,9 +2545,23 @@
             "deliverables": "Test suite validating Logs functionality with step-by-step verification.",
             "acceptance_criteria": "Logs display correctly for each step and filtering works as expected in all scenarios.",
             "dependencies": [
+                "DR1.T0",
                 "DR1.T15"
             ],
-            "parallelizable": false
+            "parallelizable": false,
+            "tools": [
+                "projects\\linkedin_life_saver\\project\\AGENTS.md (procedural guidelines)",
+                "From Byterover memory tools: byterover-retrieve-knowledge, byterover-store-knowledge",
+                "Shared browser server (port 9333): projects\\linkedin_life_saver\\project\\tools\\shared-browser",
+                "Playwright test runner"
+            ],
+            "validation": [
+                "Meets acceptance_criteria exactly",
+                "Shared browser healthy: GET http://localhost:9333/api/status returns ok",
+                "Actions via /api/action succeed (evaluate, click where needed)",
+                "Tests green: npm run build:test && npm test"
+            ],
+            "estimated_duration": 35
         },
         "output": "",
         "iteration_id": "",
@@ -2486,9 +2588,23 @@
             "deliverables": "Test suite validating URL-specific sidebar activation.",
             "acceptance_criteria": "Sidebar only activates on valid LinkedIn post URLs and header details update correctly when navigating between posts.",
             "dependencies": [
+                "DR1.T0",
                 "DR1.T2b"
             ],
-            "parallelizable": false
+            "parallelizable": false,
+            "tools": [
+                "projects\\linkedin_life_saver\\project\\AGENTS.md (procedural guidelines)",
+                "From Byterover memory tools: byterover-retrieve-knowledge, byterover-store-knowledge",
+                "Shared browser server (port 9333): projects\\linkedin_life_saver\\project\\tools\\shared-browser",
+                "Playwright test runner"
+            ],
+            "validation": [
+                "Meets acceptance_criteria exactly",
+                "Shared browser healthy: GET http://localhost:9333/api/status returns ok",
+                "Actions via /api/action succeed (newPage, goto)",
+                "Tests green: npm run build:test && npm test"
+            ],
+            "estimated_duration": 30
         },
         "output": "",
         "iteration_id": "",
@@ -2517,7 +2633,19 @@
             "deliverables": "Fixed sidebar collapse/expand functionality that doesn't interfere with LinkedIn page.",
             "acceptance_criteria": "Sidebar collapses/expands smoothly and shrinks the LinkedIn page without interfering with page elements in all scenarios.",
             "dependencies": [],
-            "parallelizable": false
+            "parallelizable": false,
+            "tools": [
+                "projects\\linkedin_life_saver\\project\\AGENTS.md (procedural guidelines)",
+                "From Byterover memory tools: byterover-retrieve-knowledge, byterover-store-knowledge",
+                "Vite/TypeScript toolchain",
+                "Preact component testing (Playwright for validation)"
+            ],
+            "validation": [
+                "Meets acceptance_criteria exactly",
+                "Build passes: npm run build",
+                "According to Byterover memory layer, steps align with AGENTS.md"
+            ],
+            "estimated_duration": 45
         },
         "output": "",
         "iteration_id": "",
@@ -2545,9 +2673,23 @@
             "deliverables": "Test suite validating sidebar collapse/expand functionality and smoothness.",
             "acceptance_criteria": "Sidebar collapse/expand works smoothly without interfering with LinkedIn page elements in all scenarios.",
             "dependencies": [
+                "DR1.T0",
                 "DR1.T9a"
             ],
-            "parallelizable": false
+            "parallelizable": false,
+            "tools": [
+                "projects\\linkedin_life_saver\\project\\AGENTS.md (procedural guidelines)",
+                "From Byterover memory tools: byterover-retrieve-knowledge, byterover-store-knowledge",
+                "Shared browser server (port 9333): projects\\linkedin_life_saver\\project\\tools\\shared-browser",
+                "Playwright test runner"
+            ],
+            "validation": [
+                "Meets acceptance_criteria exactly",
+                "Shared browser healthy: GET http://localhost:9333/api/status returns ok",
+                "Actions via /api/action succeed (click, evaluate)",
+                "Tests green: npm run build:test && npm test"
+            ],
+            "estimated_duration": 30
         },
         "output": "",
         "iteration_id": "",
@@ -2574,8 +2716,23 @@
             ],
             "deliverables": "Test suite validating comment liking functionality.",
             "acceptance_criteria": "System successfully likes comments and updates the pipeline progress UI in all scenarios.",
-            "dependencies": [],
-            "parallelizable": false
+            "dependencies": [
+                "DR1.T0"
+            ],
+            "parallelizable": false,
+            "tools": [
+                "projects\\linkedin_life_saver\\project\\AGENTS.md (procedural guidelines)",
+                "From Byterover memory tools: byterover-retrieve-knowledge, byterover-store-knowledge",
+                "Shared browser server (port 9333): projects\\linkedin_life_saver\\project\\tools\\shared-browser",
+                "Playwright test runner"
+            ],
+            "validation": [
+                "Meets acceptance_criteria exactly",
+                "Shared browser healthy: GET http://localhost:9333/api/status returns ok",
+                "Actions via /api/action succeed (newPage, click)",
+                "Tests green: npm run build:test && npm test"
+            ],
+            "estimated_duration": 35
         },
         "output": "",
         "iteration_id": "",
@@ -2604,7 +2761,20 @@
             "deliverables": "Test suite validating AI-generated reply functionality.",
             "acceptance_criteria": "System successfully generates and posts AI replies to comments in all scenarios.",
             "dependencies": [],
-            "parallelizable": false
+            "parallelizable": false,
+            "tools": [
+                "projects\\linkedin_life_saver\\project\\AGENTS.md (procedural guidelines)",
+                "From Byterover memory tools: byterover-retrieve-knowledge, byterover-store-knowledge",
+                "Shared browser server (port 9333): projects\\linkedin_life_saver\\project\\tools\\shared-browser",
+                "Playwright test runner"
+            ],
+            "validation": [
+                "Meets acceptance_criteria exactly",
+                "Shared browser healthy: GET http://localhost:9333/api/status returns ok",
+                "Actions via /api/action succeed (evaluate typing, submit)",
+                "Tests green: npm run build:test && npm test"
+            ],
+            "estimated_duration": 45
         },
         "output": "",
         "iteration_id": "",
@@ -2630,8 +2800,23 @@
             ],
             "deliverables": "Test suite validating comment loading through scrolling.",
             "acceptance_criteria": "System successfully scrolls to load additional comments during pipeline execution in all scenarios.",
-            "dependencies": [],
-            "parallelizable": false
+            "dependencies": [
+                "DR1.T0"
+            ],
+            "parallelizable": false,
+            "tools": [
+                "projects\\linkedin_life_saver\\project\\AGENTS.md (procedural guidelines)",
+                "From Byterover memory tools: byterover-retrieve-knowledge, byterover-store-knowledge",
+                "Shared browser server (port 9333): projects\\linkedin_life_saver\\project\\tools\\shared-browser",
+                "Playwright test runner"
+            ],
+            "validation": [
+                "Meets acceptance_criteria exactly",
+                "Shared browser healthy: GET http://localhost:9333/api/status returns ok",
+                "Actions via /api/action succeed (evaluate, pagination/scroll if needed)",
+                "Tests green: npm run build:test && npm test"
+            ],
+            "estimated_duration": 35
         },
         "output": "",
         "iteration_id": "",
@@ -2657,8 +2842,23 @@
             ],
             "deliverables": "Test suite validating connection status checking functionality.",
             "acceptance_criteria": "System correctly identifies connection status of users during pipeline execution in all scenarios.",
-            "dependencies": [],
-            "parallelizable": false
+            "dependencies": [
+                "DR1.T0"
+            ],
+            "parallelizable": false,
+            "tools": [
+                "projects\\linkedin_life_saver\\project\\AGENTS.md (procedural guidelines)",
+                "From Byterover memory tools: byterover-retrieve-knowledge, byterover-store-knowledge",
+                "Shared browser server (port 9333): projects\\linkedin_life_saver\\project\\tools\\shared-browser",
+                "Playwright test runner"
+            ],
+            "validation": [
+                "Meets acceptance_criteria exactly",
+                "Shared browser healthy: GET http://localhost:9333/api/status returns ok",
+                "Actions via /api/action succeed (evaluate, query DOM)",
+                "Tests green: npm run build:test && npm test"
+            ],
+            "estimated_duration": 30
         },
         "output": "",
         "iteration_id": "",
@@ -2686,8 +2886,23 @@
             ],
             "deliverables": "Test suite validating DM sending functionality within the pipeline.",
             "acceptance_criteria": "System successfully sends DMs to connected users during pipeline execution in all scenarios.",
-            "dependencies": [],
-            "parallelizable": false
+            "dependencies": [
+                "DR1.T0"
+            ],
+            "parallelizable": false,
+            "tools": [
+                "projects\\linkedin_life_saver\\project\\AGENTS.md (procedural guidelines)",
+                "From Byterover memory tools: byterover-retrieve-knowledge, byterover-store-knowledge",
+                "Shared browser server (port 9333): projects\\linkedin_life_saver\\project\\tools\\shared-browser",
+                "Playwright test runner"
+            ],
+            "validation": [
+                "Meets acceptance_criteria exactly",
+                "Shared browser healthy: GET http://localhost:9333/api/status returns ok",
+                "Actions via /api/action succeed (evaluate typing, send DM)",
+                "Tests green: npm run build:test && npm test"
+            ],
+            "estimated_duration": 45
         },
         "output": "",
         "iteration_id": "",
@@ -2713,8 +2928,23 @@
             ],
             "deliverables": "Test suite validating connection status handling.",
             "acceptance_criteria": "System correctly identifies non-connected users and sends connection request message in all scenarios.",
-            "dependencies": [],
-            "parallelizable": false
+            "dependencies": [
+                "DR1.T0"
+            ],
+            "parallelizable": false,
+            "tools": [
+                "projects\\linkedin_life_saver\\project\\AGENTS.md (procedural guidelines)",
+                "From Byterover memory tools: byterover-retrieve-knowledge, byterover-store-knowledge",
+                "Shared browser server (port 9333): projects\\linkedin_life_saver\\project\\tools\\shared-browser",
+                "Playwright test runner"
+            ],
+            "validation": [
+                "Meets acceptance_criteria exactly",
+                "Shared browser healthy: GET http://localhost:9333/api/status returns ok",
+                "Actions via /api/action succeed (evaluate DOM, click)",
+                "Tests green: npm run build:test && npm test"
+            ],
+            "estimated_duration": 35
         },
         "output": "",
         "iteration_id": "",
@@ -2741,8 +2971,23 @@
             ],
             "deliverables": "Test suite validating DM sending functionality.",
             "acceptance_criteria": "System successfully sends AI-generated DMs to connected users in all scenarios.",
-            "dependencies": [],
-            "parallelizable": false
+            "dependencies": [
+                "DR1.T0"
+            ],
+            "parallelizable": false,
+            "tools": [
+                "projects\\linkedin_life_saver\\project\\AGENTS.md (procedural guidelines)",
+                "From Byterover memory tools: byterover-retrieve-knowledge, byterover-store-knowledge",
+                "Shared browser server (port 9333): projects\\linkedin_life_saver\\project\\tools\\shared-browser",
+                "Playwright test runner"
+            ],
+            "validation": [
+                "Meets acceptance_criteria exactly",
+                "Shared browser healthy: GET http://localhost:9333/api/status returns ok",
+                "Actions via /api/action succeed (waitForSelector/evaluate)",
+                "Tests green: npm run build:test && npm test"
+            ],
+            "estimated_duration": 40
         },
         "output": "",
         "iteration_id": "",
@@ -2769,8 +3014,23 @@
             ],
             "deliverables": "Test suite validating real-time UI updates and rate limiting.",
             "acceptance_criteria": "UI updates in real-time during pipeline execution and rate limiting functions correctly in all scenarios.",
-            "dependencies": [],
-            "parallelizable": false
+            "dependencies": [
+                "DR1.T0"
+            ],
+            "parallelizable": false,
+            "tools": [
+                "projects\\linkedin_life_saver\\project\\AGENTS.md (procedural guidelines)",
+                "From Byterover memory tools: byterover-retrieve-knowledge, byterover-store-knowledge",
+                "Shared browser server (port 9333): projects\\linkedin_life_saver\\project\\tools\\shared-browser",
+                "Playwright test runner"
+            ],
+            "validation": [
+                "Meets acceptance_criteria exactly",
+                "Shared browser healthy: GET http://localhost:9333/api/status returns ok",
+                "Actions via /api/action succeed (evaluate typing, submit reply)",
+                "Tests green: npm run build:test && npm test"
+            ],
+            "estimated_duration": 45
         },
         "output": "",
         "iteration_id": "",
@@ -2797,8 +3057,23 @@
             ],
             "deliverables": "Test suite validating post change handling.",
             "acceptance_criteria": "Extension correctly resets and starts processing when user navigates to a different LinkedIn post in all scenarios.",
-            "dependencies": [],
-            "parallelizable": false
+            "dependencies": [
+                "DR1.T0"
+            ],
+            "parallelizable": false,
+            "tools": [
+                "projects\\linkedin_life_saver\\project\\AGENTS.md (procedural guidelines)",
+                "From Byterover memory tools: byterover-retrieve-knowledge, byterover-store-knowledge",
+                "Shared browser server (port 9333): projects\\linkedin_life_saver\\project\\tools\\shared-browser",
+                "Playwright test runner"
+            ],
+            "validation": [
+                "Meets acceptance_criteria exactly",
+                "Shared browser healthy: GET http://localhost:9333/api/status returns ok",
+                "Actions via /api/action succeed (navigate, evaluate)",
+                "Tests green: npm run build:test && npm test"
+            ],
+            "estimated_duration": 35
         },
         "output": "",
         "iteration_id": "",
@@ -2825,9 +3100,23 @@
             "deliverables": "Test suite validating header bar content.",
             "acceptance_criteria": "Header bar correctly displays status, controls configured info, user info, and post info in all scenarios.",
             "dependencies": [
+                "DR1.T0",
                 "DR1.T2a"
             ],
-            "parallelizable": false
+            "parallelizable": false,
+            "tools": [
+                "projects\\linkedin_life_saver\\project\\AGENTS.md (procedural guidelines)",
+                "From Byterover memory tools: byterover-retrieve-knowledge, byterover-store-knowledge",
+                "Shared browser server (port 9333): projects\\linkedin_life_saver\\project\\tools\\shared-browser",
+                "Playwright test runner"
+            ],
+            "validation": [
+                "Meets acceptance_criteria exactly",
+                "Shared browser healthy: GET http://localhost:9333/api/status returns ok",
+                "Actions via /api/action succeed (evaluate)",
+                "Tests green: npm run build:test && npm test"
+            ],
+            "estimated_duration": 30
         },
         "output": "",
         "iteration_id": "",
@@ -2854,6 +3143,7 @@
             "deliverables": "End-to-end test scenarios covering the complete workflow with error handling.",
             "acceptance_criteria": "Complete workflow executes successfully with proper error handling and recovery mechanisms in all scenarios.",
             "dependencies": [
+                "DR1.T0",
                 "DR1.T2b",
                 "DR1.T3",
                 "DR1.T4",
@@ -2874,7 +3164,233 @@
                 "DR1.T14",
                 "DR1.T15"
             ],
-            "parallelizable": false
+            "parallelizable": false,
+            "tools": [
+                "projects\\linkedin_life_saver\\project\\AGENTS.md (procedural guidelines)",
+                "From Byterover memory tools: byterover-retrieve-knowledge, byterover-store-knowledge, byterover-update-plan-progress",
+                "Shared browser server (port 9333): projects\\linkedin_life_saver\\project\\tools\\shared-browser",
+                "Playwright test runner"
+            ],
+            "validation": [
+                "Meets acceptance_criteria exactly",
+                "Shared browser healthy throughout run; actions via /api/action succeed",
+                "All dependent spec files pass: npm run build:test && npm test"
+            ],
+            "estimated_duration": 60
+        },
+        "output": "",
+        "iteration_id": "",
+        "completed": false,
+        "target_files": [],
+        "input_files": [],
+        "files": []
+    },
+    {
+        "name": "DR1.T0",
+        "context": {
+            "task_id": "DR1.T0",
+            "iteration_id": "DR1",
+            "iteration_goal": "Operational readiness for shared browser and consistent automation routing",
+            "description": "According to Byterover memory layer and projects\\linkedin_life_saver\\project\\AGENTS.md, ensure all automation uses the shared browser instance. Steps: 1) Prerequisites: Node.js installed; run 'npm ci' once if needed. 2) Build extension bundle for loading: run 'npm run build:test' so 'dist' exists. 3) Health check: GET http://localhost:9333/api/status. 4) If not running (non-200 or ok=false), launch: from 'projects\\linkedin_life_saver\\project', run 'node tools/shared-browser/server.js --port 9333 --extensions dist'. 5) Wait until status is healthy (retry GET for up to 30s). 6) Export 'SHARED_BROWSER_PORT=9333' in the environment for tests. 7) Route all automation via this server: use POST /api/action with actions like newPage, goto, click, waitForSelector, evaluate. 8) Never launch a separate browser per test; always reuse this shared instance.",
+            "agent_type_hint": "RuntimeAgent",
+            "inputs": "Server script and built extension",
+            "target_files": [
+                "tools/shared-browser/server.js"
+            ],
+            "input_files": [],
+            "deliverables": "Running shared browser with extension loaded on port 9333 and a documented usage policy for tests.",
+            "acceptance_criteria": "GET /api/status returns ok=true; /api/action newPage returns a pageId; /api/action goto returns ok=true.",
+            "dependencies": [],
+            "parallelizable": true,
+            "tools": [
+                "projects\\linkedin_life_saver\\project\\AGENTS.md (procedural guidelines)",
+                "Shared browser server: projects\\linkedin_life_saver\\project\\tools\\shared-browser (port 9333)",
+                "Node.js runtime",
+                "Playwright (client expectations)"
+            ],
+            "validation": [
+                "GET http://localhost:9333/api/status returns 200 and { ok: true }",
+                "POST /api/action { action: 'newPage' } returns pageId",
+                "POST /api/action { action: 'goto', url: 'https://www.linkedin.com/feed/' } returns ok=true"
+            ],
+            "estimated_duration": 15
+        },
+        "output": "",
+        "iteration_id": "",
+        "completed": false,
+        "target_files": [],
+        "input_files": [],
+        "files": []
+    },
+    {
+        "name": "DR1.T1a",
+        "context": {
+            "task_id": "DR1.T1a",
+            "iteration_id": "DR1",
+            "iteration_goal": "Byterover onboarding: ensure handbook availability",
+            "description": "According to Byterover memory layer, start onboarding. Steps: 1) Call byterover-check-handbook-existence. 2) If not exists, call byterover-create-handbook to generate the handbook from the current repo context. 3) Reference projects\\linkedin_life_saver\\project\\AGENTS.md for procedural guidelines while constructing the handbook. 4) Persist critical insights with byterover-store-knowledge (focus on repo structure, testing strategy, browser tool).",
+            "agent_type_hint": "OnboardingAgent",
+            "inputs": "Repository context and AGENTS.md",
+            "target_files": [],
+            "input_files": [
+                "projects/linkedin_life_saver/project/AGENTS.md"
+            ],
+            "deliverables": "Byterover handbook exists (created if missing) and initial knowledge persisted.",
+            "acceptance_criteria": "byterover-check-handbook-existence returns true; knowledge entry stored summarizing key procedures from AGENTS.md.",
+            "dependencies": [],
+            "parallelizable": true,
+            "tools": [
+                "byterover-check-handbook-existence",
+                "byterover-create-handbook",
+                "byterover-store-knowledge",
+                "projects\\linkedin_life_saver\\project\\AGENTS.md"
+            ],
+            "validation": [
+                "Tool output indicates handbook present",
+                "Stored knowledge entry references AGENTS.md and shared-browser policy"
+            ],
+            "estimated_duration": 5
+        },
+        "output": "",
+        "iteration_id": "",
+        "completed": false,
+        "target_files": [],
+        "input_files": [],
+        "files": []
+    },
+    {
+        "name": "DR1.T1b",
+        "context": {
+            "task_id": "DR1.T1b",
+            "iteration_id": "DR1",
+            "iteration_goal": "Byterover onboarding: sync handbook with codebase",
+            "description": "According to Byterover memory layer, sync the handbook. Steps: 1) Call byterover-check-handbook-sync to compute diffs between current code and handbook. 2) Immediately call byterover-update-handbook with the detected changes. 3) Re-run sync until no diffs remain. 4) Store a brief knowledge entry on major changes.",
+            "agent_type_hint": "OnboardingAgent",
+            "inputs": "Repository current state",
+            "target_files": [],
+            "input_files": [],
+            "deliverables": "Handbook updated and in sync with repo.",
+            "acceptance_criteria": "byterover-check-handbook-sync reports no outstanding changes after update.",
+            "dependencies": [
+                "DR1.T1a"
+            ],
+            "parallelizable": true,
+            "tools": [
+                "byterover-check-handbook-sync",
+                "byterover-update-handbook",
+                "byterover-store-knowledge"
+            ],
+            "validation": [
+                "Sync tool reports no diffs",
+                "Knowledge entry added for updated sections"
+            ],
+            "estimated_duration": 8
+        },
+        "output": "",
+        "iteration_id": "",
+        "completed": false,
+        "target_files": [],
+        "input_files": [],
+        "files": []
+    },
+    {
+        "name": "DR1.T1c",
+        "context": {
+            "task_id": "DR1.T1c",
+            "iteration_id": "DR1",
+            "iteration_goal": "Byterover onboarding: module inventory and updates",
+            "description": "Based on Byterover memory, manage modules. Steps: 1) ALWAYS call byterover-list-modules first. 2) For missing components (e.g., shared-browser, e2e tests, background services), call byterover-store-module with purpose, technical details, and owners. 3) For changed components, call byterover-update-module. 4) Repeat updates immediately upon new critical insights.",
+            "agent_type_hint": "OnboardingAgent",
+            "inputs": "Module definitions derived from repo",
+            "target_files": [],
+            "input_files": [],
+            "deliverables": "Up-to-date module registry for DR1 scope.",
+            "acceptance_criteria": "Modules list includes shared-browser, e2e tests, content-scripts, background, UI; updated timestamps reflect DR1.",
+            "dependencies": [
+                "DR1.T1b"
+            ],
+            "parallelizable": true,
+            "tools": [
+                "byterover-list-modules",
+                "byterover-store-module",
+                "byterover-update-module"
+            ],
+            "validation": [
+                "byterover-list-modules returns non-empty list with required modules",
+                "Store/update calls succeed"
+            ],
+            "estimated_duration": 10
+        },
+        "output": "",
+        "iteration_id": "",
+        "completed": false,
+        "target_files": [],
+        "input_files": [],
+        "files": []
+    },
+    {
+        "name": "DR1.T1d",
+        "context": {
+            "task_id": "DR1.T1d",
+            "iteration_id": "DR1",
+            "iteration_goal": "Byterover planning: create and persist DR1 plan",
+            "description": "According to Byterover memory layer, plan and persist. Steps: 1) Use byterover-retrieve-knowledge to gather relevant context (modules, AGENTS.md, prior tasks). 2) Draft a detailed implementation plan for DR1 tasks (including shared-browser readiness, tests, UX). 3) Present plan for approval; IMMEDIATELY call byterover-save-implementation-plan once approved (critical plan persistence rule). 4) During execution, call byterover-update-plan-progress per task and mark the plan done when all tasks complete.",
+            "agent_type_hint": "PlanningAgent",
+            "inputs": "Knowledge base and modules",
+            "target_files": [],
+            "input_files": [],
+            "deliverables": "Persisted DR1 implementation plan with task tracking.",
+            "acceptance_criteria": "Plan exists in memory store with tasks and progress endpoints operational.",
+            "dependencies": [
+                "DR1.T1c"
+            ],
+            "parallelizable": true,
+            "tools": [
+                "byterover-retrieve-knowledge",
+                "byterover-save-implementation-plan",
+                "byterover-update-plan-progress",
+                "byterover-retrieve-active-plans (if continuing)"
+            ],
+            "validation": [
+                "Plan saved and retrievable by name",
+                "Progress updates change task status"
+            ],
+            "estimated_duration": 10
+        },
+        "output": "",
+        "iteration_id": "",
+        "completed": false,
+        "target_files": [],
+        "input_files": [],
+        "files": []
+    },
+    {
+        "name": "DR1.T1e",
+        "context": {
+            "task_id": "DR1.T1e",
+            "iteration_id": "DR1",
+            "iteration_goal": "Byterover reflection and knowledge capture",
+            "description": "From Byterover memory tools: 1) Frequently call byterover-think-about-collected-information during DR1 to synthesize learnings. 2) Use byterover-assess-context-completeness to ensure sufficient context before each major subtask. 3) At the end of DR1, call byterover-store-knowledge to persist critical insights, caveats, and next steps (focus on shared-browser usage patterns, LinkedIn DOM changes, AI prompts).",
+            "agent_type_hint": "ReflectionAgent",
+            "inputs": "Execution traces and outcomes",
+            "target_files": [],
+            "input_files": [],
+            "deliverables": "Consolidated knowledge entries for future iterations.",
+            "acceptance_criteria": "Knowledge entries exist that summarize DR1 lessons and necessary follow-ups.",
+            "dependencies": [
+                "DR1.T1d"
+            ],
+            "parallelizable": true,
+            "tools": [
+                "byterover-think-about-collected-information",
+                "byterover-assess-context-completeness",
+                "byterover-store-knowledge"
+            ],
+            "validation": [
+                "Think/assess tools called at least once per major subtask",
+                "Final knowledge entry stored"
+            ],
+            "estimated_duration": 6
         },
         "output": "",
         "iteration_id": "",
