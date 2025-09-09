@@ -215,7 +215,7 @@ test.describe('Header Component', () => {
   test('should display target post info correctly', async () => {
     // Test N/A state
     // Use null for postUrn so JSON.stringify preserves the field and clears it in the store
-    await updateUIState(pageId, { postUrn: null });
+    await updateUIState(pageId, { postUrn: null, postAuthor: null, postTimestamp: null });
     let postInfo = await action({
       action: 'evaluate',
       pageId,
