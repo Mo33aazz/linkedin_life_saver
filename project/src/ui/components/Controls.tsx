@@ -10,7 +10,9 @@ const getPostUrnFromCurrentTab = (): string | null => {
 
 
 export const Controls = () => {
-  const { pipelineStatus, postUrn } = useStore();
+  // Narrow subscriptions to avoid re-rendering on unrelated state changes
+  const pipelineStatus = useStore((state) => state.pipelineStatus);
+  const postUrn = useStore((state) => state.postUrn);
   const [maxReplies, setMaxReplies] = useState(10);
   const [delayMin, setDelayMin] = useState(2000);
   const [delayMax, setDelayMax] = useState(5000);

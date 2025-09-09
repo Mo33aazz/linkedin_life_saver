@@ -58,8 +58,8 @@ const broadcastLog = (logEntry: LogEntry) => {
 
 // Initialize the logger
 logger.initialize(broadcastLog);
-// Enable verbose debug by default so users get full traces
-logger.setSettings({ minLevel: 'DEBUG' });
+// Reduce verbosity in production to minimize UI updates and overhead
+logger.setSettings({ minLevel: 'INFO' });
 
 logger.info('LinkedIn Engagement Assistant Service Worker loaded.');
 

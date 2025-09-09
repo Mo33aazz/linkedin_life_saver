@@ -2,21 +2,13 @@ import { useStore } from '../store';
 import { RunState } from '../../shared/types';
 
 export const Header = () => {
-  const {
-    pipelineStatus,
-    postUrn,
-    aiConfig,
-    userProfileUrl,
-    postAuthor,
-    postTimestamp,
-  } = useStore((state) => ({
-    pipelineStatus: state.pipelineStatus,
-    postUrn: state.postUrn,
-    aiConfig: state.aiConfig,
-    userProfileUrl: state.userProfileUrl,
-    postAuthor: state.postAuthor,
-    postTimestamp: state.postTimestamp,
-  }));
+  // Subscribe to only the exact pieces needed to avoid unnecessary re-renders
+  const pipelineStatus = useStore((state) => state.pipelineStatus);
+  const postUrn = useStore((state) => state.postUrn);
+  const aiConfig = useStore((state) => state.aiConfig);
+  const userProfileUrl = useStore((state) => state.userProfileUrl);
+  const postAuthor = useStore((state) => state.postAuthor);
+  const postTimestamp = useStore((state) => state.postTimestamp);
 
   const getStatusIndicatorClass = (status: RunState) => {
     switch (status) {
