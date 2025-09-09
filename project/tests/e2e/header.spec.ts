@@ -1,5 +1,5 @@
 import { test, expect } from '@playwright/test';
-import type { UIState, RunState } from '../../src/shared/types';
+import type { UIState, RunState, AIConfig } from '../../src/shared/types';
 
 const SERVER_PORT = Number(process.env.SHARED_BROWSER_PORT || 9333);
 const BASE = `http://localhost:${SERVER_PORT}`;
@@ -67,11 +67,11 @@ test.describe('Header Component', () => {
   test.beforeEach(async () => {
     test.setTimeout(120_000);
     const up = await serverUp();
-    expect(up).toBeTruthy();
+    expect(up, 'Shared browser server must be running').toBeTruthy();
 
     const np = await action({ action: 'newPage' });
     pageId = np?.pageId;
-    expect(pageId).toBeTruthy();
+    expect(pageId, 'A new page should be created').toBeTruthy();
 
     const targetUrl = 'https://www.linkedin.com/feed/update/urn:li:activity:7368619407989760000/';
     await action({ action: 'goto', pageId, url: targetUrl, waitUntil: 'domcontentloaded', timeoutMs: 60_000 });
@@ -135,7 +135,7 @@ test.describe('Header Component', () => {
     expect(configInfo).toContain('Delay: N/A');
 
     // Test populated state
-    const testConfig = { maxReplies: 50, minDelay: 2000, maxDelay: 8000 };
+    const testConfig: AIConfig = { maxReplies: 50, minDelay: 2000, maxDelay: 8000 };
     await updateUIState(pageId, { aiConfig: testConfig });
     configInfo = await action({
         action: 'evaluate',
