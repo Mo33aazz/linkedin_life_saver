@@ -2,7 +2,7 @@ import { useStore } from '../store';
 import { RunState } from '../../shared/types';
 
 export const Header = () => {
-  // Subscribe to only the exact pieces needed to avoid unnecessary re-renders
+   // Subscribe to only the exact pieces needed to avoid unnecessary re-renders
   const pipelineStatus = useStore((state) => state.pipelineStatus);
   const postUrn = useStore((state) => state.postUrn);
   const aiConfig = useStore((state) => state.aiConfig);

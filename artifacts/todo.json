@@ -3398,5 +3398,365 @@
         "target_files": [],
         "input_files": [],
         "files": []
+    },
+    {
+        "name": "UI1.T1",
+        "context": {
+            "task_id": "UI1.T1",
+            "iteration_id": "UI1",
+            "iteration_goal": "Extension UI enhancement",
+            "description": "Identify all extension UI placement locations (toolbar, context menu, settings page, popup, page overlays, notifications) and document current UI elements for each.",
+            "agent_type_hint": "UIUXAgent",
+            "inputs": "Installed extension build and current repository UI code",
+            "target_files": [],
+            "input_files": [],
+            "deliverables": "Comprehensive UI inventory with screenshots, DOM selectors, and placement → element mapping.",
+            "acceptance_criteria": "Inventory covers toolbar, context menu, settings, popup, overlays; each item includes name, purpose, and reference screenshot.",
+            "dependencies": [],
+            "parallelizable": true,
+            "tools": ["Browser devtools", "Screenshot tooling"],
+            "validation": [
+                "Inventory document lists all placements and elements",
+                "Each listed element has a screenshot and identifier"
+            ],
+            "estimated_duration": 8,
+            "test_steps": [
+                "Load unpacked extension in a Chrome/Firefox profile",
+                "Verify toolbar icon is visible across new tab, linkedin.com, and blank pages",
+                "Open the popup and capture screenshots of all states",
+                "Right‑click on a page and verify extension context menu items appear with expected structure",
+                "Open the settings/options page from the extension details and capture sections",
+                "On LinkedIn feed/profile, inspect any overlays/notifications injected by the extension",
+                "For each element, record label, purpose, primary selectors, and screenshot link in the inventory doc"
+            ]
+        },
+        "output": "",
+        "iteration_id": "",
+        "completed": false,
+        "target_files": [],
+        "input_files": [],
+        "files": []
+    },
+    {
+        "name": "UI1.T2",
+        "context": {
+            "task_id": "UI1.T2",
+            "iteration_id": "UI1",
+            "iteration_goal": "Extension UI enhancement",
+            "description": "Analyze existing UI inconsistencies across extension places and prioritize areas requiring visual alignment.",
+            "agent_type_hint": "UIUXAgent",
+            "inputs": "UI inventory from UI1.T1",
+            "target_files": [],
+            "input_files": [],
+            "deliverables": "Inconsistency report with prioritized list of alignment issues (icons, spacing, states, typography, color usage).",
+            "acceptance_criteria": "Report includes severity, impacted placements, and recommended fixes for each inconsistency.",
+            "dependencies": ["UI1.T1"],
+            "parallelizable": true,
+            "tools": ["Heuristic evaluation checklist"],
+            "validation": [
+                "Report links each issue to UI inventory entries",
+                "Issues are prioritized with rationale"
+            ],
+            "estimated_duration": 6,
+            "test_steps": [
+                "Open inventory from UI1.T1 and list all placements",
+                "For each placement, review: icon sizing, padding/spacing scale, typography (font, size, weight), color roles, and state behaviors",
+                "Capture side‑by‑side screenshots of inconsistent elements for evidence",
+                "Assign severity (blocker/major/minor) and write the rationale",
+                "Produce a prioritized backlog with suggested remediations"
+            ]
+        },
+        "output": "",
+        "iteration_id": "",
+        "completed": false,
+        "target_files": [],
+        "input_files": [],
+        "files": []
+    },
+    {
+        "name": "UI1.T3",
+        "context": {
+            "task_id": "UI1.T3",
+            "iteration_id": "UI1",
+            "iteration_goal": "Extension UI enhancement",
+            "description": "Redesign toolbar icons with improved visual hierarchy and brand consistency while maintaining recognizability.",
+            "agent_type_hint": "UIUXAgent",
+            "inputs": "Inconsistency report (UI1.T2) and brand guidelines",
+            "target_files": [],
+            "input_files": [],
+            "deliverables": "Updated icon set (16/19/38/48/128px, 1x/2x, light/dark variants) and usage spec.",
+            "acceptance_criteria": "New icons pass legibility at 16px, align with brand palette, and render correctly in toolbar across OS themes.",
+            "dependencies": ["UI1.T2"],
+            "parallelizable": true,
+            "tools": ["Figma or Sketch"],
+            "validation": [
+                "Toolbar shows updated icons in dev build",
+                "Dark/light variants switch correctly with theme"
+            ],
+            "estimated_duration": 8,
+            "test_steps": [
+                "Export icons at required sizes and variants",
+                "Update extension manifest/images to use new assets",
+                "Load unpacked extension and verify toolbar icon at 100%/125%/150% scaling",
+                "Toggle system dark mode (or chrome://flags/#enable-force-dark) and verify icon variant",
+                "Check hover/active/disabled states for clarity and contrast",
+                "Compare 16px rendering against legibility checklist"
+            ]
+        },
+        "output": "",
+        "iteration_id": "",
+        "completed": false,
+        "target_files": [],
+        "input_files": [],
+        "files": []
+    },
+    {
+        "name": "UI1.T4",
+        "context": {
+            "task_id": "UI1.T4",
+            "iteration_id": "UI1",
+            "iteration_goal": "Extension UI enhancement",
+            "description": "Enhance context menu items with clear icons, concise labels, and logical grouping for intuitive navigation.",
+            "agent_type_hint": "UIUXAgent",
+            "inputs": "Inconsistency report (UI1.T2)",
+            "target_files": [],
+            "input_files": [],
+            "deliverables": "Revised context menu structure with grouped items, truncated labels where needed, and menu icons.",
+            "acceptance_criteria": "Context menu displays grouped, iconized actions; labels are <= 32 chars and unambiguous.",
+            "dependencies": ["UI1.T2"],
+            "parallelizable": true,
+            "tools": ["Browser extension APIs"],
+            "validation": [
+                "Menu items render with icons and correct order",
+                "No overflow/truncation issues on common locales"
+            ],
+            "estimated_duration": 6,
+            "test_steps": [
+                "Install dev build and right‑click on multiple page types (feed, profile, messages)",
+                "Verify groups, dividers, and item order match the spec",
+                "Ensure labels are ≤ 32 characters; adjust truncation where needed",
+                "Confirm menu item icons render and align with labels",
+                "Switch browser locale (if available) and spot‑check truncation/overflow"
+            ]
+        },
+        "output": "",
+        "iteration_id": "",
+        "completed": false,
+        "target_files": [],
+        "input_files": [],
+        "files": []
+    },
+    {
+        "name": "UI1.T5",
+        "context": {
+            "task_id": "UI1.T5",
+            "iteration_id": "UI1",
+            "iteration_goal": "Extension UI enhancement",
+            "description": "Optimize settings page layout with collapsible sections, improved form controls, and responsive grid systems.",
+            "agent_type_hint": "UIUXAgent",
+            "inputs": "Inconsistency report (UI1.T2)",
+            "target_files": [],
+            "input_files": [],
+            "deliverables": "Updated settings layout using collapsible groups, validated inputs, and responsive columns.",
+            "acceptance_criteria": "Settings page adapts 320–1440px; forms are keyboard and screen-reader accessible; validation feedback is inline.",
+            "dependencies": ["UI1.T2"],
+            "parallelizable": true,
+            "tools": ["Component library (if any)", "CSS grid/flex utilities"],
+            "validation": [
+                "No horizontal scroll at 320px",
+                "Form inputs have visible focus states and labels"
+            ],
+            "estimated_duration": 8,
+            "test_steps": [
+                "Open settings/options page and resize viewport to 320, 375, 768, 1024, 1440",
+                "Verify columns collapse/expand per spec without horizontal scroll",
+                "Tab through all controls; ensure focus order is logical and focus styles visible",
+                "Toggle collapsible sections with keyboard and mouse",
+                "Enter invalid values and confirm inline validation with aria‑describedby",
+                "Run axe DevTools and confirm no serious/critical issues"
+            ]
+        },
+        "output": "",
+        "iteration_id": "",
+        "completed": false,
+        "target_files": [],
+        "input_files": [],
+        "files": []
+    },
+    {
+        "name": "UI1.T6",
+        "context": {
+            "task_id": "UI1.T6",
+            "iteration_id": "UI1",
+            "iteration_goal": "Extension UI enhancement",
+            "description": "Implement adaptive popup UI with dynamic content sizing, efficient information density, and quick-action buttons.",
+            "agent_type_hint": "UIUXAgent",
+            "inputs": "Inconsistency report (UI1.T2)",
+            "target_files": [],
+            "input_files": [],
+            "deliverables": "Responsive popup layout, auto-height within browser constraints, and primary/secondary quick actions.",
+            "acceptance_criteria": "Popup renders without scrollbars in typical flows; critical actions are reachable within one tap/click.",
+            "dependencies": ["UI1.T2"],
+            "parallelizable": true,
+            "tools": ["Design tokens", "Browser extension popup constraints"],
+            "validation": [
+                "Popup height stays within viewport limits",
+                "Keyboard navigation reaches all controls"
+            ],
+            "estimated_duration": 7,
+            "test_steps": [
+                "Open the popup on multiple pages and validate auto‑sized height within 600px limit",
+                "Verify primary/secondary actions are visible without scrolling",
+                "Check keyboard traversal from first to last control and back",
+                "Test with long dynamic content and ensure internal sections scroll rather than the whole popup",
+                "Measure open/close performance (<150ms on average machines)"
+            ]
+        },
+        "output": "",
+        "iteration_id": "",
+        "completed": false,
+        "target_files": [],
+        "input_files": [],
+        "files": []
+    },
+    {
+        "name": "UI1.T7",
+        "context": {
+            "task_id": "UI1.T7",
+            "iteration_id": "UI1",
+            "iteration_goal": "Extension UI enhancement",
+            "description": "Develop a unified color palette and typography system across all extension interfaces.",
+            "agent_type_hint": "UIUXAgent",
+            "inputs": "Brand guidelines and current UI audit",
+            "target_files": [],
+            "input_files": [],
+            "deliverables": "Design tokens for colors/typography with semantic roles and CSS variables.",
+            "acceptance_criteria": "All UIs consume tokens; no hard-coded colors/fonts remain in components.",
+            "dependencies": ["UI1.T2"],
+            "parallelizable": true,
+            "tools": ["Style dictionary (optional)", "Design tokens"],
+            "validation": [
+                "Token reference sheet exported",
+                "Components render with tokens applied"
+            ],
+            "estimated_duration": 7,
+            "test_steps": [
+                "Search codebase for hard‑coded color and font declarations and replace with tokens",
+                "Render toolbar, popup, context menu, and settings to confirm token application",
+                "Switch OS theme or token theme and verify visual changes propagate",
+                "Audit CSS variables for fallbacks and unused tokens; remove or document"
+            ]
+        },
+        "output": "",
+        "iteration_id": "",
+        "completed": false,
+        "target_files": [],
+        "input_files": [],
+        "files": []
+    },
+    {
+        "name": "UI1.T8",
+        "context": {
+            "task_id": "UI1.T8",
+            "iteration_id": "UI1",
+            "iteration_goal": "Extension UI enhancement",
+            "description": "Ensure all UI elements meet WCAG 2.1 accessibility standards (contrast ratios, keyboard navigation, screen reader support).",
+            "agent_type_hint": "UIUXAgent",
+            "inputs": "Updated components and tokens",
+            "target_files": [],
+            "input_files": [],
+            "deliverables": "Accessibility audit results and remediations across extension UIs.",
+            "acceptance_criteria": "Contrast >= AA, focus order logical, ARIA labels/roles present, no axe violations at critical flows.",
+            "dependencies": ["UI1.T7"],
+            "parallelizable": true,
+            "tools": ["axe-core", "Color contrast analyzer"],
+            "validation": [
+                "Automated checks pass with zero serious/critical issues",
+                "Manual keyboard and screen reader pass key tasks"
+            ],
+            "estimated_duration": 8,
+            "test_steps": [
+                "Run axe DevTools on toolbar/popup/settings and resolve all serious/critical issues",
+                "Verify all interactive elements are keyboard reachable with visible focus",
+                "Check color contrast for text and icons against AA using contrast tool",
+                "Use a screen reader (NVDA/VoiceOver) to navigate popup and settings; ensure labels/roles are correct"
+            ]
+        },
+        "output": "",
+        "iteration_id": "",
+        "completed": false,
+        "target_files": [],
+        "input_files": [],
+        "files": []
+    },
+    {
+        "name": "UI1.T9",
+        "context": {
+            "task_id": "UI1.T9",
+            "iteration_id": "UI1",
+            "iteration_goal": "Extension UI enhancement",
+            "description": "Create interactive prototypes for each extension place and conduct usability testing with target users.",
+            "agent_type_hint": "UIUXAgent",
+            "inputs": "Updated UI designs and components",
+            "target_files": [],
+            "input_files": [],
+            "deliverables": "Prototypes for toolbar, context menu, settings, and popup; usability test report.",
+            "acceptance_criteria": "Usability sessions completed; key tasks achieve >90% success; actionable findings documented.",
+            "dependencies": ["UI1.T3", "UI1.T4", "UI1.T5", "UI1.T6", "UI1.T8"],
+            "parallelizable": true,
+            "tools": ["Figma prototypes", "User testing scripts"],
+            "validation": [
+                "Prototype links cover all placements",
+                "Report lists findings and prioritized fixes"
+            ],
+            "estimated_duration": 10,
+            "test_steps": [
+                "Define success‑critical tasks (e.g., trigger action from context menu, change setting, use popup quick action)",
+                "Build interactive prototype flows for toolbar, context menu, settings, popup",
+                "Recruit 5–7 representative users and run moderated sessions",
+                "Record completion rate, time on task, and error notes",
+                "Synthesize findings and produce prioritized recommendations"
+            ]
+        },
+        "output": "",
+        "iteration_id": "",
+        "completed": false,
+        "target_files": [],
+        "input_files": [],
+        "files": []
+    },
+    {
+        "name": "UI1.T10",
+        "context": {
+            "task_id": "UI1.T10",
+            "iteration_id": "UI1",
+            "iteration_goal": "Extension UI enhancement",
+            "description": "Document UI enhancement specifications including component libraries, spacing rules, and responsive breakpoints.",
+            "agent_type_hint": "UIUXAgent",
+            "inputs": "All previous UI1 tasks",
+            "target_files": [],
+            "input_files": [],
+            "deliverables": "UI spec documentation with component catalog, spacing scale, breakpoints, and token references.",
+            "acceptance_criteria": "Docs published in repository with clear usage examples and versioned tokens.",
+            "dependencies": ["UI1.T9"],
+            "parallelizable": true,
+            "tools": ["Markdown docs", "Storybook (optional)"],
+            "validation": [
+                "Spec includes components, spacing, breakpoints",
+                "Linked examples render correctly in dev environment"
+            ],
+            "estimated_duration": 6,
+            "test_steps": [
+                "Open repository docs and verify spec sections: components, spacing, breakpoints, tokens",
+                "Follow at least two usage examples end‑to‑end and confirm results",
+                "If Storybook present, run and verify components render with tokens"
+            ]
+        },
+        "output": "",
+        "iteration_id": "",
+        "completed": false,
+        "target_files": [],
+        "input_files": [],
+        "files": []
     }
 ]
