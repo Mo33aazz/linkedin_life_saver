@@ -2,8 +2,21 @@ import { useStore } from '../store';
 import { RunState } from '../../shared/types';
 
 export const Header = () => {
-  const pipelineStatus = useStore((state) => state.pipelineStatus);
-  const postUrn = useStore((state) => state.postUrn);
+  const {
+    pipelineStatus,
+    postUrn,
+    aiConfig,
+    userProfileUrl,
+    postAuthor,
+    postTimestamp,
+  } = useStore((state) => ({
+    pipelineStatus: state.pipelineStatus,
+    postUrn: state.postUrn,
+    aiConfig: state.aiConfig,
+    userProfileUrl: state.userProfileUrl,
+    postAuthor: state.postAuthor,
+    postTimestamp: state.postTimestamp,
+  }));
 
   const getStatusIndicatorClass = (status: RunState) => {
     switch (status) {
@@ -36,8 +49,8 @@ export const Header = () => {
       <div className="p-2 bg-white dark:bg-gray-700 rounded-md">
         <h3 className="text-xs font-semibold text-gray-600 dark:text-gray-300 mb-1">Config</h3>
         <div className="text-xs text-gray-500 dark:text-gray-400 space-y-0.5">
-          <div>Max Replies: <span className="font-medium text-gray-700 dark:text-gray-300">N/A</span></div>
-          <div>Delay: <span className="font-medium text-gray-700 dark:text-gray-300">N/A</span></div>
+          <div>Max Replies: <span className="font-medium text-gray-700 dark:text-gray-300">{aiConfig?.maxReplies ?? 'N/A'}</span></div>
+          <div>Delay: <span className="font-medium text-gray-700 dark:text-gray-300">{aiConfig ? `${aiConfig.minDelay ?? '?'}ms - ${aiConfig.maxDelay ?? '?'}ms` : 'N/A'}</span></div>
         </div>
       </div>
 
@@ -45,9 +58,13 @@ export const Header = () => {
       <div className="p-2 bg-white dark:bg-gray-700 rounded-md">
         <h3 className="text-xs font-semibold text-gray-600 dark:text-gray-300 mb-1">Current User</h3>
         <div className="text-xs text-gray-500 dark:text-gray-400 truncate">
-          <a href="#" className="text-blue-500 dark:text-blue-400 hover:underline">
-            Not available
-          </a>
+          {userProfileUrl ? (
+            <a href={userProfileUrl} target="_blank" rel="noopener noreferrer" className="text-blue-500 dark:text-blue-400 hover:underline">
+              {userProfileUrl}
+            </a>
+          ) : (
+            <span className="text-gray-500 dark:text-gray-400">Not available</span>
+          )}
         </div>
       </div>
 
@@ -64,8 +81,8 @@ export const Header = () => {
           )}
         </div>
         <div className="text-xs text-gray-500 dark:text-gray-400 mt-1 space-y-0.5">
-          <div>Author: N/A</div>
-          <div>Timestamp: N/A</div>
+          <div>Author: <span className="font-medium text-gray-700 dark:text-gray-300">{postAuthor ?? 'N/A'}</span></div>
+          <div>Timestamp: <span className="font-medium text-gray-700 dark:text-gray-300">{postTimestamp ?? 'N/A'}</span></div>
         </div>
       </div>
     </div>
