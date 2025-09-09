@@ -485,10 +485,10 @@ function handleRequest(req, res) {
     req.on('end', async () => {
       try {
         const payload = body ? JSON.parse(body) : {};
-        const { action, timeoutMs, ...rest } = payload;
+        const { action, timeoutMs } = payload;
         if (!action) throw new Error('Missing action');
         const effectiveTimeout = typeof timeoutMs === 'number' ? timeoutMs : DEFAULT_TIMEOUT_MS;
-        const result = await withTimeout(handleAction(action, rest), effectiveTimeout, `action:${action}`);
+        const result = await withTimeout(handleAction(action, payload), effectiveTimeout, `action:${action}`);
         return json(res, 200, { ok: true, result });
       } catch (e) {
         const message = String(e instanceof Error ? e.message : e);

@@ -74,7 +74,7 @@ test.describe('Header Component', () => {
     expect(pageId, 'A new page should be created').toBeTruthy();
 
     const targetUrl = 'https://www.linkedin.com/feed/update/urn:li:activity:7368619407989760000/';
-    await action({ action: 'goto', pageId, url: targetUrl, waitUntil: 'domcontentloaded', timeoutMs: 60_000 });
+    await action({ action: 'goto', pageId, url: targetUrl, waitUntil: 'load', timeoutMs: 60_000 });
 
     await waitForSelectorEval(pageId, '#linkedin-engagement-assistant-root', 45_000);
   });
