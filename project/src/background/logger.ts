@@ -62,6 +62,11 @@ export class Logger {
     return [...this.buffer];
   }
 
+  public setBufferedLogsForTesting(logs: LogEntry[]): void {
+    // This method should only be used in non-production environments for testing.
+    this.buffer = [...logs];
+  }
+
   private log(
     level: LogLevel,
     message: string,

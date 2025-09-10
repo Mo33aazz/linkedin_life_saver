@@ -1,0 +1,880 @@
+
+> linkedin-engagement-assistant@0.0.0 build:test
+> tsc && vite build --mode test && vite build --config vite.config.content.js --mode test
+
+vite v5.4.19 building for test...
+transforming...
+✓ 6 modules transformed.
+rendering chunks...
+computing gzip size...
+dist/background.js  223.86 kB │ gzip: 58.27 kB │ map: 119.64 kB
+✓ built in 345ms
+vite v5.4.19 building for test...
+transforming...
+✓ 22 modules transformed.
+rendering chunks...
+computing gzip size...
+dist/content.js  319.44 kB │ gzip: 90.79 kB │ map: 162.77 kB
+✓ built in 566ms
+
+> linkedin-engagement-assistant@0.0.0 test
+> playwright test
+
+11:27:42 PM [32m[INFO] [0m - Launching Chromium persistent context
+11:27:42 PM [32m[INFO] [0m - Loading extensions: /home/moaz/code_machine/projects/linkedin_life_saver/project/dist
+11:27:42 PM [33m[WARN] [0m - Channel chrome failed: Error: browserType.launchPersistentContext: Chromium distribution 'chrome' is not found at /opt/google/chrome/chrome
+Run "npx playwright install chrome"
+11:27:42 PM [33m[WARN] [0m - Channel chrome-beta failed: Error: browserType.launchPersistentContext: Chromium distribution 'chrome-beta' is not found at /opt/google/chrome-beta/chrome
+Run "npx playwright install chrome-beta"
+11:27:42 PM [33m[WARN] [0m - Channel msedge failed: Error: browserType.launchPersistentContext: Chromium distribution 'msedge' is not found at /opt/microsoft/msedge/msedge
+Run "npx playwright install msedge"
+11:27:42 PM [32m[INFO] [0m - Launching with bundled Chromium fallback
+11:27:43 PM [32m[INFO] [0m - Page opened: 1 (about:blank)
+11:27:43 PM [32m[INFO] [0m - Server listening on http://0.0.0.0:9333
+
+Running 9 tests using 1 worker
+
+11:27:45 PM [32m[INFO] [0m - Page opened: 2 (about:blank)
+11:27:45 PM [32m[INFO] [0m - Action: goto https://www.linkedin.com/feed/update/urn:li:activity:7123456789012345678/
+11:27:46 PM [32m[INFO] [0m - Page 2 navigated to https://www.linkedin.com/feed/update/urn:li:activity:7123456789012345678/
+11:27:48 PM [32m[INFO] [0m - Page 2 navigated to https://www.linkedin.com/feed/update/urn:li:activity:7123456789012345678/
+11:27:48 PM [32m[INFO] [0m - Action: evaluate expression
+11:27:50 PM [32m[INFO] [0m - [Console/log] Content script starting...
+11:27:50 PM [32m[INFO] [0m - [Console/log] Mounted sidebar UI
+11:27:50 PM [32m[INFO] [0m - [Console/log] UI App component mounted. Sending ping to service worker.
+11:27:50 PM [32m[INFO] [0m - [Console/log] Received response from service worker: {payload: pong}
+11:27:50 PM [32m[INFO] [0m - [Console/log] [Content Script] Message received: LOG_ENTRY
+11:27:50 PM [32m[INFO] [0m - [Console/log] UI received message: {type: LOG_ENTRY, payload: Object}
+11:27:50 PM [32m[INFO] [0m - [Console/log] [Content Script] Message received: LOG_ENTRY
+11:27:50 PM [32m[INFO] [0m - [Console/log] UI received message: {type: LOG_ENTRY, payload: Object}
+11:27:50 PM [32m[INFO] [0m - [Console/log] [Content Script] Message received: LOG_ENTRY
+11:27:50 PM [32m[INFO] [0m - [Console/log] UI received message: {type: LOG_ENTRY, payload: Object}
+11:27:50 PM [32m[INFO] [0m - [Console/log] [Content Script] Message received: STATE_UPDATE
+11:27:50 PM [32m[INFO] [0m - [Console/log] UI received message: {type: STATE_UPDATE, payload: Object}
+11:27:50 PM [32m[INFO] [0m - Action: evaluate expression
+11:27:50 PM [32m[INFO] [0m - Action: evaluateOnServiceWorker
+11:27:50 PM [32m[INFO] [0m - Action: evaluateOnServiceWorker
+11:27:50 PM [31m[ERROR][0m - Global queue error: Error: worker.evaluate: TypeError: self.__E2E_TEST_SET_LOGS is not a function
+    at eval (eval at evaluate (:291:30), <anonymous>:1:6)
+    at eval (<anonymous>)
+    at UtilityScript.evaluate (<anonymous>:291:30)
+    at UtilityScript.<anonymous> (<anonymous>:1:44)
+11:27:50 PM [31m[ERROR][0m - API error: worker.evaluate: TypeError: self.__E2E_TEST_SET_LOGS is not a function
+    at eval (eval at evaluate (:291:30), <anonymous>:1:6)
+    at eval (<anonymous>)
+    at UtilityScript.evaluate (<anonymous>:291:30)
+    at UtilityScript.<anonymous> (<anonymous>:1:44)
+11:27:50 PM [32m[INFO] [0m - Action: closePage 2
+11:27:50 PM [32m[INFO] [0m - Page closed: 2
+  ✘  1 tests/e2e/controls.spec.ts:291:3 › Controls Component Post-Pipeline › should display the correct control button based on pipeline status (4.5s)
+11:27:51 PM [31m[ERROR][0m - Global queue error: Error: worker.evaluate: TypeError: self.__E2E_TEST_SET_LOGS is not a function
+    at eval (eval at evaluate (:291:30), <anonymous>:1:6)
+    at eval (<anonymous>)
+    at UtilityScript.evaluate (<anonymous>:291:30)
+    at UtilityScript.<anonymous> (<anonymous>:1:44)
+11:27:51 PM [31m[ERROR][0m - API error: worker.evaluate: TypeError: self.__E2E_TEST_SET_LOGS is not a function
+    at eval (eval at evaluate (:291:30), <anonymous>:1:6)
+    at eval (<anonymous>)
+    at UtilityScript.evaluate (<anonymous>:291:30)
+    at UtilityScript.<anonymous> (<anonymous>:1:44)
+11:27:52 PM [31m[ERROR][0m - Global queue error: Error: worker.evaluate: TypeError: self.__E2E_TEST_SET_LOGS is not a function
+    at eval (eval at evaluate (:291:30), <anonymous>:1:6)
+    at eval (<anonymous>)
+    at UtilityScript.evaluate (<anonymous>:291:30)
+    at UtilityScript.<anonymous> (<anonymous>:1:44)
+11:27:52 PM [31m[ERROR][0m - API error: worker.evaluate: TypeError: self.__E2E_TEST_SET_LOGS is not a function
+    at eval (eval at evaluate (:291:30), <anonymous>:1:6)
+    at eval (<anonymous>)
+    at UtilityScript.evaluate (<anonymous>:291:30)
+    at UtilityScript.<anonymous> (<anonymous>:1:44)
+11:27:52 PM [31m[ERROR][0m - Global queue error: Error: worker.evaluate: TypeError: self.__E2E_TEST_SET_LOGS is not a function
+    at eval (eval at evaluate (:291:30), <anonymous>:1:6)
+    at eval (<anonymous>)
+    at UtilityScript.evaluate (<anonymous>:291:30)
+    at UtilityScript.<anonymous> (<anonymous>:1:44)
+11:27:52 PM [31m[ERROR][0m - API error: worker.evaluate: TypeError: self.__E2E_TEST_SET_LOGS is not a function
+    at eval (eval at evaluate (:291:30), <anonymous>:1:6)
+    at eval (<anonymous>)
+    at UtilityScript.evaluate (<anonymous>:291:30)
+    at UtilityScript.<anonymous> (<anonymous>:1:44)
+11:27:52 PM [31m[ERROR][0m - Global queue error: Error: worker.evaluate: TypeError: self.__E2E_TEST_SET_LOGS is not a function
+    at eval (eval at evaluate (:291:30), <anonymous>:1:6)
+    at eval (<anonymous>)
+    at UtilityScript.evaluate (<anonymous>:291:30)
+    at UtilityScript.<anonymous> (<anonymous>:1:44)
+11:27:52 PM [31m[ERROR][0m - API error: worker.evaluate: TypeError: self.__E2E_TEST_SET_LOGS is not a function
+    at eval (eval at evaluate (:291:30), <anonymous>:1:6)
+    at eval (<anonymous>)
+    at UtilityScript.evaluate (<anonymous>:291:30)
+    at UtilityScript.<anonymous> (<anonymous>:1:44)
+11:27:52 PM [31m[ERROR][0m - Global queue error: Error: worker.evaluate: TypeError: self.__E2E_TEST_SET_LOGS is not a function
+    at eval (eval at evaluate (:291:30), <anonymous>:1:6)
+    at eval (<anonymous>)
+    at UtilityScript.evaluate (<anonymous>:291:30)
+    at UtilityScript.<anonymous> (<anonymous>:1:44)
+11:27:52 PM [31m[ERROR][0m - API error: worker.evaluate: TypeError: self.__E2E_TEST_SET_LOGS is not a function
+    at eval (eval at evaluate (:291:30), <anonymous>:1:6)
+    at eval (<anonymous>)
+    at UtilityScript.evaluate (<anonymous>:291:30)
+    at UtilityScript.<anonymous> (<anonymous>:1:44)
+11:27:53 PM [31m[ERROR][0m - Global queue error: Error: worker.evaluate: TypeError: self.__E2E_TEST_SET_LOGS is not a function
+    at eval (eval at evaluate (:291:30), <anonymous>:1:6)
+    at eval (<anonymous>)
+    at UtilityScript.evaluate (<anonymous>:291:30)
+    at UtilityScript.<anonymous> (<anonymous>:1:44)
+11:27:53 PM [31m[ERROR][0m - API error: worker.evaluate: TypeError: self.__E2E_TEST_SET_LOGS is not a function
+    at eval (eval at evaluate (:291:30), <anonymous>:1:6)
+    at eval (<anonymous>)
+    at UtilityScript.evaluate (<anonymous>:291:30)
+    at UtilityScript.<anonymous> (<anonymous>:1:44)
+11:27:53 PM [31m[ERROR][0m - Global queue error: Error: worker.evaluate: TypeError: self.__E2E_TEST_SET_LOGS is not a function
+    at eval (eval at evaluate (:291:30), <anonymous>:1:6)
+    at eval (<anonymous>)
+    at UtilityScript.evaluate (<anonymous>:291:30)
+    at UtilityScript.<anonymous> (<anonymous>:1:44)
+11:27:53 PM [31m[ERROR][0m - API error: worker.evaluate: TypeError: self.__E2E_TEST_SET_LOGS is not a function
+    at eval (eval at evaluate (:291:30), <anonymous>:1:6)
+    at eval (<anonymous>)
+    at UtilityScript.evaluate (<anonymous>:291:30)
+    at UtilityScript.<anonymous> (<anonymous>:1:44)
+11:27:53 PM [31m[ERROR][0m - Global queue error: Error: worker.evaluate: TypeError: self.__E2E_TEST_SET_LOGS is not a function
+    at eval (eval at evaluate (:291:30), <anonymous>:1:6)
+    at eval (<anonymous>)
+    at UtilityScript.evaluate (<anonymous>:291:30)
+    at UtilityScript.<anonymous> (<anonymous>:1:44)
+11:27:53 PM [31m[ERROR][0m - API error: worker.evaluate: TypeError: self.__E2E_TEST_SET_LOGS is not a function
+    at eval (eval at evaluate (:291:30), <anonymous>:1:6)
+    at eval (<anonymous>)
+    at UtilityScript.evaluate (<anonymous>:291:30)
+    at UtilityScript.<anonymous> (<anonymous>:1:44)
+  ✘  2 tests/e2e/controls.spec.ts:299:3 › Controls Component Post-Pipeline › should export complete and accurate JSON data (2.6s)
+11:27:55 PM [31m[ERROR][0m - Global queue error: Error: worker.evaluate: TypeError: self.__E2E_TEST_SET_LOGS is not a function
+    at eval (eval at evaluate (:291:30), <anonymous>:1:6)
+    at eval (<anonymous>)
+    at UtilityScript.evaluate (<anonymous>:291:30)
+    at UtilityScript.<anonymous> (<anonymous>:1:44)
+11:27:55 PM [31m[ERROR][0m - API error: worker.evaluate: TypeError: self.__E2E_TEST_SET_LOGS is not a function
+    at eval (eval at evaluate (:291:30), <anonymous>:1:6)
+    at eval (<anonymous>)
+    at UtilityScript.evaluate (<anonymous>:291:30)
+    at UtilityScript.<anonymous> (<anonymous>:1:44)
+11:27:55 PM [31m[ERROR][0m - Global queue error: Error: worker.evaluate: TypeError: self.__E2E_TEST_SET_LOGS is not a function
+    at eval (eval at evaluate (:291:30), <anonymous>:1:6)
+    at eval (<anonymous>)
+    at UtilityScript.evaluate (<anonymous>:291:30)
+    at UtilityScript.<anonymous> (<anonymous>:1:44)
+11:27:55 PM [31m[ERROR][0m - API error: worker.evaluate: TypeError: self.__E2E_TEST_SET_LOGS is not a function
+    at eval (eval at evaluate (:291:30), <anonymous>:1:6)
+    at eval (<anonymous>)
+    at UtilityScript.evaluate (<anonymous>:291:30)
+    at UtilityScript.<anonymous> (<anonymous>:1:44)
+11:27:55 PM [31m[ERROR][0m - Global queue error: Error: worker.evaluate: TypeError: self.__E2E_TEST_SET_LOGS is not a function
+    at eval (eval at evaluate (:291:30), <anonymous>:1:6)
+    at eval (<anonymous>)
+    at UtilityScript.evaluate (<anonymous>:291:30)
+    at UtilityScript.<anonymous> (<anonymous>:1:44)
+11:27:55 PM [31m[ERROR][0m - API error: worker.evaluate: TypeError: self.__E2E_TEST_SET_LOGS is not a function
+    at eval (eval at evaluate (:291:30), <anonymous>:1:6)
+    at eval (<anonymous>)
+    at UtilityScript.evaluate (<anonymous>:291:30)
+    at UtilityScript.<anonymous> (<anonymous>:1:44)
+11:27:56 PM [31m[ERROR][0m - Global queue error: Error: worker.evaluate: TypeError: self.__E2E_TEST_SET_LOGS is not a function
+    at eval (eval at evaluate (:291:30), <anonymous>:1:6)
+    at eval (<anonymous>)
+    at UtilityScript.evaluate (<anonymous>:291:30)
+    at UtilityScript.<anonymous> (<anonymous>:1:44)
+11:27:56 PM [31m[ERROR][0m - API error: worker.evaluate: TypeError: self.__E2E_TEST_SET_LOGS is not a function
+    at eval (eval at evaluate (:291:30), <anonymous>:1:6)
+    at eval (<anonymous>)
+    at UtilityScript.evaluate (<anonymous>:291:30)
+    at UtilityScript.<anonymous> (<anonymous>:1:44)
+11:27:56 PM [31m[ERROR][0m - Global queue error: Error: worker.evaluate: TypeError: self.__E2E_TEST_SET_LOGS is not a function
+    at eval (eval at evaluate (:291:30), <anonymous>:1:6)
+    at eval (<anonymous>)
+    at UtilityScript.evaluate (<anonymous>:291:30)
+    at UtilityScript.<anonymous> (<anonymous>:1:44)
+11:27:56 PM [31m[ERROR][0m - API error: worker.evaluate: TypeError: self.__E2E_TEST_SET_LOGS is not a function
+    at eval (eval at evaluate (:291:30), <anonymous>:1:6)
+    at eval (<anonymous>)
+    at UtilityScript.evaluate (<anonymous>:291:30)
+    at UtilityScript.<anonymous> (<anonymous>:1:44)
+11:27:56 PM [31m[ERROR][0m - Global queue error: Error: worker.evaluate: TypeError: self.__E2E_TEST_SET_LOGS is not a function
+    at eval (eval at evaluate (:291:30), <anonymous>:1:6)
+    at eval (<anonymous>)
+    at UtilityScript.evaluate (<anonymous>:291:30)
+    at UtilityScript.<anonymous> (<anonymous>:1:44)
+11:27:56 PM [31m[ERROR][0m - API error: worker.evaluate: TypeError: self.__E2E_TEST_SET_LOGS is not a function
+    at eval (eval at evaluate (:291:30), <anonymous>:1:6)
+    at eval (<anonymous>)
+    at UtilityScript.evaluate (<anonymous>:291:30)
+    at UtilityScript.<anonymous> (<anonymous>:1:44)
+11:27:57 PM [31m[ERROR][0m - Global queue error: Error: worker.evaluate: TypeError: self.__E2E_TEST_SET_LOGS is not a function
+    at eval (eval at evaluate (:291:30), <anonymous>:1:6)
+    at eval (<anonymous>)
+    at UtilityScript.evaluate (<anonymous>:291:30)
+    at UtilityScript.<anonymous> (<anonymous>:1:44)
+11:27:57 PM [31m[ERROR][0m - API error: worker.evaluate: TypeError: self.__E2E_TEST_SET_LOGS is not a function
+    at eval (eval at evaluate (:291:30), <anonymous>:1:6)
+    at eval (<anonymous>)
+    at UtilityScript.evaluate (<anonymous>:291:30)
+    at UtilityScript.<anonymous> (<anonymous>:1:44)
+11:27:57 PM [31m[ERROR][0m - Global queue error: Error: worker.evaluate: TypeError: self.__E2E_TEST_SET_LOGS is not a function
+    at eval (eval at evaluate (:291:30), <anonymous>:1:6)
+    at eval (<anonymous>)
+    at UtilityScript.evaluate (<anonymous>:291:30)
+    at UtilityScript.<anonymous> (<anonymous>:1:44)
+11:27:57 PM [31m[ERROR][0m - API error: worker.evaluate: TypeError: self.__E2E_TEST_SET_LOGS is not a function
+    at eval (eval at evaluate (:291:30), <anonymous>:1:6)
+    at eval (<anonymous>)
+    at UtilityScript.evaluate (<anonymous>:291:30)
+    at UtilityScript.<anonymous> (<anonymous>:1:44)
+  ✘  3 tests/e2e/controls.spec.ts:317:3 › Controls Component Post-Pipeline › should export all relevant session logs (2.6s)
+11:27:58 PM [31m[ERROR][0m - Global queue error: Error: worker.evaluate: TypeError: self.__E2E_TEST_SET_LOGS is not a function
+    at eval (eval at evaluate (:291:30), <anonymous>:1:6)
+    at eval (<anonymous>)
+    at UtilityScript.evaluate (<anonymous>:291:30)
+    at UtilityScript.<anonymous> (<anonymous>:1:44)
+11:27:58 PM [31m[ERROR][0m - API error: worker.evaluate: TypeError: self.__E2E_TEST_SET_LOGS is not a function
+    at eval (eval at evaluate (:291:30), <anonymous>:1:6)
+    at eval (<anonymous>)
+    at UtilityScript.evaluate (<anonymous>:291:30)
+    at UtilityScript.<anonymous> (<anonymous>:1:44)
+11:27:58 PM [31m[ERROR][0m - Global queue error: Error: worker.evaluate: TypeError: self.__E2E_TEST_SET_LOGS is not a function
+    at eval (eval at evaluate (:291:30), <anonymous>:1:6)
+    at eval (<anonymous>)
+    at UtilityScript.evaluate (<anonymous>:291:30)
+    at UtilityScript.<anonymous> (<anonymous>:1:44)
+11:27:58 PM [31m[ERROR][0m - API error: worker.evaluate: TypeError: self.__E2E_TEST_SET_LOGS is not a function
+    at eval (eval at evaluate (:291:30), <anonymous>:1:6)
+    at eval (<anonymous>)
+    at UtilityScript.evaluate (<anonymous>:291:30)
+    at UtilityScript.<anonymous> (<anonymous>:1:44)
+11:27:59 PM [31m[ERROR][0m - Global queue error: Error: worker.evaluate: TypeError: self.__E2E_TEST_SET_LOGS is not a function
+    at eval (eval at evaluate (:291:30), <anonymous>:1:6)
+    at eval (<anonymous>)
+    at UtilityScript.evaluate (<anonymous>:291:30)
+    at UtilityScript.<anonymous> (<anonymous>:1:44)
+11:27:59 PM [31m[ERROR][0m - API error: worker.evaluate: TypeError: self.__E2E_TEST_SET_LOGS is not a function
+    at eval (eval at evaluate (:291:30), <anonymous>:1:6)
+    at eval (<anonymous>)
+    at UtilityScript.evaluate (<anonymous>:291:30)
+    at UtilityScript.<anonymous> (<anonymous>:1:44)
+11:27:59 PM [31m[ERROR][0m - Global queue error: Error: worker.evaluate: TypeError: self.__E2E_TEST_SET_LOGS is not a function
+    at eval (eval at evaluate (:291:30), <anonymous>:1:6)
+    at eval (<anonymous>)
+    at UtilityScript.evaluate (<anonymous>:291:30)
+    at UtilityScript.<anonymous> (<anonymous>:1:44)
+11:27:59 PM [31m[ERROR][0m - API error: worker.evaluate: TypeError: self.__E2E_TEST_SET_LOGS is not a function
+    at eval (eval at evaluate (:291:30), <anonymous>:1:6)
+    at eval (<anonymous>)
+    at UtilityScript.evaluate (<anonymous>:291:30)
+    at UtilityScript.<anonymous> (<anonymous>:1:44)
+11:27:59 PM [31m[ERROR][0m - Global queue error: Error: worker.evaluate: TypeError: self.__E2E_TEST_SET_LOGS is not a function
+    at eval (eval at evaluate (:291:30), <anonymous>:1:6)
+    at eval (<anonymous>)
+    at UtilityScript.evaluate (<anonymous>:291:30)
+    at UtilityScript.<anonymous> (<anonymous>:1:44)
+11:27:59 PM [31m[ERROR][0m - API error: worker.evaluate: TypeError: self.__E2E_TEST_SET_LOGS is not a function
+    at eval (eval at evaluate (:291:30), <anonymous>:1:6)
+    at eval (<anonymous>)
+    at UtilityScript.evaluate (<anonymous>:291:30)
+    at UtilityScript.<anonymous> (<anonymous>:1:44)
+11:28:00 PM [31m[ERROR][0m - Global queue error: Error: worker.evaluate: TypeError: self.__E2E_TEST_SET_LOGS is not a function
+    at eval (eval at evaluate (:291:30), <anonymous>:1:6)
+    at eval (<anonymous>)
+    at UtilityScript.evaluate (<anonymous>:291:30)
+    at UtilityScript.<anonymous> (<anonymous>:1:44)
+11:28:00 PM [31m[ERROR][0m - API error: worker.evaluate: TypeError: self.__E2E_TEST_SET_LOGS is not a function
+    at eval (eval at evaluate (:291:30), <anonymous>:1:6)
+    at eval (<anonymous>)
+    at UtilityScript.evaluate (<anonymous>:291:30)
+    at UtilityScript.<anonymous> (<anonymous>:1:44)
+11:28:00 PM [31m[ERROR][0m - Global queue error: Error: worker.evaluate: TypeError: self.__E2E_TEST_SET_LOGS is not a function
+    at eval (eval at evaluate (:291:30), <anonymous>:1:6)
+    at eval (<anonymous>)
+    at UtilityScript.evaluate (<anonymous>:291:30)
+    at UtilityScript.<anonymous> (<anonymous>:1:44)
+11:28:00 PM [31m[ERROR][0m - API error: worker.evaluate: TypeError: self.__E2E_TEST_SET_LOGS is not a function
+    at eval (eval at evaluate (:291:30), <anonymous>:1:6)
+    at eval (<anonymous>)
+    at UtilityScript.evaluate (<anonymous>:291:30)
+    at UtilityScript.<anonymous> (<anonymous>:1:44)
+11:28:00 PM [31m[ERROR][0m - Global queue error: Error: worker.evaluate: TypeError: self.__E2E_TEST_SET_LOGS is not a function
+    at eval (eval at evaluate (:291:30), <anonymous>:1:6)
+    at eval (<anonymous>)
+    at UtilityScript.evaluate (<anonymous>:291:30)
+    at UtilityScript.<anonymous> (<anonymous>:1:44)
+11:28:00 PM [31m[ERROR][0m - API error: worker.evaluate: TypeError: self.__E2E_TEST_SET_LOGS is not a function
+    at eval (eval at evaluate (:291:30), <anonymous>:1:6)
+    at eval (<anonymous>)
+    at UtilityScript.evaluate (<anonymous>:291:30)
+    at UtilityScript.<anonymous> (<anonymous>:1:44)
+  ✘  4 tests/e2e/controls.spec.ts:331:3 › Controls Component Post-Pipeline › should clear all data and reset the UI on session reset (2.5s)
+11:28:02 PM [31m[ERROR][0m - Global queue error: Error: worker.evaluate: TypeError: self.__E2E_TEST_SET_LOGS is not a function
+    at eval (eval at evaluate (:291:30), <anonymous>:1:6)
+    at eval (<anonymous>)
+    at UtilityScript.evaluate (<anonymous>:291:30)
+    at UtilityScript.<anonymous> (<anonymous>:1:44)
+11:28:02 PM [31m[ERROR][0m - API error: worker.evaluate: TypeError: self.__E2E_TEST_SET_LOGS is not a function
+    at eval (eval at evaluate (:291:30), <anonymous>:1:6)
+    at eval (<anonymous>)
+    at UtilityScript.evaluate (<anonymous>:291:30)
+    at UtilityScript.<anonymous> (<anonymous>:1:44)
+11:28:02 PM [31m[ERROR][0m - Global queue error: Error: worker.evaluate: TypeError: self.__E2E_TEST_SET_LOGS is not a function
+    at eval (eval at evaluate (:291:30), <anonymous>:1:6)
+    at eval (<anonymous>)
+    at UtilityScript.evaluate (<anonymous>:291:30)
+    at UtilityScript.<anonymous> (<anonymous>:1:44)
+11:28:02 PM [31m[ERROR][0m - API error: worker.evaluate: TypeError: self.__E2E_TEST_SET_LOGS is not a function
+    at eval (eval at evaluate (:291:30), <anonymous>:1:6)
+    at eval (<anonymous>)
+    at UtilityScript.evaluate (<anonymous>:291:30)
+    at UtilityScript.<anonymous> (<anonymous>:1:44)
+11:28:02 PM [31m[ERROR][0m - Global queue error: Error: worker.evaluate: TypeError: self.__E2E_TEST_SET_LOGS is not a function
+    at eval (eval at evaluate (:291:30), <anonymous>:1:6)
+    at eval (<anonymous>)
+    at UtilityScript.evaluate (<anonymous>:291:30)
+    at UtilityScript.<anonymous> (<anonymous>:1:44)
+11:28:02 PM [31m[ERROR][0m - API error: worker.evaluate: TypeError: self.__E2E_TEST_SET_LOGS is not a function
+    at eval (eval at evaluate (:291:30), <anonymous>:1:6)
+    at eval (<anonymous>)
+    at UtilityScript.evaluate (<anonymous>:291:30)
+    at UtilityScript.<anonymous> (<anonymous>:1:44)
+11:28:03 PM [31m[ERROR][0m - Global queue error: Error: worker.evaluate: TypeError: self.__E2E_TEST_SET_LOGS is not a function
+    at eval (eval at evaluate (:291:30), <anonymous>:1:6)
+    at eval (<anonymous>)
+    at UtilityScript.evaluate (<anonymous>:291:30)
+    at UtilityScript.<anonymous> (<anonymous>:1:44)
+11:28:03 PM [31m[ERROR][0m - API error: worker.evaluate: TypeError: self.__E2E_TEST_SET_LOGS is not a function
+    at eval (eval at evaluate (:291:30), <anonymous>:1:6)
+    at eval (<anonymous>)
+    at UtilityScript.evaluate (<anonymous>:291:30)
+    at UtilityScript.<anonymous> (<anonymous>:1:44)
+11:28:03 PM [31m[ERROR][0m - Global queue error: Error: worker.evaluate: TypeError: self.__E2E_TEST_SET_LOGS is not a function
+    at eval (eval at evaluate (:291:30), <anonymous>:1:6)
+    at eval (<anonymous>)
+    at UtilityScript.evaluate (<anonymous>:291:30)
+    at UtilityScript.<anonymous> (<anonymous>:1:44)
+11:28:03 PM [31m[ERROR][0m - API error: worker.evaluate: TypeError: self.__E2E_TEST_SET_LOGS is not a function
+    at eval (eval at evaluate (:291:30), <anonymous>:1:6)
+    at eval (<anonymous>)
+    at UtilityScript.evaluate (<anonymous>:291:30)
+    at UtilityScript.<anonymous> (<anonymous>:1:44)
+11:28:03 PM [31m[ERROR][0m - Global queue error: Error: worker.evaluate: TypeError: self.__E2E_TEST_SET_LOGS is not a function
+    at eval (eval at evaluate (:291:30), <anonymous>:1:6)
+    at eval (<anonymous>)
+    at UtilityScript.evaluate (<anonymous>:291:30)
+    at UtilityScript.<anonymous> (<anonymous>:1:44)
+11:28:03 PM [31m[ERROR][0m - API error: worker.evaluate: TypeError: self.__E2E_TEST_SET_LOGS is not a function
+    at eval (eval at evaluate (:291:30), <anonymous>:1:6)
+    at eval (<anonymous>)
+    at UtilityScript.evaluate (<anonymous>:291:30)
+    at UtilityScript.<anonymous> (<anonymous>:1:44)
+11:28:03 PM [31m[ERROR][0m - Global queue error: Error: worker.evaluate: TypeError: self.__E2E_TEST_SET_LOGS is not a function
+    at eval (eval at evaluate (:291:30), <anonymous>:1:6)
+    at eval (<anonymous>)
+    at UtilityScript.evaluate (<anonymous>:291:30)
+    at UtilityScript.<anonymous> (<anonymous>:1:44)
+11:28:03 PM [31m[ERROR][0m - API error: worker.evaluate: TypeError: self.__E2E_TEST_SET_LOGS is not a function
+    at eval (eval at evaluate (:291:30), <anonymous>:1:6)
+    at eval (<anonymous>)
+    at UtilityScript.evaluate (<anonymous>:291:30)
+    at UtilityScript.<anonymous> (<anonymous>:1:44)
+11:28:04 PM [31m[ERROR][0m - Global queue error: Error: worker.evaluate: TypeError: self.__E2E_TEST_SET_LOGS is not a function
+    at eval (eval at evaluate (:291:30), <anonymous>:1:6)
+    at eval (<anonymous>)
+    at UtilityScript.evaluate (<anonymous>:291:30)
+    at UtilityScript.<anonymous> (<anonymous>:1:44)
+11:28:04 PM [31m[ERROR][0m - API error: worker.evaluate: TypeError: self.__E2E_TEST_SET_LOGS is not a function
+    at eval (eval at evaluate (:291:30), <anonymous>:1:6)
+    at eval (<anonymous>)
+    at UtilityScript.evaluate (<anonymous>:291:30)
+    at UtilityScript.<anonymous> (<anonymous>:1:44)
+  ✘  5 tests/e2e/header.spec.ts:110:3 › Header Component › should display pipeline status correctly (2.5s)
+11:28:05 PM [31m[ERROR][0m - Global queue error: Error: worker.evaluate: TypeError: self.__E2E_TEST_SET_LOGS is not a function
+    at eval (eval at evaluate (:291:30), <anonymous>:1:6)
+    at eval (<anonymous>)
+    at UtilityScript.evaluate (<anonymous>:291:30)
+    at UtilityScript.<anonymous> (<anonymous>:1:44)
+11:28:05 PM [31m[ERROR][0m - API error: worker.evaluate: TypeError: self.__E2E_TEST_SET_LOGS is not a function
+    at eval (eval at evaluate (:291:30), <anonymous>:1:6)
+    at eval (<anonymous>)
+    at UtilityScript.evaluate (<anonymous>:291:30)
+    at UtilityScript.<anonymous> (<anonymous>:1:44)
+11:28:05 PM [31m[ERROR][0m - Global queue error: Error: worker.evaluate: TypeError: self.__E2E_TEST_SET_LOGS is not a function
+    at eval (eval at evaluate (:291:30), <anonymous>:1:6)
+    at eval (<anonymous>)
+    at UtilityScript.evaluate (<anonymous>:291:30)
+    at UtilityScript.<anonymous> (<anonymous>:1:44)
+11:28:05 PM [31m[ERROR][0m - API error: worker.evaluate: TypeError: self.__E2E_TEST_SET_LOGS is not a function
+    at eval (eval at evaluate (:291:30), <anonymous>:1:6)
+    at eval (<anonymous>)
+    at UtilityScript.evaluate (<anonymous>:291:30)
+    at UtilityScript.<anonymous> (<anonymous>:1:44)
+11:28:06 PM [31m[ERROR][0m - Global queue error: Error: worker.evaluate: TypeError: self.__E2E_TEST_SET_LOGS is not a function
+    at eval (eval at evaluate (:291:30), <anonymous>:1:6)
+    at eval (<anonymous>)
+    at UtilityScript.evaluate (<anonymous>:291:30)
+    at UtilityScript.<anonymous> (<anonymous>:1:44)
+11:28:06 PM [31m[ERROR][0m - API error: worker.evaluate: TypeError: self.__E2E_TEST_SET_LOGS is not a function
+    at eval (eval at evaluate (:291:30), <anonymous>:1:6)
+    at eval (<anonymous>)
+    at UtilityScript.evaluate (<anonymous>:291:30)
+    at UtilityScript.<anonymous> (<anonymous>:1:44)
+11:28:06 PM [31m[ERROR][0m - Global queue error: Error: worker.evaluate: TypeError: self.__E2E_TEST_SET_LOGS is not a function
+    at eval (eval at evaluate (:291:30), <anonymous>:1:6)
+    at eval (<anonymous>)
+    at UtilityScript.evaluate (<anonymous>:291:30)
+    at UtilityScript.<anonymous> (<anonymous>:1:44)
+11:28:06 PM [31m[ERROR][0m - API error: worker.evaluate: TypeError: self.__E2E_TEST_SET_LOGS is not a function
+    at eval (eval at evaluate (:291:30), <anonymous>:1:6)
+    at eval (<anonymous>)
+    at UtilityScript.evaluate (<anonymous>:291:30)
+    at UtilityScript.<anonymous> (<anonymous>:1:44)
+11:28:06 PM [31m[ERROR][0m - Global queue error: Error: worker.evaluate: TypeError: self.__E2E_TEST_SET_LOGS is not a function
+    at eval (eval at evaluate (:291:30), <anonymous>:1:6)
+    at eval (<anonymous>)
+    at UtilityScript.evaluate (<anonymous>:291:30)
+    at UtilityScript.<anonymous> (<anonymous>:1:44)
+11:28:06 PM [31m[ERROR][0m - API error: worker.evaluate: TypeError: self.__E2E_TEST_SET_LOGS is not a function
+    at eval (eval at evaluate (:291:30), <anonymous>:1:6)
+    at eval (<anonymous>)
+    at UtilityScript.evaluate (<anonymous>:291:30)
+    at UtilityScript.<anonymous> (<anonymous>:1:44)
+11:28:06 PM [31m[ERROR][0m - Global queue error: Error: worker.evaluate: TypeError: self.__E2E_TEST_SET_LOGS is not a function
+    at eval (eval at evaluate (:291:30), <anonymous>:1:6)
+    at eval (<anonymous>)
+    at UtilityScript.evaluate (<anonymous>:291:30)
+    at UtilityScript.<anonymous> (<anonymous>:1:44)
+11:28:06 PM [31m[ERROR][0m - API error: worker.evaluate: TypeError: self.__E2E_TEST_SET_LOGS is not a function
+    at eval (eval at evaluate (:291:30), <anonymous>:1:6)
+    at eval (<anonymous>)
+    at UtilityScript.evaluate (<anonymous>:291:30)
+    at UtilityScript.<anonymous> (<anonymous>:1:44)
+11:28:07 PM [31m[ERROR][0m - Global queue error: Error: worker.evaluate: TypeError: self.__E2E_TEST_SET_LOGS is not a function
+    at eval (eval at evaluate (:291:30), <anonymous>:1:6)
+    at eval (<anonymous>)
+    at UtilityScript.evaluate (<anonymous>:291:30)
+    at UtilityScript.<anonymous> (<anonymous>:1:44)
+11:28:07 PM [31m[ERROR][0m - API error: worker.evaluate: TypeError: self.__E2E_TEST_SET_LOGS is not a function
+    at eval (eval at evaluate (:291:30), <anonymous>:1:6)
+    at eval (<anonymous>)
+    at UtilityScript.evaluate (<anonymous>:291:30)
+    at UtilityScript.<anonymous> (<anonymous>:1:44)
+11:28:07 PM [31m[ERROR][0m - Global queue error: Error: worker.evaluate: TypeError: self.__E2E_TEST_SET_LOGS is not a function
+    at eval (eval at evaluate (:291:30), <anonymous>:1:6)
+    at eval (<anonymous>)
+    at UtilityScript.evaluate (<anonymous>:291:30)
+    at UtilityScript.<anonymous> (<anonymous>:1:44)
+11:28:07 PM [31m[ERROR][0m - API error: worker.evaluate: TypeError: self.__E2E_TEST_SET_LOGS is not a function
+    at eval (eval at evaluate (:291:30), <anonymous>:1:6)
+    at eval (<anonymous>)
+    at UtilityScript.evaluate (<anonymous>:291:30)
+    at UtilityScript.<anonymous> (<anonymous>:1:44)
+  ✘  6 tests/e2e/header.spec.ts:144:3 › Header Component › should display configuration info correctly (2.5s)
+11:28:08 PM [31m[ERROR][0m - Global queue error: Error: worker.evaluate: TypeError: self.__E2E_TEST_SET_LOGS is not a function
+    at eval (eval at evaluate (:291:30), <anonymous>:1:6)
+    at eval (<anonymous>)
+    at UtilityScript.evaluate (<anonymous>:291:30)
+    at UtilityScript.<anonymous> (<anonymous>:1:44)
+11:28:08 PM [31m[ERROR][0m - API error: worker.evaluate: TypeError: self.__E2E_TEST_SET_LOGS is not a function
+    at eval (eval at evaluate (:291:30), <anonymous>:1:6)
+    at eval (<anonymous>)
+    at UtilityScript.evaluate (<anonymous>:291:30)
+    at UtilityScript.<anonymous> (<anonymous>:1:44)
+11:28:09 PM [31m[ERROR][0m - Global queue error: Error: worker.evaluate: TypeError: self.__E2E_TEST_SET_LOGS is not a function
+    at eval (eval at evaluate (:291:30), <anonymous>:1:6)
+    at eval (<anonymous>)
+    at UtilityScript.evaluate (<anonymous>:291:30)
+    at UtilityScript.<anonymous> (<anonymous>:1:44)
+11:28:09 PM [31m[ERROR][0m - API error: worker.evaluate: TypeError: self.__E2E_TEST_SET_LOGS is not a function
+    at eval (eval at evaluate (:291:30), <anonymous>:1:6)
+    at eval (<anonymous>)
+    at UtilityScript.evaluate (<anonymous>:291:30)
+    at UtilityScript.<anonymous> (<anonymous>:1:44)
+11:28:09 PM [31m[ERROR][0m - Global queue error: Error: worker.evaluate: TypeError: self.__E2E_TEST_SET_LOGS is not a function
+    at eval (eval at evaluate (:291:30), <anonymous>:1:6)
+    at eval (<anonymous>)
+    at UtilityScript.evaluate (<anonymous>:291:30)
+    at UtilityScript.<anonymous> (<anonymous>:1:44)
+11:28:09 PM [31m[ERROR][0m - API error: worker.evaluate: TypeError: self.__E2E_TEST_SET_LOGS is not a function
+    at eval (eval at evaluate (:291:30), <anonymous>:1:6)
+    at eval (<anonymous>)
+    at UtilityScript.evaluate (<anonymous>:291:30)
+    at UtilityScript.<anonymous> (<anonymous>:1:44)
+11:28:09 PM [31m[ERROR][0m - Global queue error: Error: worker.evaluate: TypeError: self.__E2E_TEST_SET_LOGS is not a function
+    at eval (eval at evaluate (:291:30), <anonymous>:1:6)
+    at eval (<anonymous>)
+    at UtilityScript.evaluate (<anonymous>:291:30)
+    at UtilityScript.<anonymous> (<anonymous>:1:44)
+11:28:09 PM [31m[ERROR][0m - API error: worker.evaluate: TypeError: self.__E2E_TEST_SET_LOGS is not a function
+    at eval (eval at evaluate (:291:30), <anonymous>:1:6)
+    at eval (<anonymous>)
+    at UtilityScript.evaluate (<anonymous>:291:30)
+    at UtilityScript.<anonymous> (<anonymous>:1:44)
+11:28:10 PM [31m[ERROR][0m - Global queue error: Error: worker.evaluate: TypeError: self.__E2E_TEST_SET_LOGS is not a function
+    at eval (eval at evaluate (:291:30), <anonymous>:1:6)
+    at eval (<anonymous>)
+    at UtilityScript.evaluate (<anonymous>:291:30)
+    at UtilityScript.<anonymous> (<anonymous>:1:44)
+11:28:10 PM [31m[ERROR][0m - API error: worker.evaluate: TypeError: self.__E2E_TEST_SET_LOGS is not a function
+    at eval (eval at evaluate (:291:30), <anonymous>:1:6)
+    at eval (<anonymous>)
+    at UtilityScript.evaluate (<anonymous>:291:30)
+    at UtilityScript.<anonymous> (<anonymous>:1:44)
+11:28:10 PM [31m[ERROR][0m - Global queue error: Error: worker.evaluate: TypeError: self.__E2E_TEST_SET_LOGS is not a function
+    at eval (eval at evaluate (:291:30), <anonymous>:1:6)
+    at eval (<anonymous>)
+    at UtilityScript.evaluate (<anonymous>:291:30)
+    at UtilityScript.<anonymous> (<anonymous>:1:44)
+11:28:10 PM [31m[ERROR][0m - API error: worker.evaluate: TypeError: self.__E2E_TEST_SET_LOGS is not a function
+    at eval (eval at evaluate (:291:30), <anonymous>:1:6)
+    at eval (<anonymous>)
+    at UtilityScript.evaluate (<anonymous>:291:30)
+    at UtilityScript.<anonymous> (<anonymous>:1:44)
+11:28:10 PM [31m[ERROR][0m - Global queue error: Error: worker.evaluate: TypeError: self.__E2E_TEST_SET_LOGS is not a function
+    at eval (eval at evaluate (:291:30), <anonymous>:1:6)
+    at eval (<anonymous>)
+    at UtilityScript.evaluate (<anonymous>:291:30)
+    at UtilityScript.<anonymous> (<anonymous>:1:44)
+11:28:10 PM [31m[ERROR][0m - API error: worker.evaluate: TypeError: self.__E2E_TEST_SET_LOGS is not a function
+    at eval (eval at evaluate (:291:30), <anonymous>:1:6)
+    at eval (<anonymous>)
+    at UtilityScript.evaluate (<anonymous>:291:30)
+    at UtilityScript.<anonymous> (<anonymous>:1:44)
+11:28:10 PM [31m[ERROR][0m - Global queue error: Error: worker.evaluate: TypeError: self.__E2E_TEST_SET_LOGS is not a function
+    at eval (eval at evaluate (:291:30), <anonymous>:1:6)
+    at eval (<anonymous>)
+    at UtilityScript.evaluate (<anonymous>:291:30)
+    at UtilityScript.<anonymous> (<anonymous>:1:44)
+11:28:10 PM [31m[ERROR][0m - API error: worker.evaluate: TypeError: self.__E2E_TEST_SET_LOGS is not a function
+    at eval (eval at evaluate (:291:30), <anonymous>:1:6)
+    at eval (<anonymous>)
+    at UtilityScript.evaluate (<anonymous>:291:30)
+    at UtilityScript.<anonymous> (<anonymous>:1:44)
+  ✘  7 tests/e2e/header.spec.ts:179:3 › Header Component › should display user info correctly (2.5s)
+11:28:12 PM [31m[ERROR][0m - Global queue error: Error: worker.evaluate: TypeError: self.__E2E_TEST_SET_LOGS is not a function
+    at eval (eval at evaluate (:291:30), <anonymous>:1:6)
+    at eval (<anonymous>)
+    at UtilityScript.evaluate (<anonymous>:291:30)
+    at UtilityScript.<anonymous> (<anonymous>:1:44)
+11:28:12 PM [31m[ERROR][0m - API error: worker.evaluate: TypeError: self.__E2E_TEST_SET_LOGS is not a function
+    at eval (eval at evaluate (:291:30), <anonymous>:1:6)
+    at eval (<anonymous>)
+    at UtilityScript.evaluate (<anonymous>:291:30)
+    at UtilityScript.<anonymous> (<anonymous>:1:44)
+11:28:12 PM [31m[ERROR][0m - Global queue error: Error: worker.evaluate: TypeError: self.__E2E_TEST_SET_LOGS is not a function
+    at eval (eval at evaluate (:291:30), <anonymous>:1:6)
+    at eval (<anonymous>)
+    at UtilityScript.evaluate (<anonymous>:291:30)
+    at UtilityScript.<anonymous> (<anonymous>:1:44)
+11:28:12 PM [31m[ERROR][0m - API error: worker.evaluate: TypeError: self.__E2E_TEST_SET_LOGS is not a function
+    at eval (eval at evaluate (:291:30), <anonymous>:1:6)
+    at eval (<anonymous>)
+    at UtilityScript.evaluate (<anonymous>:291:30)
+    at UtilityScript.<anonymous> (<anonymous>:1:44)
+11:28:12 PM [31m[ERROR][0m - Global queue error: Error: worker.evaluate: TypeError: self.__E2E_TEST_SET_LOGS is not a function
+    at eval (eval at evaluate (:291:30), <anonymous>:1:6)
+    at eval (<anonymous>)
+    at UtilityScript.evaluate (<anonymous>:291:30)
+    at UtilityScript.<anonymous> (<anonymous>:1:44)
+11:28:12 PM [31m[ERROR][0m - API error: worker.evaluate: TypeError: self.__E2E_TEST_SET_LOGS is not a function
+    at eval (eval at evaluate (:291:30), <anonymous>:1:6)
+    at eval (<anonymous>)
+    at UtilityScript.evaluate (<anonymous>:291:30)
+    at UtilityScript.<anonymous> (<anonymous>:1:44)
+11:28:13 PM [31m[ERROR][0m - Global queue error: Error: worker.evaluate: TypeError: self.__E2E_TEST_SET_LOGS is not a function
+    at eval (eval at evaluate (:291:30), <anonymous>:1:6)
+    at eval (<anonymous>)
+    at UtilityScript.evaluate (<anonymous>:291:30)
+    at UtilityScript.<anonymous> (<anonymous>:1:44)
+11:28:13 PM [31m[ERROR][0m - API error: worker.evaluate: TypeError: self.__E2E_TEST_SET_LOGS is not a function
+    at eval (eval at evaluate (:291:30), <anonymous>:1:6)
+    at eval (<anonymous>)
+    at UtilityScript.evaluate (<anonymous>:291:30)
+    at UtilityScript.<anonymous> (<anonymous>:1:44)
+11:28:13 PM [31m[ERROR][0m - Global queue error: Error: worker.evaluate: TypeError: self.__E2E_TEST_SET_LOGS is not a function
+    at eval (eval at evaluate (:291:30), <anonymous>:1:6)
+    at eval (<anonymous>)
+    at UtilityScript.evaluate (<anonymous>:291:30)
+    at UtilityScript.<anonymous> (<anonymous>:1:44)
+11:28:13 PM [31m[ERROR][0m - API error: worker.evaluate: TypeError: self.__E2E_TEST_SET_LOGS is not a function
+    at eval (eval at evaluate (:291:30), <anonymous>:1:6)
+    at eval (<anonymous>)
+    at UtilityScript.evaluate (<anonymous>:291:30)
+    at UtilityScript.<anonymous> (<anonymous>:1:44)
+11:28:13 PM [31m[ERROR][0m - Global queue error: Error: worker.evaluate: TypeError: self.__E2E_TEST_SET_LOGS is not a function
+    at eval (eval at evaluate (:291:30), <anonymous>:1:6)
+    at eval (<anonymous>)
+    at UtilityScript.evaluate (<anonymous>:291:30)
+    at UtilityScript.<anonymous> (<anonymous>:1:44)
+11:28:13 PM [31m[ERROR][0m - API error: worker.evaluate: TypeError: self.__E2E_TEST_SET_LOGS is not a function
+    at eval (eval at evaluate (:291:30), <anonymous>:1:6)
+    at eval (<anonymous>)
+    at UtilityScript.evaluate (<anonymous>:291:30)
+    at UtilityScript.<anonymous> (<anonymous>:1:44)
+11:28:14 PM [31m[ERROR][0m - Global queue error: Error: worker.evaluate: TypeError: self.__E2E_TEST_SET_LOGS is not a function
+    at eval (eval at evaluate (:291:30), <anonymous>:1:6)
+    at eval (<anonymous>)
+    at UtilityScript.evaluate (<anonymous>:291:30)
+    at UtilityScript.<anonymous> (<anonymous>:1:44)
+11:28:14 PM [31m[ERROR][0m - API error: worker.evaluate: TypeError: self.__E2E_TEST_SET_LOGS is not a function
+    at eval (eval at evaluate (:291:30), <anonymous>:1:6)
+    at eval (<anonymous>)
+    at UtilityScript.evaluate (<anonymous>:291:30)
+    at UtilityScript.<anonymous> (<anonymous>:1:44)
+11:28:14 PM [31m[ERROR][0m - Global queue error: Error: worker.evaluate: TypeError: self.__E2E_TEST_SET_LOGS is not a function
+    at eval (eval at evaluate (:291:30), <anonymous>:1:6)
+    at eval (<anonymous>)
+    at UtilityScript.evaluate (<anonymous>:291:30)
+    at UtilityScript.<anonymous> (<anonymous>:1:44)
+11:28:14 PM [31m[ERROR][0m - API error: worker.evaluate: TypeError: self.__E2E_TEST_SET_LOGS is not a function
+    at eval (eval at evaluate (:291:30), <anonymous>:1:6)
+    at eval (<anonymous>)
+    at UtilityScript.evaluate (<anonymous>:291:30)
+    at UtilityScript.<anonymous> (<anonymous>:1:44)
+  ✘  8 tests/e2e/header.spec.ts:215:3 › Header Component › should display target post info correctly (2.5s)
+11:28:15 PM [31m[ERROR][0m - Global queue error: Error: worker.evaluate: TypeError: self.__E2E_TEST_SET_LOGS is not a function
+    at eval (eval at evaluate (:291:30), <anonymous>:1:6)
+    at eval (<anonymous>)
+    at UtilityScript.evaluate (<anonymous>:291:30)
+    at UtilityScript.<anonymous> (<anonymous>:1:44)
+11:28:15 PM [31m[ERROR][0m - API error: worker.evaluate: TypeError: self.__E2E_TEST_SET_LOGS is not a function
+    at eval (eval at evaluate (:291:30), <anonymous>:1:6)
+    at eval (<anonymous>)
+    at UtilityScript.evaluate (<anonymous>:291:30)
+    at UtilityScript.<anonymous> (<anonymous>:1:44)
+11:28:15 PM [31m[ERROR][0m - Global queue error: Error: worker.evaluate: TypeError: self.__E2E_TEST_SET_LOGS is not a function
+    at eval (eval at evaluate (:291:30), <anonymous>:1:6)
+    at eval (<anonymous>)
+    at UtilityScript.evaluate (<anonymous>:291:30)
+    at UtilityScript.<anonymous> (<anonymous>:1:44)
+11:28:15 PM [31m[ERROR][0m - API error: worker.evaluate: TypeError: self.__E2E_TEST_SET_LOGS is not a function
+    at eval (eval at evaluate (:291:30), <anonymous>:1:6)
+    at eval (<anonymous>)
+    at UtilityScript.evaluate (<anonymous>:291:30)
+    at UtilityScript.<anonymous> (<anonymous>:1:44)
+11:28:16 PM [31m[ERROR][0m - Global queue error: Error: worker.evaluate: TypeError: self.__E2E_TEST_SET_LOGS is not a function
+    at eval (eval at evaluate (:291:30), <anonymous>:1:6)
+    at eval (<anonymous>)
+    at UtilityScript.evaluate (<anonymous>:291:30)
+    at UtilityScript.<anonymous> (<anonymous>:1:44)
+11:28:16 PM [31m[ERROR][0m - API error: worker.evaluate: TypeError: self.__E2E_TEST_SET_LOGS is not a function
+    at eval (eval at evaluate (:291:30), <anonymous>:1:6)
+    at eval (<anonymous>)
+    at UtilityScript.evaluate (<anonymous>:291:30)
+    at UtilityScript.<anonymous> (<anonymous>:1:44)
+11:28:16 PM [31m[ERROR][0m - Global queue error: Error: worker.evaluate: TypeError: self.__E2E_TEST_SET_LOGS is not a function
+    at eval (eval at evaluate (:291:30), <anonymous>:1:6)
+    at eval (<anonymous>)
+    at UtilityScript.evaluate (<anonymous>:291:30)
+    at UtilityScript.<anonymous> (<anonymous>:1:44)
+11:28:16 PM [31m[ERROR][0m - API error: worker.evaluate: TypeError: self.__E2E_TEST_SET_LOGS is not a function
+    at eval (eval at evaluate (:291:30), <anonymous>:1:6)
+    at eval (<anonymous>)
+    at UtilityScript.evaluate (<anonymous>:291:30)
+    at UtilityScript.<anonymous> (<anonymous>:1:44)
+11:28:16 PM [31m[ERROR][0m - Global queue error: Error: worker.evaluate: TypeError: self.__E2E_TEST_SET_LOGS is not a function
+    at eval (eval at evaluate (:291:30), <anonymous>:1:6)
+    at eval (<anonymous>)
+    at UtilityScript.evaluate (<anonymous>:291:30)
+    at UtilityScript.<anonymous> (<anonymous>:1:44)
+11:28:16 PM [31m[ERROR][0m - API error: worker.evaluate: TypeError: self.__E2E_TEST_SET_LOGS is not a function
+    at eval (eval at evaluate (:291:30), <anonymous>:1:6)
+    at eval (<anonymous>)
+    at UtilityScript.evaluate (<anonymous>:291:30)
+    at UtilityScript.<anonymous> (<anonymous>:1:44)
+11:28:17 PM [31m[ERROR][0m - Global queue error: Error: worker.evaluate: TypeError: self.__E2E_TEST_SET_LOGS is not a function
+    at eval (eval at evaluate (:291:30), <anonymous>:1:6)
+    at eval (<anonymous>)
+    at UtilityScript.evaluate (<anonymous>:291:30)
+    at UtilityScript.<anonymous> (<anonymous>:1:44)
+11:28:17 PM [31m[ERROR][0m - API error: worker.evaluate: TypeError: self.__E2E_TEST_SET_LOGS is not a function
+    at eval (eval at evaluate (:291:30), <anonymous>:1:6)
+    at eval (<anonymous>)
+    at UtilityScript.evaluate (<anonymous>:291:30)
+    at UtilityScript.<anonymous> (<anonymous>:1:44)
+11:28:17 PM [31m[ERROR][0m - Global queue error: Error: worker.evaluate: TypeError: self.__E2E_TEST_SET_LOGS is not a function
+    at eval (eval at evaluate (:291:30), <anonymous>:1:6)
+    at eval (<anonymous>)
+    at UtilityScript.evaluate (<anonymous>:291:30)
+    at UtilityScript.<anonymous> (<anonymous>:1:44)
+11:28:17 PM [31m[ERROR][0m - API error: worker.evaluate: TypeError: self.__E2E_TEST_SET_LOGS is not a function
+    at eval (eval at evaluate (:291:30), <anonymous>:1:6)
+    at eval (<anonymous>)
+    at UtilityScript.evaluate (<anonymous>:291:30)
+    at UtilityScript.<anonymous> (<anonymous>:1:44)
+11:28:17 PM [31m[ERROR][0m - Global queue error: Error: worker.evaluate: TypeError: self.__E2E_TEST_SET_LOGS is not a function
+    at eval (eval at evaluate (:291:30), <anonymous>:1:6)
+    at eval (<anonymous>)
+    at UtilityScript.evaluate (<anonymous>:291:30)
+    at UtilityScript.<anonymous> (<anonymous>:1:44)
+11:28:17 PM [31m[ERROR][0m - API error: worker.evaluate: TypeError: self.__E2E_TEST_SET_LOGS is not a function
+    at eval (eval at evaluate (:291:30), <anonymous>:1:6)
+    at eval (<anonymous>)
+    at UtilityScript.evaluate (<anonymous>:291:30)
+    at UtilityScript.<anonymous> (<anonymous>:1:44)
+  ✘  9 tests/e2e/linkedin-ui.spec.ts:69:1 › Extension UI renders and toggle works on LinkedIn post (2.5s)
+11:28:18 PM [32m[INFO] [0m - SIGTERM received, closing browser and server.
+
+
+  1) tests/e2e/controls.spec.ts:291:3 › Controls Component Post-Pipeline › should display the correct control button based on pipeline status 
+
+    Error: Action failed: 400 {"ok":false,"error":"worker.evaluate: TypeError: self.__E2E_TEST_SET_LOGS is not a function\n    at eval (eval at evaluate (:291:30), <anonymous>:1:6)\n    at eval (<anonymous>)\n    at UtilityScript.evaluate (<anonymous>:291:30)\n    at UtilityScript.<anonymous> (<anonymous>:1:44)"}
+
+      24 |   const data = await res.json();
+      25 |   if (!res.ok || !data?.ok) {
+    > 26 |     throw new Error(`Action failed: ${res.status} ${JSON.stringify(data)}`);
+         |           ^
+      27 |   }
+      28 |   return data.result;
+      29 | }
+        at action (/home/moaz/code_machine/projects/linkedin_life_saver/project/tests/e2e/controls.spec.ts:26:11)
+        at injectLogs (/home/moaz/code_machine/projects/linkedin_life_saver/project/tests/e2e/controls.spec.ts:144:3)
+        at /home/moaz/code_machine/projects/linkedin_life_saver/project/tests/e2e/controls.spec.ts:275:5
+
+  2) tests/e2e/controls.spec.ts:299:3 › Controls Component Post-Pipeline › should export complete and accurate JSON data 
+
+    Error: A new page should be created
+
+    [2mexpect([22m[31mreceived[39m[2m).[22mtoBeTruthy[2m()[22m
+
+    Received: [31m""[39m
+
+      253 |
+      254 |     pageId = await newTestPageId();
+    > 255 |     expect(pageId, 'A new page should be created').toBeTruthy();
+          |                                                    ^
+      256 |
+      257 |     const targetUrl = `https://www.linkedin.com/feed/update/${MOCK_POST_URN}/`;
+      258 |     await action({
+        at /home/moaz/code_machine/projects/linkedin_life_saver/project/tests/e2e/controls.spec.ts:255:52
+
+  3) tests/e2e/controls.spec.ts:317:3 › Controls Component Post-Pipeline › should export all relevant session logs 
+
+    Error: A new page should be created
+
+    [2mexpect([22m[31mreceived[39m[2m).[22mtoBeTruthy[2m()[22m
+
+    Received: [31m""[39m
+
+      253 |
+      254 |     pageId = await newTestPageId();
+    > 255 |     expect(pageId, 'A new page should be created').toBeTruthy();
+          |                                                    ^
+      256 |
+      257 |     const targetUrl = `https://www.linkedin.com/feed/update/${MOCK_POST_URN}/`;
+      258 |     await action({
+        at /home/moaz/code_machine/projects/linkedin_life_saver/project/tests/e2e/controls.spec.ts:255:52
+
+  4) tests/e2e/controls.spec.ts:331:3 › Controls Component Post-Pipeline › should clear all data and reset the UI on session reset 
+
+    Error: A new page should be created
+
+    [2mexpect([22m[31mreceived[39m[2m).[22mtoBeTruthy[2m()[22m
+
+    Received: [31m""[39m
+
+      253 |
+      254 |     pageId = await newTestPageId();
+    > 255 |     expect(pageId, 'A new page should be created').toBeTruthy();
+          |                                                    ^
+      256 |
+      257 |     const targetUrl = `https://www.linkedin.com/feed/update/${MOCK_POST_URN}/`;
+      258 |     await action({
+        at /home/moaz/code_machine/projects/linkedin_life_saver/project/tests/e2e/controls.spec.ts:255:52
+
+  5) tests/e2e/header.spec.ts:110:3 › Header Component › should display pipeline status correctly ──
+
+    Error: A new page should be created
+
+    [2mexpect([22m[31mreceived[39m[2m).[22mtoBeTruthy[2m()[22m
+
+    Received: [31m""[39m
+
+      92 |
+      93 |     pageId = await newTestPageId();
+    > 94 |     expect(pageId, 'A new page should be created').toBeTruthy();
+         |                                                    ^
+      95 |
+      96 |     const targetUrl = 'https://www.linkedin.com/feed/update/urn:li:activity:7368619407989760000/';
+      97 |     await action({ action: 'goto', pageId, url: targetUrl, waitUntil: 'domcontentloaded', timeoutMs: 60_000 });
+        at /home/moaz/code_machine/projects/linkedin_life_saver/project/tests/e2e/header.spec.ts:94:52
+
+  6) tests/e2e/header.spec.ts:144:3 › Header Component › should display configuration info correctly 
+
+    Error: A new page should be created
+
+    [2mexpect([22m[31mreceived[39m[2m).[22mtoBeTruthy[2m()[22m
+
+    Received: [31m""[39m
+
+      92 |
+      93 |     pageId = await newTestPageId();
+    > 94 |     expect(pageId, 'A new page should be created').toBeTruthy();
+         |                                                    ^
+      95 |
+      96 |     const targetUrl = 'https://www.linkedin.com/feed/update/urn:li:activity:7368619407989760000/';
+      97 |     await action({ action: 'goto', pageId, url: targetUrl, waitUntil: 'domcontentloaded', timeoutMs: 60_000 });
+        at /home/moaz/code_machine/projects/linkedin_life_saver/project/tests/e2e/header.spec.ts:94:52
+
+  7) tests/e2e/header.spec.ts:179:3 › Header Component › should display user info correctly ────────
+
+    Error: A new page should be created
+
+    [2mexpect([22m[31mreceived[39m[2m).[22mtoBeTruthy[2m()[22m
+
+    Received: [31m""[39m
+
+      92 |
+      93 |     pageId = await newTestPageId();
+    > 94 |     expect(pageId, 'A new page should be created').toBeTruthy();
+         |                                                    ^
+      95 |
+      96 |     const targetUrl = 'https://www.linkedin.com/feed/update/urn:li:activity:7368619407989760000/';
+      97 |     await action({ action: 'goto', pageId, url: targetUrl, waitUntil: 'domcontentloaded', timeoutMs: 60_000 });
+        at /home/moaz/code_machine/projects/linkedin_life_saver/project/tests/e2e/header.spec.ts:94:52
+
+  8) tests/e2e/header.spec.ts:215:3 › Header Component › should display target post info correctly ─
+
+    Error: A new page should be created
+
+    [2mexpect([22m[31mreceived[39m[2m).[22mtoBeTruthy[2m()[22m
+
+    Received: [31m""[39m
+
+      92 |
+      93 |     pageId = await newTestPageId();
+    > 94 |     expect(pageId, 'A new page should be created').toBeTruthy();
+         |                                                    ^
+      95 |
+      96 |     const targetUrl = 'https://www.linkedin.com/feed/update/urn:li:activity:7368619407989760000/';
+      97 |     await action({ action: 'goto', pageId, url: targetUrl, waitUntil: 'domcontentloaded', timeoutMs: 60_000 });
+        at /home/moaz/code_machine/projects/linkedin_life_saver/project/tests/e2e/header.spec.ts:94:52
+
+  9) tests/e2e/linkedin-ui.spec.ts:69:1 › Extension UI renders and toggle works on LinkedIn post ───
+
+    Error: [2mexpect([22m[31mreceived[39m[2m).[22mtoBeTruthy[2m()[22m
+
+    Received: [31m""[39m
+
+      75 |   // 1) Open a dedicated page via the shared browser server
+      76 |   const pageId = await newTestPageId();
+    > 77 |   expect(pageId).toBeTruthy();
+         |                  ^
+      78 |
+      79 |   // 2) Navigate to the LinkedIn post URL
+      80 |   const targetUrl =
+        at /home/moaz/code_machine/projects/linkedin_life_saver/project/tests/e2e/linkedin-ui.spec.ts:77:18
+
+  9 failed
+    tests/e2e/controls.spec.ts:291:3 › Controls Component Post-Pipeline › should display the correct control button based on pipeline status 
+    tests/e2e/controls.spec.ts:299:3 › Controls Component Post-Pipeline › should export complete and accurate JSON data 
+    tests/e2e/controls.spec.ts:317:3 › Controls Component Post-Pipeline › should export all relevant session logs 
+    tests/e2e/controls.spec.ts:331:3 › Controls Component Post-Pipeline › should clear all data and reset the UI on session reset 
+    tests/e2e/header.spec.ts:110:3 › Header Component › should display pipeline status correctly ───
+    tests/e2e/header.spec.ts:144:3 › Header Component › should display configuration info correctly 
+    tests/e2e/header.spec.ts:179:3 › Header Component › should display user info correctly ─────────
+    tests/e2e/header.spec.ts:215:3 › Header Component › should display target post info correctly ──
+    tests/e2e/linkedin-ui.spec.ts:69:1 › Extension UI renders and toggle works on LinkedIn post ────
+11:28:18 PM [32m[INFO] [0m - Page closed: 1

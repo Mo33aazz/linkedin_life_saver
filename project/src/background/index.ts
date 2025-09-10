@@ -559,6 +559,8 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 (self as any).__E2E_TEST_UPDATE_CONFIG = (config: Partial<AIConfig>) => updateConfig(config);
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
+(self as any).__E2E_TEST_SET_LOGS = (logs: LogEntry[]) => logger.setBufferedLogsForTesting(logs);
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
 (self as any).__E2E_TEST_HOOKS_INSTALLED = true;
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 (self as any).__E2E_TEST_CAPTURE_NOW = (matchUrl?: string) => {

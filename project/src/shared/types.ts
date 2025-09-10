@@ -7,7 +7,7 @@ export interface LogEntry {
   context?: Record<string, unknown>;
 }
 
-export type ActionStatus = '' | 'DONE' | 'FAILED';
+export type ActionStatus = '' | 'DONE' | 'FAILED' | 'SKIPPED';
 
 export type RunState = 'idle' | 'running' | 'paused' | 'error';
 

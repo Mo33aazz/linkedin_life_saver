@@ -204,7 +204,7 @@ export const Controls = () => {
             min="1"
             max="50"
             value={maxScrolls}
-            onChange={(e) => setMaxScrolls(parseInt((e.target as HTMLSelectElement).value, 10))}
+            onChange={(e) => setMaxScrolls(parseInt((e.target as HTMLInputElement).value, 10))}
           />
         </div>
 

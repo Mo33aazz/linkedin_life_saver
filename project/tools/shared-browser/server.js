@@ -447,6 +447,20 @@ async function handleAction(action, payload) {
             return { ok: true };
         });
       }
+      case 'evaluateOnServiceWorker': {
+        const { expression } = payload;
+        return enqueue('global', async () => {
+            logger.info(`Action: evaluateOnServiceWorker`, { type: 'action:evaluateOnServiceWorker' });
+            let serviceWorker = browserContext.serviceWorkers()[0];
+            if (!serviceWorker) {
+                await new Promise(r => setTimeout(r, 500)); // Wait for SW to register
+                serviceWorker = browserContext.serviceWorkers()[0];
+            }
+            if (!serviceWorker) throw new Error('Service worker not found');
+            const result = await serviceWorker.evaluate(expression);
+            return { ok: true, result };
+        });
+      }
       default:
         throw new Error(`Unknown action ${action}`);
     }
