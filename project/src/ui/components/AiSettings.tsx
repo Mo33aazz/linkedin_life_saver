@@ -4,6 +4,7 @@ import { OpenRouterModel, AIConfig } from '../../shared/types';
 export const AiSettings = () => {
   // UI state
   const [saveMessage, setSaveMessage] = useState('');
+  const [isAdvancedExpanded, setIsAdvancedExpanded] = useState(false);
 
   // AI settings state
   const [apiKey, setApiKey] = useState('');
@@ -153,32 +154,6 @@ export const AiSettings = () => {
       </div>
 
       <div className="form-group">
-        <label htmlFor="model">Model</label>
-        <select
-          id="model"
-          name="model"
-          value={selectedModel}
-          onChange={(e) =>
-            setSelectedModel((e.target as HTMLSelectElement).value)
-          }
-          disabled={isLoading || models.length === 0}
-        >
-          <option value="" disabled>
-            {isLoading
-              ? 'Fetching models...'
-              : models.length > 0
-              ? 'Select a model...'
-              : 'Enter API key and test'}
-          </option>
-          {models.map((model) => (
-            <option key={model.id} value={model.id}>
-              {model.name}
-            </option>
-          ))}
-        </select>
-      </div>
-
-      <div className="form-group">
         <label htmlFor="replyPrompt">Custom Reply Prompt</label>
         <textarea
           id="replyPrompt"
@@ -216,50 +191,94 @@ export const AiSettings = () => {
         />
       </div>
 
-      <div className="form-group">
-        <label htmlFor="temperature">
-          Temperature: <span>{temperature.toFixed(1)}</span>
-        </label>
-        <input
-          type="range"
-          id="temperature"
-          name="temperature"
-          min="0"
-          max="1.5"
-          step="0.1"
-          value={temperature}
-          onInput={(e) =>
-            setTemperature(parseFloat((e.target as HTMLInputElement).value))
-          }
-        />
-      </div>
+      {/* Advanced Settings - Collapsible */}
+      <div className="collapsible-section">
+        <button
+          type="button"
+          className="collapsible-header"
+          onClick={() => setIsAdvancedExpanded(!isAdvancedExpanded)}
+        >
+          <span>Advanced Settings</span>
+          <span className={`collapse-icon ${isAdvancedExpanded ? 'expanded' : ''}`}>
+            ▼
+          </span>
+        </button>
+        
+        {isAdvancedExpanded && (
+          <div className="collapsible-content">
+            <div className="form-group">
+              <label htmlFor="model">Model</label>
+              <select
+                id="model"
+                name="model"
+                value={selectedModel}
+                onChange={(e) =>
+                  setSelectedModel((e.target as HTMLSelectElement).value)
+                }
+                disabled={isLoading || models.length === 0}
+              >
+                <option value="" disabled>
+                  {isLoading
+                    ? 'Fetching models...'
+                    : models.length > 0
+                    ? 'Select a model...'
+                    : 'Enter API key and test'}
+                </option>
+                {models.map((model) => (
+                  <option key={model.id} value={model.id}>
+                    {model.name}
+                  </option>
+                ))}
+              </select>
+            </div>
 
-      <div className="form-group">
-        <label htmlFor="topP">
-          Top P: <span>{topP.toFixed(1)}</span>
-        </label>
-        <input
-          type="range"
-          id="topP"
-          name="topP"
-          min="0"
-          max="1"
-          step="0.1"
-          value={topP}
-          onInput={(e) => setTopP(parseFloat((e.target as HTMLInputElement).value))}
-        />
-      </div>
+            <div className="form-group">
+              <label htmlFor="temperature">
+                Temperature: <span>{temperature.toFixed(1)}</span>
+              </label>
+              <input
+                type="range"
+                id="temperature"
+                name="temperature"
+                min="0"
+                max="1.5"
+                step="0.1"
+                value={temperature}
+                onInput={(e) =>
+                  setTemperature(parseFloat((e.target as HTMLInputElement).value))
+                }
+              />
+            </div>
 
-      <div className="form-group">
-        <label htmlFor="maxTokens">Max Tokens</label>
-        <input type="number" id="maxTokens" name="maxTokens" min="1" value="220" />
-      </div>
+            <div className="form-group">
+              <label htmlFor="topP">
+                Top P: <span>{topP.toFixed(1)}</span>
+              </label>
+              <input
+                type="range"
+                id="topP"
+                name="topP"
+                min="0"
+                max="1"
+                step="0.1"
+                value={topP}
+                onInput={(e) => setTopP(parseFloat((e.target as HTMLInputElement).value))}
+              />
+            </div>
 
-      <div className="form-group">
-        <label>
-          <input type="checkbox" name="stream" checked />
-          Stream Tokens
-        </label>
+            <div className="form-group">
+              <label htmlFor="maxTokens">Max Tokens</label>
+              <input type="number" id="maxTokens" name="maxTokens" min="1" value="220" />
+            </div>
+
+            <div className="form-group">
+              <label>
+                <input type="checkbox" name="stream" checked />
+                Stream Tokens
+              </label>
+            </div>
+          </div>
+        )}
       </div>
 
       <div className="form-group">

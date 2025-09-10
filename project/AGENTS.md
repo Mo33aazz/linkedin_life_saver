@@ -42,13 +42,10 @@
 - Secrets: never commit secrets; use `.env` (dotenv is available). `.gitignore` excludes common outputs.
 - Browser context: target Chrome extension APIs (`@types/chrome`). Keep content scripts efficient; avoid blocking.
 
-## Agent-Specific Instructions
-[byterover-mcp]
-- Always use byterover-retrieve-knowledge to gather related context before tasks.
-- Always use byterover-store-knowledge to persist critical information after successful tasks.
+
 
 ## Agent Workflow
-- Diagnose: retrieve context first (use `byterover-retrieve-knowledge`).
+- Diagnose: retrieve context first. 
 - Think: state assumptions, constraints, and desired outcome.
 - Plan: outline steps (use the plan tool) before executing.
 - Do: split into clear, small steps; patch code with `apply_patch` and run minimal checks per step.

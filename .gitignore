@@ -1,0 +1,4 @@
+project/tools/shared-browser/tools/shared-browser/user-data/*
+project/tools/shared-browser/logs/*
+project/prompts/
+project/artifacts/lints/

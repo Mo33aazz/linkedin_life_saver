@@ -1,5 +1,6 @@
 // Shared Playwright Chromium server with HTTP control + SSE logs
 // Usage: node tools/shared-browser/server.js [--port 9223]
+// Version: 2.1 (Patched for newPage race condition)
 
 import http from 'http';
 import { parse as parseUrl } from 'url';
@@ -43,7 +44,7 @@ const logger = Object.keys(LOG_LEVELS).reduce((acc, level) => {
     try {
       writeFileSync(logFile, JSON.stringify(logEntry) + '\n', { flag: 'a' });
     } catch (e) {
-        console.error("Failed to write to log file:", e);
+      console.error("Failed to write to log file:", e);
     }
   };
   return acc;
@@ -109,28 +110,34 @@ function broadcast(event) {
 let browserContext; // Persistent context
 const pages = new Map(); // id -> Page
 let nextPageId = 1;
+// **FIX**: Using a FIFO array for resolvers is more robust than a Map with object keys.
+const newPagePromiseResolvers = [];
 const queues = new Map(); // pageId -> Promise
 const globalQueue = { p: Promise.resolve() };
 
+// **FIXED**: Enqueue function now handles page closures to prevent hangs.
 function enqueue(pageId, task) {
-  if (pageId === 'global') {
-    const n = globalQueue.p.then(task).catch((e) => {
-      // Log and rethrow so callers see failures instead of ok:true with undefined
-      logger.error(`Global queue error: ${String(e)}`, { type: 'queue', scope: 'global' });
-      throw e;
-    });
-    globalQueue.p = n;
-    return n;
+  const queueKey = pageId || 'global';
+  const queue = queueKey === 'global' ? globalQueue : (queues.get(queueKey) || { p: Promise.resolve() });
+
+  const next = queue.p.then(() => {
+    // If we're operating on a page, check if it's still open before running the task.
+    if (pageId && !pages.has(String(pageId))) {
+      throw new Error(`Page ${pageId} was closed before the action could run.`);
+    }
+    return task();
+  }).catch((e) => {
+    const scope = pageId ? 'page' : 'global';
+    logger.error(`${scope.charAt(0).toUpperCase() + scope.slice(1)} queue error: ${String(e)}`, { type: 'queue', scope, pageId });
+    throw e; // Re-throw so the API caller sees the failure.
+  });
+
+  if (queueKey === 'global') {
+    globalQueue.p = next;
+  } else {
+    queues.set(queueKey, { p: next });
   }
-  const prev = queues.get(pageId) || Promise.resolve();
-  const next = prev
-    .catch(() => {})
-    .then(task)
-    .catch((e) => {
-      logger.error(`Page queue error: ${String(e)}`, { type: 'queue', scope: 'page', pageId });
-      throw e;
-    });
-  queues.set(pageId, next);
+  
   return next;
 }
 
@@ -219,12 +226,15 @@ async function startBrowser() {
   browserContext.on('request', (request) => {
     const pageIdSafe = findPageIdByFrame(request.frame());
     
-    // **FIX**: Safely summarize postData to prevent encoding errors and verbosity
-    let postDataSummary = request.postData();
-    if (postDataSummary) {
-        postDataSummary = postDataSummary.length > 250
-            ? `${postDataSummary.substring(0, 250)}... (truncated)`
-            : postDataSummary;
+    // **IMPROVED**: Safely summarize postData, handling binary data.
+    let postDataSummary = null;
+    const postData = request.postData();
+    if (postData) {
+        postDataSummary = postData.length > 250
+            ? `${postData.substring(0, 250)}... (truncated)`
+            : postData;
+    } else if (request.postDataBuffer()) {
+        postDataSummary = `<Binary data: ${request.postDataBuffer().length} bytes>`;
     }
 
     const context = {
@@ -232,7 +242,7 @@ async function startBrowser() {
         method: request.method(),
         url: request.url(),
         resourceType: request.resourceType(),
-        hasPostData: !!request.postData(),
+        hasPostData: !!(postData || request.postDataBuffer()),
         postDataSummary,
         pageId: pageIdSafe,
     };
@@ -282,19 +292,32 @@ function attachPage(page) {
 
   const pageId = String(nextPageId++);
   pages.set(pageId, page);
+  
+  // **FIXED**: Replaced empty catch block with proper logging.
   try {
     page.setDefaultTimeout(DEFAULT_TIMEOUT_MS);
     page.setDefaultNavigationTimeout(DEFAULT_TIMEOUT_MS);
-  } catch {}
+  } catch (e) {
+    logger.error(`Failed to set default timeouts on page ${pageId}: ${String(e)}`, { pageId, error: String(e) });
+  }
+  
   const context = { type: 'page:open', pageId, url: page.url() };
   logger.info(`Page opened: ${pageId} (${page.url()})`, context);
   broadcast(context);
+
+  // **FIXED**: Resolve a pending newPage promise using a FIFO queue.
+  const promiseControls = newPagePromiseResolvers.shift();
+  if (promiseControls) {
+    promiseControls.resolve(pageId);
+  }
 
   page.on('close', () => {
     const context = { type: 'page:close', pageId };
     logger.info(`Page closed: ${pageId}`, context);
     broadcast(context);
     pages.delete(pageId);
+    
+    // **FIXED**: Clear the action queue for the closed page to prevent hangs.
     queues.delete(pageId);
   });
 
@@ -304,11 +327,7 @@ function attachPage(page) {
     const suppressInvalid = (process.env.SHARED_BROWSER_SUPPRESS_INVALID_EXT_ERRORS || '1').toLowerCase();
     const shouldSuppress = suppressInvalid === '1' || suppressInvalid === 'true' || suppressInvalid === 'yes';
 
-    // Chrome sometimes emits a flood of generic console errors
-    // when pages attempt to access chrome-extension://invalid/.
-    // These are not related to our extension and add a lot of noise.
     if (shouldSuppress && text === 'Failed to load resource: net::ERR_FAILED') {
-      // Downgrade to debug and do not broadcast to SSE/JSON log.
       logger.debug(`[Console/${severity}] ${text} (suppressed)`, { type: 'page:console:suppressed', pageId, text, severity });
       return;
     }
@@ -339,25 +358,23 @@ function json(res, status, body) {
   res.end(JSON.stringify(body));
 }
 
-// (The rest of the file: handleAction, listPages, handleRequest, main, etc. remains largely the same,
-// just replacing `logLine` calls with the new `logger` methods.)
-
 async function handleAction(action, payload) {
-    // ... (This function's logic is sound, we just need to update logging)
-    const pageIdStr = payload.pageId ? String(payload.pageId) : null;
-    
     switch (action) {
       case 'newPage':
-        return enqueue('global', async () => {
-          const page = await browserContext.newPage();
-          // The 'page' event should handle attachment, but we find the ID to return it.
-          const id = await new Promise(resolve => {
-              const check = () => {
-                  const foundId = findPageId(page);
-                  if (foundId) resolve(foundId);
-                  else setTimeout(check, 50);
-              };
-              check();
+        return enqueue(null, async () => {
+          logger.info(`Action: newPage`, { type: 'action:newPage' });
+          // **FIXED**: Replaced Map-based promise with a more robust FIFO queue approach
+          // to prevent race conditions and timeouts.
+          const id = await new Promise(async (resolve, reject) => {
+              newPagePromiseResolvers.push({ resolve, reject });
+              try {
+                // Trigger the 'page' event which will be handled by attachPage
+                await browserContext.newPage();
+              } catch(e) {
+                // If newPage fails, clean up the resolver and reject the promise
+                newPagePromiseResolvers.pop(); 
+                reject(e);
+              }
           });
           return { pageId: id };
         });
@@ -373,7 +390,6 @@ async function handleAction(action, payload) {
         });
       }
 
-      // ... Example conversion for 'click'
       case 'click': {
         const { pageId, selector, options } = payload;
         const page = pages.get(String(pageId));
@@ -385,7 +401,6 @@ async function handleAction(action, payload) {
         });
       }
       
-      // ... and so on for all other actions
       case 'waitForSelector': {
         const { pageId, selector, state = 'visible' } = payload;
         const page = pages.get(String(pageId));
@@ -422,6 +437,8 @@ async function handleAction(action, payload) {
         if (!page) throw new Error(`Unknown pageId ${pageId}`);
         return enqueue(String(pageId), async () => {
             logger.info(`Action: evaluate expression`, { type: 'action:evaluate', pageId, expression });
+            // SECURITY WARNING: This is equivalent to eval(). Do not expose this server to untrusted clients
+            // as it creates a Remote Code Execution (RCE) vulnerability.
             const evaluator = new Function('arg', `return (async (arg) => { ${expression} })(arg);`);
             const result = await page.evaluate(evaluator, arg);
             return { ok: true, result };
@@ -449,14 +466,31 @@ async function handleAction(action, payload) {
       }
       case 'evaluateOnServiceWorker': {
         const { expression } = payload;
-        return enqueue('global', async () => {
+        return enqueue(null, async () => {
             logger.info(`Action: evaluateOnServiceWorker`, { type: 'action:evaluateOnServiceWorker' });
-            let serviceWorker = browserContext.serviceWorkers()[0];
+            const pickExtensionSW = () => {
+              const workers = browserContext.serviceWorkers();
+              const extWorkers = workers.filter(w => {
+                try {
+                  const url = w.url();
+                  return url && url.startsWith('chrome-extension://') && /\/background\.js(\?|#|$)/.test(url);
+                } catch { return false; }
+              });
+              if (extWorkers.length) return extWorkers[0];
+              const anyExt = workers.find(w => {
+                try { return w.url().startsWith('chrome-extension://'); } catch { return false; }
+              });
+              return anyExt || workers[0];
+            };
+
+            let serviceWorker = pickExtensionSW();
             if (!serviceWorker) {
-                await new Promise(r => setTimeout(r, 500)); // Wait for SW to register
-                serviceWorker = browserContext.serviceWorkers()[0];
+              await new Promise(r => setTimeout(r, 700)); // Wait for SW to register
+              serviceWorker = pickExtensionSW();
             }
             if (!serviceWorker) throw new Error('Service worker not found');
+            const url = (() => { try { return serviceWorker.url(); } catch { return 'unknown'; } })();
+            logger.debug(`Evaluating on SW: ${url}`, { type: 'action:evaluateOnServiceWorker:target', url });
             const result = await serviceWorker.evaluate(expression);
             return { ok: true, result };
         });
@@ -592,9 +626,18 @@ async function handleAction(action, payload) {
   
     async function gracefulExit(signal) {
       logger.info(`${signal} received, closing browser and server.`, { type: 'shutdown' });
-      try { await browserContext?.close(); } catch {}
-      try { server.close?.(); } catch {}
-      process.exit(0);
+      try {
+        if (browserContext) {
+          await browserContext.close();
+        }
+      } catch (e) {
+        logger.error(`Error closing browser: ${String(e)}`, { type: 'shutdown' });
+      } finally {
+        server.close(() => {
+          logger.info('Server closed.', { type: 'shutdown' });
+          process.exit(0);
+        });
+      }
     }
   
     process.on('SIGINT', () => void gracefulExit('SIGINT'));
@@ -605,3 +648,4 @@ async function handleAction(action, payload) {
     logger.fatal(String(e), { type: 'startup' });
     process.exit(1);
   });
+

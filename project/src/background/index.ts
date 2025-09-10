@@ -178,6 +178,21 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
     sendResponse({ status: 'success', logs });
     return true;
   }
+
+  if (message.type === 'EXPORT_JSON') {
+    logger.debug('Received EXPORT_JSON request');
+    // Get the current post URN from the sender tab URL
+    const postUrnRegex = /(urn:li:activity:\d+)/;
+    const match = sender.tab?.url?.match(postUrnRegex);
+    const postUrn = match ? match[1] : null;
+    const state = postUrn ? getPostState(postUrn) : null;
+    // Expose for E2E verification without relying on downloads
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    (self as any).__E2E_LAST_EXPORTED_STATE = state;
+    sendResponse({ status: 'success', data: state });
+    return true;
+  }
+
   if (message.type === 'ping') {
     logger.info('Received ping from UI, sending pong back.');
     sendResponse({ payload: 'pong' });
