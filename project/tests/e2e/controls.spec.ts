@@ -1,5 +1,5 @@
 import { test, expect } from '@playwright/test';
-import type { PostState, LogEntry, UIState } from '../../src/shared/types';
+import type { PostState, LogEntry, UIState, Comment } from '../../src/shared/types';
 
 // --- START: Reusable E2E helpers for interacting with the shared browser server ---
 
@@ -280,7 +280,7 @@ test.describe('Controls Component Post-Pipeline', () => {
     expect(exportedState.comments).toHaveLength(MOCK_POST_STATE.comments.length);
     
     // Validate each comment's structure and required fields
-    exportedState.comments.forEach((comment: any, index: number) => {
+    exportedState.comments.forEach((comment: Comment, index: number) => {
       const expectedComment = MOCK_POST_STATE.comments[index];
       
       // Check required string fields

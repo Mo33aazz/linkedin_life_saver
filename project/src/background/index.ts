@@ -462,13 +462,13 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
     (async () => {
       try {
         await configInitializationPromise;
-        const { postUrn } = message.payload as { postUrn: string };
+        const { postUrn, maxReplies, maxComments } = message.payload as { postUrn: string; maxReplies?: number; maxComments?: number };
         const tabId = sender.tab?.id;
         if (!tabId) {
           throw new Error('Could not get tab ID to start pipeline.');
         }
-        logger.info('Received START_PIPELINE message', { postUrn, tabId });
-        await startPipeline(postUrn, tabId);
+        logger.info('Received START_PIPELINE message', { postUrn, tabId, maxReplies, maxComments });
+        await startPipeline(postUrn, tabId, maxReplies, maxComments);
         sendResponse({ status: 'success' });
       } catch (error) {
         logger.error('Failed to start pipeline', error, {
@@ -611,7 +611,7 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
               await delay(300);
 
               const pick = (el: Element | null, sel: string): Element | null => (el ? (el as Element).querySelector(sel) : null);
-              let nodes: HTMLElement[] = Array.from(document.querySelectorAll<HTMLElement>('article.comments-comment-entity'));
+              let nodes: HTMLElement[] = Array.from(document.querySelectorAll<HTMLElement>('article.comments-comment-entity:not(.comments-comment-entity--reply)'));
               if (nodes.length === 0) {
                 nodes = Array.from(document.querySelectorAll<HTMLElement>('[data-id^="urn:li:comment:"]'));
               }

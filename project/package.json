@@ -13,6 +13,7 @@
     "test": "playwright test"
   },
   "dependencies": {
+    "jsdom": "^26.1.0",
     "preact": "^10.22.1",
     "zustand": "^5.0.8"
   },

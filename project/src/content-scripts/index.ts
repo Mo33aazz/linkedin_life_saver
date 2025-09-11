@@ -125,7 +125,9 @@ chrome.runtime.onMessage.addListener((message, _sender, sendResponse) => {
     (async () => {
       try {
         const mod = await import('./domInteractor');
-        const disableScroll = Boolean((message.payload as { noScroll?: boolean })?.noScroll);
+        const payload = message.payload as { noScroll?: boolean; maxComments?: number } || {};
+        const disableScroll = Boolean(payload.noScroll);
+        const maxComments = payload.maxComments;
         if (!disableScroll) {
           // Quick scroll to trigger lazy-loading without long waits
           const delay = (ms: number) => new Promise(r => setTimeout(r, ms));
@@ -136,7 +138,7 @@ chrome.runtime.onMessage.addListener((message, _sender, sendResponse) => {
           window.scrollTo(0, 0);
           await delay(200);
         }
-        const postStateData = mod.capturePostStateFromDOM();
+        const postStateData = mod.capturePostStateFromDOM(maxComments);
         sendResponse({ status: 'success', payload: postStateData });
       } catch (error) {
         sendResponse({ status: 'error', message: (error as Error).message });

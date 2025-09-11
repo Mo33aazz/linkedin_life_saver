@@ -145,8 +145,18 @@ export class OpenRouterClient {
         body: JSON.stringify(payload),
       });
 
-      const jsonResponse =
-        (await response.json()) as OpenRouterChatCompletionResponse;
+      const jsonResponse = (await response.json()) as OpenRouterChatCompletionResponse & {
+        error?: { message: string };
+      };
+
+      // Handle cases where the API returns a 200 OK with an error payload
+      if (jsonResponse.error) {
+        const error = new Error(
+          `OpenRouter API returned an error: ${jsonResponse.error.message}`
+        );
+        logger.error(error.message, error, { response: jsonResponse });
+        throw error;
+      }
 
       if (
         !jsonResponse.choices ||

@@ -24,6 +24,7 @@ export interface ParsedComment {
   timestamp: string;
   type: CommentType;
   threadId: string;
+  hasUserReply?: boolean; // Indicates if this comment already has a reply from the target user
 }
 
 /**
@@ -115,6 +116,7 @@ export interface AIConfig {
   maxReplies?: number;
   minDelay?: number;
   maxDelay?: number;
+  requireConnectionForAI?: boolean;
   reply?: {
     customPrompt?: string;
     // Used as a direct reply when the commenter is not connected (no LLM call)

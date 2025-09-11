@@ -1,6 +1,23 @@
 import { test, expect } from '@playwright/test';
 import type { PostState, UIState } from '../../src/shared/types';
 
+// Test result types
+interface StepResult {
+  commentId: string | null;
+  completeSteps?: number;
+  failedSteps?: number;
+}
+
+interface StepStatusResult {
+  commentId: string | null;
+  steps?: {
+    queued: string;
+    liked: string;
+    replied: string;
+    dmSent: string;
+  };
+}
+
 // --- START: Reusable E2E helpers for interacting with the shared browser server ---
 
 const SERVER_PORT = Number(process.env.SHARED_BROWSER_PORT || 9333);
@@ -454,11 +471,11 @@ test.describe('Pipeline Progress Component', () => {
     });
 
     // First comment should have all 4 steps complete (Queued, Liked, Replied, DM Sent)
-    const comment1Result = completedSteps.result.find((r: any) => r.commentId === 'comment1');
+    const comment1Result = completedSteps.result.find((r: StepResult) => r.commentId === 'comment1');
     expect(comment1Result?.completeSteps).toBe(4);
 
     // Second comment should have 3 steps complete (Queued, Liked, Replied - DM was skipped)
-    const comment2Result = completedSteps.result.find((r: any) => r.commentId === 'comment2');
+    const comment2Result = completedSteps.result.find((r: StepResult) => r.commentId === 'comment2');
     expect(comment2Result?.completeSteps).toBe(3);
   });
 
@@ -507,7 +524,7 @@ test.describe('Pipeline Progress Component', () => {
 
     // Both comments should have failed steps
     expect(failedSteps.result.length).toBe(2);
-    expect(failedSteps.result.some((r: any) => r.failedSteps > 0)).toBe(true);
+    expect(failedSteps.result.some((r: StepResult) => r.failedSteps && r.failedSteps > 0)).toBe(true);
   });
 
   test('should show correct step indicators for different action statuses', async () => {
@@ -616,21 +633,21 @@ test.describe('Pipeline Progress Component', () => {
     });
 
     // Comment1: Queued (complete), Liked (complete), Replied (complete), DM Sent (active)
-    const comment1Steps = stepStatuses.result.find((r: any) => r.commentId === 'comment1')?.steps;
+    const comment1Steps = stepStatuses.result.find((r: StepStatusResult) => r.commentId === 'comment1')?.steps;
     expect(comment1Steps?.queued).toContain('step-complete');
     expect(comment1Steps?.liked).toContain('step-complete');
     expect(comment1Steps?.replied).toContain('step-complete');
     expect(comment1Steps?.dmSent).toContain('step-active');
 
     // Comment2: Queued (complete), Liked (complete), Replied (active), DM Sent (pending)
-    const comment2Steps = stepStatuses.result.find((r: any) => r.commentId === 'comment2')?.steps;
+    const comment2Steps = stepStatuses.result.find((r: StepStatusResult) => r.commentId === 'comment2')?.steps;
     expect(comment2Steps?.queued).toContain('step-complete');
     expect(comment2Steps?.liked).toContain('step-complete');
     expect(comment2Steps?.replied).toContain('step-active');
     expect(comment2Steps?.dmSent).toContain('step-pending');
 
     // Comment3: Queued (complete), Liked (active), Replied (pending), DM Sent (pending)
-    const comment3Steps = stepStatuses.result.find((r: any) => r.commentId === 'comment3')?.steps;
+    const comment3Steps = stepStatuses.result.find((r: StepStatusResult) => r.commentId === 'comment3')?.steps;
     expect(comment3Steps?.queued).toContain('step-complete');
     expect(comment3Steps?.liked).toContain('step-active');
     expect(comment3Steps?.replied).toContain('step-pending');
@@ -673,14 +690,14 @@ test.describe('Pipeline Progress Component', () => {
     });
 
     // Comment1: Should have failed reply step
-    const comment1Steps = failedStepDetails.result.find((r: any) => r.commentId === 'comment1')?.steps;
+    const comment1Steps = failedStepDetails.result.find((r: StepStatusResult) => r.commentId === 'comment1')?.steps;
     expect(comment1Steps?.queued).toContain('step-complete');
     expect(comment1Steps?.liked).toContain('step-complete');
     expect(comment1Steps?.replied).toContain('step-failed');
     expect(comment1Steps?.dmSent).toContain('step-pending');
 
     // Comment2: Should have failed like step
-    const comment2Steps = failedStepDetails.result.find((r: any) => r.commentId === 'comment2')?.steps;
+    const comment2Steps = failedStepDetails.result.find((r: StepStatusResult) => r.commentId === 'comment2')?.steps;
     expect(comment2Steps?.queued).toContain('step-complete');
     expect(comment2Steps?.liked).toContain('step-failed');
     expect(comment2Steps?.replied).toContain('step-pending');

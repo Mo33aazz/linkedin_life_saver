@@ -52,17 +52,22 @@ export const autoScrollPage = async (): Promise<void> => {
 const SELECTORS = {
   signedInUser: {
     profileLink: 'a.profile-card-profile-link',
+    sidebarContainer: '.scaffold-layout__sticky',
+    profileCard: '.profile-card',
   },
   comment: {
-    container: 'article.comments-comment-entity',
+    container: 'article.comments-comment-entity:not(.comments-comment-entity--reply)',
+    replyContainer: 'article.comments-comment-entity--reply',
+    allComments: 'article.comments-comment-entity',
     ownerProfileLink: 'a.comments-comment-meta__image-link',
+    replyAuthorMeta: '.comments-comment-meta__actor',
     textContent: 'span.comments-comment-item__main-content',
     timestamp: 'time',
     repliesContainer: 'div.comments-comment-item__replies-container',
     likeButton: 'button.reactions-react-button[aria-label*="React Like"]',
-    replyButton: 'button.comments-comment-social-bar__reply-action-button',
-    replyEditor: 'div.ql-editor[contenteditable="true"]',
-    replySubmitButton: 'button.comments-comment-box__submit-button',
+    replyButton: 'button.comments-comment-social-bar__reply-action-button--cr[aria-label*="Reply to"]',
+    replyEditor: 'div.comments-comment-texteditor .ql-editor[contenteditable="true"]',
+    replySubmitButton: 'button.comments-comment-box__submit-button--cr',
   },
   dm: {
     messageInput: 'div.msg-form__contenteditable[contenteditable="true"]',
@@ -71,10 +76,56 @@ const SELECTORS = {
 };
 
 /**
+ * Extracts the username from the sidebar profile card following the specified pattern.
+ * Looks for href attributes that match "/in/{{username}}/" pattern.
+ * @returns The username string, or null if not found.
+ */
+export const extractUsernameFromSidebar = (): string | null => {
+  // Step 1: Locate the sidebar container
+  const sidebarContainer = document.querySelector(SELECTORS.signedInUser.sidebarContainer);
+  if (!sidebarContainer) {
+    console.warn('Could not find sidebar container with class scaffold-layout__sticky.');
+    return null;
+  }
+
+  // Step 2: Find the profile card within the sidebar
+  const profileCard = sidebarContainer.querySelector(SELECTORS.signedInUser.profileCard);
+  if (!profileCard) {
+    console.warn('Could not find profile card within sidebar container.');
+    return null;
+  }
+
+  // Step 3: Find anchor tags with href pattern "/in/{{username}}/"
+  const profileLinks = profileCard.querySelectorAll<HTMLAnchorElement>('a[href*="/in/"]');
+  
+  for (const link of profileLinks) {
+    const href = link.getAttribute('href');
+    if (href) {
+      // Extract username from pattern /in/{{username}}/
+      const match = href.match(/\/in\/([^/]+)\/?/);
+      if (match && match[1]) {
+        console.log(`Extracted username from sidebar: ${match[1]}`);
+        return match[1];
+      }
+    }
+  }
+
+  console.warn('Could not extract username from sidebar profile card.');
+  return null;
+};
+
+/**
  * Parses the DOM to find the profile URL of the currently signed-in user.
  * @returns The full profile URL as a string, or null if not found.
  */
 export const getSignedInUserProfileUrl = (): string | null => {
+  // First try the new method to extract username from sidebar
+  const username = extractUsernameFromSidebar();
+  if (username) {
+    return `https://www.linkedin.com/in/${username}/`;
+  }
+
+  // Fallback to the original method
   const profileLinkElement = document.querySelector<HTMLAnchorElement>(
     SELECTORS.signedInUser.profileLink
   );
@@ -99,21 +150,103 @@ export const getSignedInUserProfileUrl = (): string | null => {
 };
 
 /**
- * Extracts all comments from the page and parses them into a structured format.
+ * Checks if a comment was authored by the current user by comparing usernames.
+ * @param commentOwnerUrl The profile URL of the comment author
+ * @param currentUserUrl The profile URL of the current user
+ * @returns True if the comment was authored by the current user
+ */
+export const isCommentByCurrentUser = (commentOwnerUrl: string, currentUserUrl: string): boolean => {
+  if (!commentOwnerUrl || !currentUserUrl) {
+    return false;
+  }
+
+  // Extract usernames from both URLs
+  const extractUsername = (url: string): string | null => {
+    const match = url.match(/\/in\/([^/]+)\/?/);
+    return match ? match[1] : null;
+  };
+
+  const commentUsername = extractUsername(commentOwnerUrl);
+  const currentUsername = extractUsername(currentUserUrl);
+
+  return commentUsername !== null && currentUsername !== null && commentUsername === currentUsername;
+};
+
+
+
+
+
+/**
+ * Extracts comments from the page and parses them into a structured format.
+ * Implements critical checks: CHECK A (user already replied in thread) and CHECK B (data-processed attribute).
+ * Only processes top-level comments that haven't been handled before.
+ * @param maxComments Maximum number of comments to extract (default: 10)
  * @returns An array of ParsedComment objects.
  */
-export const extractComments = (): ParsedComment[] => {
-  const commentElements = document.querySelectorAll<HTMLElement>(
+export const extractComments = (maxComments: number = 10): ParsedComment[] => {
+  // Get only top-level comments (not replies)
+  const topLevelCommentElements = document.querySelectorAll<HTMLElement>(
     SELECTORS.comment.container
   );
   const comments: ParsedComment[] = [];
+  let totalTopLevelCount = 0;
+  let processedCount = 0;
+  
+  // Get the target user's profile URL for filtering
+  const targetUserProfileUrl = getSignedInUserProfileUrl();
 
-  console.log(`Found ${commentElements.length} potential comment elements.`);
+  console.log(`Found ${topLevelCommentElements.length} top-level comment elements. Limiting to ${maxComments} comments.`);
 
-  commentElements.forEach((commentElement, index) => {
+  for (let index = 0; index < topLevelCommentElements.length && processedCount < maxComments; index++) {
+    const commentElement = topLevelCommentElements[index];
+    
+    // This comment is included in the Total Top-Level Comments count, even if it's skipped.
+    totalTopLevelCount++;
+    
+    // ✅ CHECK A: Have the user processed this comment before in this session? (CRITICAL CHECK)
+    // Look for replies within this top-level comment thread
+    const replyElements = commentElement.querySelectorAll<HTMLElement>('article.comments-comment-entity--reply');
+    let userAlreadyReplied = false;
+    
+    if (targetUserProfileUrl) {
+      for (const replyElement of replyElements) {
+        const metaActor = replyElement.querySelector(SELECTORS.comment.replyAuthorMeta);
+        const replyAuthorLink = metaActor?.querySelector<HTMLAnchorElement>('a[href*="/in/"]');
+        
+        if (replyAuthorLink) {
+          let replyAuthorUrl = replyAuthorLink.getAttribute('href') || '';
+          // Ensure the URL is absolute
+          if (replyAuthorUrl && !replyAuthorUrl.startsWith('https://www.linkedin.com')) {
+            replyAuthorUrl = `https://www.linkedin.com${replyAuthorUrl}`;
+          }
+          
+          if (isCommentByCurrentUser(replyAuthorUrl, targetUserProfileUrl)) {
+            console.log(`CHECK A: Skipping comment #${totalTopLevelCount} - user has already replied in this thread`);
+            userAlreadyReplied = true;
+            break;
+          }
+        }
+      }
+    }
+    
+    if (userAlreadyReplied) {
+      continue; // Skip this entire top-level comment
+    }
+    
+    // ✅ CHECK B: Have we already processed this comment?
+    const isAlreadyProcessed = commentElement.getAttribute('data-processed') === 'true';
+    if (isAlreadyProcessed) {
+      console.log(`CHECK B: Skipping comment #${totalTopLevelCount} - already processed (data-processed="true")`);
+      continue; // Skip this comment
+    }
+    
+    const type = 'top-level'; // We only process top-level comments now
+
+    // Find the owner profile link for top-level comments
     const ownerLinkElement = commentElement.querySelector<HTMLAnchorElement>(
       SELECTORS.comment.ownerProfileLink
     );
+
     const textElement = commentElement.querySelector<HTMLElement>(
       SELECTORS.comment.textContent
     );
@@ -123,20 +256,8 @@ export const extractComments = (): ParsedComment[] => {
 
     const commentId = commentElement.getAttribute('data-id') || '';
 
-    const isReplyContainer = commentElement.parentElement?.closest(
-      SELECTORS.comment.repliesContainer
-    );
-    const type = isReplyContainer ? 'reply' : 'top-level';
-
-    let threadId = '';
-    if (type === 'reply' && isReplyContainer) {
-      const topLevelComment = isReplyContainer.closest(
-        SELECTORS.comment.container
-      );
-      threadId = topLevelComment?.getAttribute('data-id') || '';
-    } else {
-      threadId = commentId;
-    }
+    // For top-level comments, thread ID is the same as comment ID
+    const threadId = commentId;
 
     const ownerRelativeUrl = ownerLinkElement?.getAttribute('href');
     let ownerProfileUrl = '';
@@ -159,20 +280,23 @@ export const extractComments = (): ParsedComment[] => {
         timestamp,
         type,
         threadId,
+        hasUserReply: false, // Not needed since we handle this in CHECK A
       });
+      processedCount++; // Only increment when we actually process a comment
     } else {
-      console.warn(`Skipping comment #${index + 1} due to missing data.`, {
+      console.warn(`Skipping comment #${totalTopLevelCount} due to missing data.`, {
         hasCommentId: !!commentId,
         hasOwnerUrl: !!ownerProfileUrl,
         hasText: !!text,
         hasTimestamp: !!timestamp,
         hasThreadId: !!threadId,
+        type,
         element: commentElement,
       });
     }
-  });
+  }
 
-  console.log(`Successfully extracted ${comments.length} comments.`);
+  console.log(`Successfully extracted ${comments.length} comments (processed ${processedCount}) from ${totalTopLevelCount} total top-level comments encountered.`);
   return comments;
 };
 
@@ -331,11 +455,11 @@ export const replyToComment = async (
   // Clear any placeholder text.
   editor.innerHTML = '';
 
-  for (const char of replyText) {
-    editor.innerHTML += char;
-    // Use a random delay to simulate human typing speed
-    await delay(50 + Math.random() * 50);
-  }
+  // Set the text content directly to avoid character-by-character formatting issues
+  editor.textContent = replyText;
+  
+  // Simulate typing delay for more natural behavior
+  await delay(replyText.length * 30 + Math.random() * 200);
 
   // Dispatch an input event to ensure LinkedIn's framework recognizes the change
   editor.dispatchEvent(new Event('input', { bubbles: true, cancelable: true }));
@@ -376,10 +500,11 @@ export const sendDm = async (dmText: string): Promise<boolean> => {
   editor.focus();
   editor.innerHTML = ''; // Clear any placeholder or draft text.
 
-  for (const char of dmText) {
-    editor.innerHTML += char;
-    await delay(40 + Math.random() * 60); // Human-like typing delay
-  }
+  // Set the text content directly to avoid character-by-character formatting issues
+  editor.textContent = dmText;
+  
+  // Simulate typing delay for more natural behavior
+  await delay(dmText.length * 25 + Math.random() * 150);
 
   editor.dispatchEvent(new Event('input', { bubbles: true, cancelable: true }));
   await delay(400);
@@ -402,9 +527,9 @@ export const sendDm = async (dmText: string): Promise<boolean> => {
  * ensure the captured state is up-to-date.
  * @returns An object containing the latest comments, post URN, and post URL.
  */
-export const capturePostStateFromDOM = (): CapturedPostState => {
+export const capturePostStateFromDOM = (maxComments?: number): CapturedPostState => {
   console.log('Capturing post-state from the DOM...');
-  const comments = extractComments();
+  const comments = extractComments(maxComments);
   const userProfileUrl = getSignedInUserProfileUrl() || '';
 
   const postUrnRegex = /(urn:li:activity:\d+)/;

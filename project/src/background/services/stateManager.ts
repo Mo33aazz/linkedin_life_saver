@@ -30,14 +30,38 @@ export interface CommentStats {
 const stateCache = new Map<string, PostState>();
 
 /**
+ * Helper function to check if a comment was authored by the current user by comparing usernames.
+ * This ensures consistent username comparison across the application.
+ * @param commentOwnerUrl The profile URL of the comment author
+ * @param currentUserUrl The profile URL of the current user
+ * @returns True if the comment was authored by the current user
+ */
+const isCommentByCurrentUser = (commentOwnerUrl: string, currentUserUrl: string): boolean => {
+  if (!commentOwnerUrl || !currentUserUrl) {
+    return false;
+  }
+
+  // Extract usernames from both URLs
+  const extractUsername = (url: string): string | null => {
+    const match = url.match(/\/in\/([^/]+)\/?/);
+    return match ? match[1] : null;
+  };
+
+  const commentUsername = extractUsername(commentOwnerUrl);
+  const currentUsername = extractUsername(currentUserUrl);
+
+  return commentUsername !== null && currentUsername !== null && commentUsername === currentUsername;
+};
+
+/**
  * Calculates statistics about comments on a post.
- * - Total number of top-level comments without any replies.
- * - Number of the user's own top-level comments without any replies.
+ * - Total number of top-level comments.
+ * - Number of top-level comments without user's reply (excluding user's own comments).
  *
  * This function uses an efficient two-pass approach. The first pass collects
- * the IDs of all comment threads that have replies into a Set for quick lookups.
+ * the IDs of all comment threads that have replies authored by the user into a Set for quick lookups.
  * The second pass iterates through the comments again, counting only the top-level
- * comments whose thread IDs were not found in the set of replied threads.
+ * comments that are not authored by the user and whose thread IDs were not found in the set of replied threads.
  *
  * @param comments - An array of all comments parsed from the page.
  * @param userProfileUrl - The profile URL of the signed-in user.
@@ -50,7 +74,7 @@ export const calculateCommentStats = (
   // Identify all threads that contain at least one reply authored by me
   const threadsWithMyReply = new Set<string>();
   comments.forEach((c) => {
-    if (c.type === 'reply' && userProfileUrl && c.ownerProfileUrl === userProfileUrl) {
+    if (c.type === 'reply' && isCommentByCurrentUser(c.ownerProfileUrl, userProfileUrl)) {
       threadsWithMyReply.add(c.threadId);
     }
   });
@@ -61,7 +85,7 @@ export const calculateCommentStats = (
   comments.forEach((c) => {
     if (c.type === 'top-level') {
       totalTopLevel++;
-      const authoredByMe = !!userProfileUrl && c.ownerProfileUrl === userProfileUrl;
+      const authoredByMe = isCommentByCurrentUser(c.ownerProfileUrl, userProfileUrl);
       if (!authoredByMe && !threadsWithMyReply.has(c.threadId)) {
         topLevelWithoutMyReply++;
       }

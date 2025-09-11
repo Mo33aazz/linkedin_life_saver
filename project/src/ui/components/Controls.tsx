@@ -14,6 +14,7 @@ export const Controls = () => {
   const pipelineStatus = useStore((state) => state.pipelineStatus);
   const postUrn = useStore((state) => state.postUrn);
   const [maxReplies, setMaxReplies] = useState(10);
+  const [maxComments, setMaxComments] = useState(10);
   const [delayMin, setDelayMin] = useState(2000);
   const [delayMax, setDelayMax] = useState(5000);
   const [maxOpenTabs, setMaxOpenTabs] = useState(3);
@@ -25,6 +26,8 @@ export const Controls = () => {
       type: 'START_PIPELINE',
       payload: {
         postUrn: getPostUrnFromCurrentTab(),
+        maxReplies,
+        maxComments,
         // The tabId is now sourced from the message sender object in the background script for robustness.
       }
     });
@@ -97,15 +100,16 @@ export const Controls = () => {
     chrome.runtime.sendMessage({
       type: 'UPDATE_SETTINGS',
       settings: {
-        maxReplies,
-        delayMin,
-        delayMax,
-        maxOpenTabs,
-        maxScrolls,
-        rateProfile,
-      },
+          maxReplies,
+          maxComments,
+          delayMin,
+          delayMax,
+          maxOpenTabs,
+          maxScrolls,
+          rateProfile,
+        },
     });
-  }, [maxReplies, delayMin, delayMax, maxOpenTabs, maxScrolls, rateProfile]);
+  }, [maxReplies, maxComments, delayMin, delayMax, maxOpenTabs, maxScrolls, rateProfile]);
 
   return (
     <div className="sidebar-section controls">
@@ -156,6 +160,18 @@ export const Controls = () => {
             max="100"
             value={maxReplies}
             onChange={(e) => setMaxReplies(parseInt((e.target as HTMLInputElement).value, 10))}
+          />
+        </div>
+
+        <div className="control-group">
+          <label htmlFor="max-comments">Max Comments to Fetch:</label>
+          <input
+            id="max-comments"
+            type="number"
+            min="1"
+            max="100"
+            value={maxComments}
+            onChange={(e) => setMaxComments(parseInt((e.target as HTMLInputElement).value, 10))}
           />
         </div>
 

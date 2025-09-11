@@ -16,11 +16,12 @@ import { OpenRouterClient } from './openRouterClient';
 const MAX_RETRIES = 3;
 const INITIAL_DELAY = 2000; // Start with a 2-second delay for DOM actions
 
-// Internal state for the pipeline
+// Internal state variables
 let pipelineStatus: RunState = 'idle';
 let activePostUrn: string | null = null;
 let activeTabId: number | null = null;
-let isProcessing = false; // A lock to prevent concurrent processing loops
+let isProcessing = false;
+let maxRepliesLimit: number = 10; // Default max replies limit // A lock to prevent concurrent processing loops
 
 // This will be set by the main service worker script to broadcast updates
 let broadcastState: (state: Partial<UIState>) => void = () => {
@@ -80,6 +81,15 @@ export const initPipelineManager = (
   logger.info('PipelineManager initialized.');
 };
 
+/**
+ * Updates the max replies limit for the current session.
+ * @param limit The maximum number of replies to process
+ */
+export const setMaxRepliesLimit = (limit: number): void => {
+  maxRepliesLimit = Math.max(1, limit); // Ensure minimum of 1
+  logger.info('Max replies limit updated', { maxRepliesLimit });
+};
+
 const findNextComment = (postState: PostState): Comment | null => {
   for (const comment of postState.comments) {
     // First priority: check connection status if unknown
@@ -125,7 +135,12 @@ const generateReply = async (
       My persona: ${systemPrompt}
       Original comment (from ${comment.ownerProfileUrl}):
       '${comment.text}'
-      Output: ONLY the reply text. If the comment is irrelevant, toxic, or spam, output exactly '__SKIP__'.
+      Output: ONLY the reply text. Only output '__SKIP__' if the comment contains:
+      - Explicit profanity, hate speech, or personal attacks
+      - Clear spam (repeated promotional links, unrelated product sales)
+      - Completely off-topic content unrelated to the post
+      - Bot-like repetitive text or gibberish
+      Otherwise, always generate a thoughtful reply even for brief or simple comments.
     `;
 
     const messages: ChatMessage[] = [
@@ -247,25 +262,57 @@ const processComment = async (
 
         // Wait for the tab to complete loading with a timeout
         await new Promise<void>((resolve, reject) => {
-          logger.debug('Waiting for tab load to complete', { ...stepContext, connectionTabId });
           const timeout = setTimeout(() => {
             chrome.tabs.onUpdated.removeListener(listener);
-            reject(new Error('Tab loading timed out after 30 seconds.'));
-          }, 30000);
+            reject(new Error('Tab loading timed out after 45 seconds.'));
+          }, 45000); // Increased timeout
 
           const listener = (
             tabId: number,
-            changeInfo: chrome.tabs.TabChangeInfo
+            changeInfo: chrome.tabs.TabChangeInfo,
+            tab: chrome.tabs.Tab
           ) => {
-            if (tabId === connectionTabId && changeInfo.status === 'complete') {
-              clearTimeout(timeout);
-              chrome.tabs.onUpdated.removeListener(listener);
-              logger.debug('Tab reported complete status', { ...stepContext, connectionTabId });
-              resolve();
+            if (tabId === connectionTabId) {
+              // Resolve if the tab is complete or even interactive
+              if (
+                changeInfo.status === 'complete' ||
+                (tab.status === 'interactive' && !tab.url?.startsWith('chrome://'))
+              ) {
+                clearTimeout(timeout);
+                chrome.tabs.onUpdated.removeListener(listener);
+                logger.debug('Tab reported ready status', {
+                  ...stepContext,
+                  connectionTabId,
+                  status: changeInfo.status || tab.status,
+                });
+                resolve();
+              }
             }
           };
+
           chrome.tabs.onUpdated.addListener(listener);
+
+          // Additional check in case the tab is already loaded from cache
+          if (connectionTabId) {
+            chrome.tabs.get(connectionTabId, (tab) => {
+              if (
+                tab &&
+                (tab.status === 'complete' || tab.status === 'interactive') &&
+                !tab.url?.startsWith('chrome://')
+              ) {
+                clearTimeout(timeout);
+                chrome.tabs.onUpdated.removeListener(listener);
+                logger.debug('Tab was already loaded', {
+                  ...stepContext,
+                  connectionTabId,
+                  status: tab.status,
+                });
+                resolve();
+              }
+            });
+          }
         });
+
         logger.debug('Executing in-page script to detect connection badge', { ...stepContext, connectionTabId });
         const injectionResults = await chrome.scripting.executeScript({
           target: { tabId: connectionTabId },
@@ -405,6 +452,9 @@ const processComment = async (
           logger.info('AI requested to skip comment, skipping reply', {
             ...context,
             step: 'REPLY_SKIPPED_AI',
+            commentText: comment.text,
+            commentOwner: comment.ownerProfileUrl,
+            reason: 'AI determined comment should be skipped based on content guidelines',
           });
           comment.replyStatus = 'DONE'; // Mark as done to skip
           comment.lastError = 'Skipped by AI';
@@ -457,6 +507,13 @@ const processComment = async (
           ...context,
           step: 'REPLY_SUCCESS',
         });
+
+        // Real-time counter update: Recalculate and broadcast updated stats immediately
+        const updatedStats = calculateCommentStats(
+          (postState.comments || []).map(c => ({ type: c.type, threadId: c.threadId, ownerProfileUrl: c.ownerProfileUrl })),
+          postState._meta.userProfileUrl || ''
+        );
+        broadcastState({ stats: updatedStats });
       } catch (error) {
         logger.error('Failed to reply to comment', error, {
           ...context,
@@ -624,6 +681,20 @@ const processQueue = async (): Promise<void> => {
       break;
     }
 
+    // Check max replies limit
+    const completedReplies = postState.comments.filter(c => c.replyStatus === 'DONE').length;
+    if (completedReplies >= maxRepliesLimit) {
+      logger.info('Max replies limit reached. Stopping pipeline.', {
+        completedReplies,
+        maxRepliesLimit,
+        postUrn: activePostUrn,
+      });
+      pipelineStatus = 'idle';
+      postState._meta.runState = 'idle';
+      await savePostState(activePostUrn, postState);
+      break;
+    }
+
     const nextComment = findNextComment(postState);
     logger.debug('Evaluated next comment to process', {
       postUrn: activePostUrn,
@@ -703,7 +774,9 @@ const processQueue = async (): Promise<void> => {
 
 export const startPipeline = async (
   postUrn: string,
-  tabId: number
+  tabId: number,
+  maxReplies?: number,
+  maxComments?: number
 ): Promise<void> => {
   if (pipelineStatus !== 'idle') {
     logger.warn('Pipeline cannot be started', {
@@ -711,6 +784,11 @@ export const startPipeline = async (
       postUrn,
     });
     return;
+  }
+  
+  // Set max replies limit if provided
+  if (maxReplies !== undefined) {
+    setMaxRepliesLimit(maxReplies);
   }
   let postState = getPostState(postUrn);
   // HACK: If state is not in the cache, try loading from storage.
@@ -757,6 +835,7 @@ export const startPipeline = async (
     try {
       const response = await sendMessageToTab<CapturedPostState>(tabId, {
         type: 'CAPTURE_POST_STATE',
+        payload: { maxComments },
       });
       console.log('Response from CAPTURE_POST_STATE:', response);
       if (response && response.postUrn) {
@@ -765,21 +844,34 @@ export const startPipeline = async (
         const normalizedComments: Comment[] = (Array.isArray(comments)
           ? (comments as unknown as import('../../shared/types').ParsedComment[])
           : []
-        ).map((c) => ({
-          ...c,
-          connected: undefined,
-          likeStatus: '',
-          replyStatus: '',
-          dmStatus: '',
-          attempts: { like: 0, reply: 0, dm: 0 },
-          lastError: '',
-          pipeline: {
-            queuedAt: new Date().toISOString(),
-            likedAt: '',
-            repliedAt: '',
-            dmAt: '',
-          },
-        }));
+        ).map((c) => {
+          // If comment already has a user reply, mark reply status as DONE
+          const replyStatus = c.hasUserReply ? 'DONE' : '';
+          const repliedAt = c.hasUserReply ? new Date().toISOString() : '';
+          
+          if (c.hasUserReply) {
+            logger.info('Comment already has user reply, marking as completed', {
+              commentId: c.commentId,
+              text: `${c.text.substring(0, 50)}...`,
+            });
+          }
+          
+          return {
+            ...c,
+            connected: undefined,
+            likeStatus: '',
+            replyStatus,
+            dmStatus: '',
+            attempts: { like: 0, reply: 0, dm: 0 },
+            lastError: c.hasUserReply ? 'Already replied by user' : '',
+            pipeline: {
+              queuedAt: new Date().toISOString(),
+              likedAt: '',
+              repliedAt,
+              dmAt: '',
+            },
+          };
+        });
 
         const newPostState: PostState = {
           _meta: {
