@@ -208,7 +208,7 @@ const injectUI = () => {
 const removeUI = () => {
   try {
     if (appRootEl) {
-      unmountApp(appRootEl);
+      unmountApp();
     }
   } catch (e) {
     console.warn('Unmount warning:', e);

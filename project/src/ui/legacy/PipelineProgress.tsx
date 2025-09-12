@@ -1,6 +1,8 @@
-import { useStore } from '../store';
+import { comments, uiState } from '../store';
 import { Comment, ActionStatus } from '../../shared/types';
 import { Skeleton } from './Skeleton';
+import { useState, useEffect } from 'preact/hooks';
+import { get } from 'svelte/store';
 
 type StepStatus = 'complete' | 'active' | 'pending' | 'failed';
 
@@ -122,23 +124,32 @@ const PipelineProgressSkeleton = () => (
   );
 
 export const PipelineProgress = () => {
-  const comments = useStore((state) => state.comments);
-  const isInitializing = useStore((state) => state.isInitializing);
+  const [currentComments, setCurrentComments] = useState<Comment[]>(get(comments));
+  const [isInitializing, setIsInitializing] = useState(get(uiState).isInitializing);
+
+  useEffect(() => {
+    const unsubscribeComments = comments.subscribe(setCurrentComments);
+    const unsubscribeUiState = uiState.subscribe((state) => setIsInitializing(state.isInitializing));
+    return () => {
+      unsubscribeComments();
+      unsubscribeUiState();
+    };
+  }, []);
 
 
   return (
     <div className="sidebar-section" data-testid="pipeline-progress">
       <h2>Pipeline Progress</h2>
-      {isInitializing && comments.length === 0 ? (
+      {isInitializing && currentComments.length === 0 ? (
         <PipelineProgressSkeleton />
       ) : (
         <div className="pipeline-list">
-          {comments.length === 0 ? (
+          {currentComments.length === 0 ? (
             <p className="idle-message">
               Pipeline is idle. Start processing to see progress.
             </p>
           ) : (
-            comments.map((comment) => (
+            currentComments.map((comment: Comment) => (
               <CommentRow key={comment.commentId} comment={comment} />
             ))
           )}

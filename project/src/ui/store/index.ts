@@ -1,57 +1,171 @@
-import { create } from 'zustand';
-import { UIState, LogEntry } from '../../shared/types';
+import { writable, derived } from 'svelte/store';
+import type { UIState, LogEntry, RunState, Comment } from '../../shared/types';
 
-// 1. Define the store's interface, including actions.
-interface Store extends UIState {
-  logs: LogEntry[];
-  updateState: (newState: Partial<UIState>) => void;
-  addLog: (logEntry: LogEntry) => void;
-}
-
-// 2. Create the Zustand store with an initial state.
-export const useStore = create<Store>((set) => ({
-  isInitializing: true,
-  pipelineStatus: 'idle',
-  stats: {
-    totalTopLevelNoReplies: 0,
-    userTopLevelNoReplies: 0,
+// Sample test data to demonstrate timeline functionality
+const sampleComments: Comment[] = [
+  {
+    commentId: 'comment1',
+    text: 'Great post! Thanks for sharing this valuable insight.',
+    ownerProfileUrl: 'https://www.linkedin.com/in/john-doe/',
+    timestamp: '2h',
+    type: 'top-level',
+    threadId: 'comment1',
+    connected: true,
+    likeStatus: 'DONE',
+    replyStatus: 'DONE',
+    dmStatus: 'DONE',
+    attempts: { like: 1, reply: 1, dm: 1 },
+    lastError: '',
+    pipeline: {
+      queuedAt: new Date(Date.now() - 3600000).toISOString(),
+      likedAt: new Date(Date.now() - 3000000).toISOString(),
+      repliedAt: new Date(Date.now() - 2400000).toISOString(),
+      dmAt: new Date(Date.now() - 1800000).toISOString(),
+      generatedReply: 'Thank you for your feedback!',
+    },
   },
-  comments: [],
-  logs: [],
-  postUrn: undefined,
-  userProfileUrl: undefined,
-  postAuthor: undefined,
-  postTimestamp: undefined,
+  {
+    commentId: 'comment2',
+    text: 'Interesting perspective on this topic. Would love to hear more.',
+    ownerProfileUrl: 'https://www.linkedin.com/in/jane-smith/',
+    timestamp: '4h',
+    type: 'top-level',
+    threadId: 'comment2',
+    connected: true,
+    likeStatus: 'DONE',
+    replyStatus: 'DONE',
+    dmStatus: '',
+    attempts: { like: 1, reply: 1, dm: 0 },
+    lastError: '',
+    pipeline: {
+      queuedAt: new Date(Date.now() - 7200000).toISOString(),
+      likedAt: new Date(Date.now() - 6600000).toISOString(),
+      repliedAt: new Date(Date.now() - 6000000).toISOString(),
+      dmAt: '',
+      generatedReply: 'I appreciate your interest! Let me know if you have any questions.',
+    },
+  },
+  {
+    commentId: 'comment3',
+    text: 'This is exactly what I was looking for. Amazing work!',
+    ownerProfileUrl: 'https://www.linkedin.com/in/mike-johnson/',
+    timestamp: '6h',
+    type: 'top-level',
+    threadId: 'comment3',
+    connected: true,
+    likeStatus: 'DONE',
+    replyStatus: '',
+    dmStatus: '',
+    attempts: { like: 1, reply: 0, dm: 0 },
+    lastError: '',
+    pipeline: {
+      queuedAt: new Date(Date.now() - 10800000).toISOString(),
+      likedAt: new Date(Date.now() - 10200000).toISOString(),
+      repliedAt: '',
+      dmAt: '',
+    },
+  },
+  {
+    commentId: 'comment4',
+    text: 'Could you elaborate more on this point?',
+    ownerProfileUrl: 'https://www.linkedin.com/in/sarah-wilson/',
+    timestamp: '8h',
+    type: 'top-level',
+    threadId: 'comment4',
+    connected: true,
+    likeStatus: '',
+    replyStatus: '',
+    dmStatus: '',
+    attempts: { like: 0, reply: 0, dm: 0 },
+    lastError: '',
+    pipeline: {
+      queuedAt: new Date(Date.now() - 14400000).toISOString(),
+      likedAt: '',
+      repliedAt: '',
+      dmAt: '',
+    },
+  },
+];
+
+// Initial state
+const initialState: UIState = {
+  isInitializing: false, // Set to false to show the timeline immediately
+  pipelineStatus: 'running' as RunState,
+  stats: {
+    totalTopLevelNoReplies: 4,
+    userTopLevelNoReplies: 4,
+  },
+  comments: sampleComments, // Add sample comments to demonstrate timeline
+  postUrn: 'urn:li:activity:7368619407989760000',
+  userProfileUrl: 'https://www.linkedin.com/in/current-user/',
+  postAuthor: 'Demo User',
+  postTimestamp: new Date().toISOString(),
   aiConfig: undefined,
-  updateState: (newState) => set((state) => ({ ...state, ...newState })),
-  addLog: (newLog) => set(state => ({
-    logs: [...state.logs, newLog].slice(-500) // Cap at 500 logs for performance
-  })),
-}));
+};
 
+// Create writable stores
+export const uiState = writable<UIState>(initialState);
+export const logs = writable<LogEntry[]>([]);
 
-// Expose a helper for E2E tests to simulate messages from the background script.
-// This avoids the complexity of trying to mock chrome.runtime.onMessage events.
-// NOTE: This test-only helper is exposed when not in a production build.
-if (import.meta.env.MODE !== 'production') {
-  // The content script runs in an isolated world, so we can't directly
-  // call a function on `window` from the test's `page.evaluate`.
-  // Instead, we use `postMessage` to bridge the gap. The test will post a
-  // message to the main window, and this listener (in the content script's
-  // world) will pick it up and dispatch the action to the store.
-  window.addEventListener('message', (event) => {
-    // We only accept messages from ourselves and with a specific source identifier.
-    if (event.source !== window || event.data.source !== '__E2E_TEST__') {
-      return;
-    }
+// Derived stores for specific parts of the state
+export const pipelineStatus = derived(uiState, ($state) => $state.pipelineStatus);
+export const stats = derived(uiState, ($state) => $state.stats);
+export const comments = derived(uiState, ($state) => $state.comments);
+export const postUrn = derived(uiState, ($state) => $state.postUrn);
 
-    const message = event.data;
-    if (message.type === 'STATE_UPDATE') {
-      console.log('E2E Test: Dispatching STATE_UPDATE message via postMessage:', message.payload);
-      useStore.getState().updateState(message.payload as Partial<UIState>);
-    } else if (message.type === 'LOG_ENTRY') {
-      console.log('E2E Test: Dispatching LOG_ENTRY message via postMessage:', message.payload);
-      useStore.getState().addLog(message.payload as LogEntry);
-    }
-  });
-}
+// Store actions with proper TypeScript typing
+export const uiStore = {
+  // Update the entire state or parts of it
+  updateState: (newState: Partial<UIState>) => {
+    uiState.update(state => ({ ...state, ...newState }));
+  },
+
+  // Update pipeline status
+  setPipelineStatus: (status: RunState) => {
+    uiState.update(state => ({ ...state, pipelineStatus: status }));
+  },
+
+  // Update stats
+  updateStats: (stats: Partial<UIState['stats']>) => {
+    uiState.update(state => ({
+      ...state,
+      stats: { ...state.stats, ...stats }
+    }));
+  },
+
+  // Update comments
+  updateComments: (comments: UIState['comments']) => {
+    uiState.update(state => ({ ...state, comments }));
+  },
+
+  // Add a log entry
+  addLog: (logEntry: LogEntry) => {
+    logs.update(currentLogs => [...currentLogs, logEntry].slice(-100));
+  },
+
+  // Clear logs
+  clearLogs: () => {
+    logs.set([]);
+  },
+
+  // Set post URN
+  setPostUrn: (urn: string | undefined) => {
+    uiState.update(state => ({ ...state, postUrn: urn }));
+  },
+
+  // Reset state to initial
+  reset: () => {
+    uiState.set(initialState);
+    logs.set([]);
+  },
+
+  // Get current state (for compatibility with existing code)
+  getState: () => {
+    let currentState: UIState;
+    uiState.subscribe(state => currentState = state)();
+    return currentState!;
+  }
+};
+
+// Export individual stores for component use
+export { uiState as default };

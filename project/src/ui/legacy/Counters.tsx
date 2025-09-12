@@ -1,6 +1,8 @@
-import { useStore } from '../store';
+import { stats, uiState } from '../store';
 import { Skeleton } from './Skeleton';
 import { useAnimatedCounter } from '../hooks/useAnimatedCounter';
+import { useState, useEffect } from 'preact/hooks';
+import { get } from 'svelte/store';
 
 const CountersSkeleton = () => (
   <div className="sidebar-section">
@@ -19,12 +21,21 @@ const CountersSkeleton = () => (
 );
 
 export const Counters = () => {
-  const stats = useStore((state) => state.stats);
-  const isInitializing = useStore((state) => state.isInitializing);
+  const [currentStats, setCurrentStats] = useState(get(stats));
+  const [isInitializing, setIsInitializing] = useState(get(uiState).isInitializing);
+
+  useEffect(() => {
+    const unsubscribeStats = stats.subscribe(setCurrentStats);
+    const unsubscribeUiState = uiState.subscribe((state) => setIsInitializing(state.isInitializing));
+    return () => {
+      unsubscribeStats();
+      unsubscribeUiState();
+    };
+  }, []);
 
   // Use the hook for each value
-  const totalAnimated = useAnimatedCounter(stats.totalTopLevelNoReplies);
-  const userAnimated = useAnimatedCounter(stats.userTopLevelNoReplies);
+  const totalAnimated = useAnimatedCounter(currentStats.totalTopLevelNoReplies);
+  const userAnimated = useAnimatedCounter(currentStats.userTopLevelNoReplies);
 
   if (isInitializing) {
     return <CountersSkeleton />;

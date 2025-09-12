@@ -1,9 +1,16 @@
-import { useStore } from '../store';
+import { pipelineStatus } from '../store';
 import { RunState } from '../../shared/types';
+import { useState, useEffect } from 'preact/hooks';
+import { get } from 'svelte/store';
 
 export const Header = () => {
   // Subscribe to only the pipeline status
-  const pipelineStatus = useStore((state) => state.pipelineStatus);
+  const [currentPipelineStatus, setCurrentPipelineStatus] = useState(get(pipelineStatus));
+
+  useEffect(() => {
+    const unsubscribe = pipelineStatus.subscribe(setCurrentPipelineStatus);
+    return () => unsubscribe();
+  }, []);
 
   const getStatusIndicatorClass = (status: RunState) => {
     switch (status) {
@@ -25,8 +32,8 @@ export const Header = () => {
       <div className="p-2 bg-white dark:bg-gray-700 rounded-md" data-testid="status-panel">
         <h3 className="text-xs font-semibold text-gray-600 dark:text-gray-300 mb-1">Status</h3>
         <div className="flex items-center">
-          <span className={`w-2.5 h-2.5 rounded-full mr-2 ${getStatusIndicatorClass(pipelineStatus)}`} />
-          <span className="text-xs capitalize text-gray-700 dark:text-gray-200">{pipelineStatus}</span>
+          <span className={`w-2.5 h-2.5 rounded-full mr-2 ${getStatusIndicatorClass(currentPipelineStatus)}`} />
+          <span className="text-xs capitalize text-gray-700 dark:text-gray-200">{currentPipelineStatus}</span>
         </div>
       </div>
     </div>

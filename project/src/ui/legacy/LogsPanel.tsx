@@ -1,6 +1,7 @@
 import { useState, useEffect, useRef } from 'preact/hooks';
-import { useStore } from '../store';
+import { logs } from '../store';
 import { LogEntry, LogLevel } from '../../shared/types';
+import { get } from 'svelte/store';
 
 const LOG_LEVELS: LogLevel[] = ['INFO', 'WARN', 'ERROR', 'DEBUG'];
 
@@ -44,7 +45,12 @@ const LogEntryItem = ({ log }: { log: LogEntry }) => {
 };
 
 export const LogsPanel = () => {
-  const logs = useStore(state => state.logs);
+  const [currentLogs, setCurrentLogs] = useState<LogEntry[]>(get(logs));
+
+  useEffect(() => {
+    const unsubscribe = logs.subscribe(setCurrentLogs);
+    return () => unsubscribe();
+  }, []);
   const [activeFilters, setActiveFilters] = useState<Set<LogLevel>>(new Set(['DEBUG', 'INFO', 'WARN', 'ERROR']));
   const logContainerRef = useRef<HTMLDivElement>(null);
 
@@ -60,7 +66,7 @@ export const LogsPanel = () => {
     });
   };
 
-  const filteredLogs = logs.filter(log => activeFilters.has(log.level));
+  const filteredLogs = currentLogs.filter((log: LogEntry) => activeFilters.has(log.level));
 
   useEffect(() => {
     if (logContainerRef.current) {
@@ -77,7 +83,7 @@ export const LogsPanel = () => {
       </div>
       <div className="log-container" ref={logContainerRef}>
         {filteredLogs.length > 0 ? (
-          filteredLogs.map((log, index) => (
+          filteredLogs.map((log: LogEntry, index: number) => (
             // Using index is acceptable here as logs are an append-only list.
             <LogEntryItem key={`${log.timestamp}-${index}`} log={log} />
           ))

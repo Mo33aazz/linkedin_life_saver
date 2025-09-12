@@ -5,7 +5,7 @@ import { PipelineProgress } from './components/PipelineProgress';
 import { Controls } from './components/Controls';
 import { LogsPanel } from './components/LogsPanel';
 import { AiSettings } from './components/AiSettings';
-import { useStore } from './store';
+import { uiStore } from './store';
 import type { ExtensionMessage, UIState, LogEntry } from '../shared/types';
 
 export const App = () => {
@@ -22,10 +22,10 @@ export const App = () => {
     const handleMessage = (message: ExtensionMessage) => {
       console.log('UI received message:', message);
       if (message.type === 'STATE_UPDATE' && message.payload) {
-        useStore.getState().updateState(message.payload as Partial<UIState>);
+        uiStore.updateState(message.payload as Partial<UIState>);
         return;
       } else if (message.type === 'LOG_ENTRY' && message.payload) {
-        useStore.getState().addLog(message.payload as LogEntry);
+        uiStore.addLog(message.payload as LogEntry);
         return;
       }
     };

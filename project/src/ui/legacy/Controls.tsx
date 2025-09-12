@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'preact/hooks';
-import { useStore } from '../store';
+import { pipelineStatus, postUrn } from '../store';
 import type { LogEntry } from '../../shared/types';
+import { get } from 'svelte/store';
 
 const getPostUrnFromCurrentTab = (): string | null => {
   const postUrnRegex = /(urn:li:activity:\d+)/;
@@ -10,9 +11,18 @@ const getPostUrnFromCurrentTab = (): string | null => {
 
 
 export const Controls = () => {
-  // Narrow subscriptions to avoid re-rendering on unrelated state changes
-  const pipelineStatus = useStore((state) => state.pipelineStatus);
-  const postUrn = useStore((state) => state.postUrn);
+  // Get current values from stores
+  const [currentPipelineStatus, setCurrentPipelineStatus] = useState(get(pipelineStatus));
+  const [currentPostUrn, setCurrentPostUrn] = useState(get(postUrn));
+
+  useEffect(() => {
+    const unsubscribePipeline = pipelineStatus.subscribe(setCurrentPipelineStatus);
+    const unsubscribePost = postUrn.subscribe(setCurrentPostUrn);
+    return () => {
+      unsubscribePipeline();
+      unsubscribePost();
+    };
+  }, []);
   const [maxReplies, setMaxReplies] = useState(10);
   const [maxComments, setMaxComments] = useState(10);
   const [delayMin, setDelayMin] = useState(2000);
@@ -36,14 +46,14 @@ export const Controls = () => {
   const handleStop = () => {
     chrome.runtime.sendMessage({
       type: 'STOP_PIPELINE',
-      postUrn,
+      postUrn: currentPostUrn,
     });
   };
 
   const handleResume = () => {
     chrome.runtime.sendMessage({
       type: 'RESUME_PIPELINE',
-      postUrn,
+      postUrn: currentPostUrn,
     });
   };
 
@@ -116,7 +126,7 @@ export const Controls = () => {
       <h3>Controls</h3>
 
       <div className="control-buttons">
-        {pipelineStatus === 'idle' && (
+        {currentPipelineStatus === 'idle' && (
           <button
             onClick={handleStart}
             className="control-button start-button"
@@ -127,7 +137,7 @@ export const Controls = () => {
           </button>
         )}
 
-        {pipelineStatus === 'running' && (
+        {currentPipelineStatus === 'running' && (
           <button
             onClick={handleStop}
             className="control-button stop-button"
@@ -138,7 +148,7 @@ export const Controls = () => {
           </button>
         )}
 
-        {pipelineStatus === 'paused' && (
+        {currentPipelineStatus === 'paused' && (
           <button
             onClick={handleResume}
             className="control-button resume-button"

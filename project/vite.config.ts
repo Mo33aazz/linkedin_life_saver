@@ -1,6 +1,6 @@
 // vite.config.js
 import { defineConfig } from 'vite';
-import preact from '@preact/preset-vite';
+import { svelte } from '@sveltejs/vite-plugin-svelte';
 import { resolve } from 'path';
 
 // Recreate __dirname for ES Modules
@@ -8,7 +8,7 @@ import { fileURLToPath } from 'url';
 const __dirname = fileURLToPath(new URL('.', import.meta.url));
 
 export default defineConfig({
-  plugins: [preact()],
+  plugins: [svelte()],
   build: {
     minify: false,
     sourcemap: 'inline',
