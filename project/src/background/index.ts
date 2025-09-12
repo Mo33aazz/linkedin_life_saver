@@ -16,6 +16,8 @@ import {
   stopPipeline,
   resumePipeline,
   resetPipeline,
+  getPipelineStatus,
+  getActiveTabId,
 } from './services/pipelineManager';
 import {
   initializeConfig,
@@ -142,6 +144,19 @@ loadAllStates().then(() => {
 });
 // Initialize the pipeline manager with a broadcaster function.
 initPipelineManager(broadcastStateUpdate, sendMessageToTab);
+
+// Add tab close event listener to auto-stop pipeline when tab is closed
+chrome.tabs.onRemoved.addListener((tabId) => {
+  const currentStatus = getPipelineStatus();
+  const activeTab = getActiveTabId();
+  
+  if (tabId === activeTab && currentStatus === 'running') {
+    logger.info('Active pipeline tab was closed, auto-stopping pipeline', { tabId });
+    stopPipeline().catch(error => {
+      logger.error('Failed to auto-stop pipeline after tab closure', error, { tabId });
+    });
+  }
+});
 
 // A curated list of popular and recommended models to show at the top.
 const CURATED_MODELS = [

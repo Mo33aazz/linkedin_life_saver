@@ -224,7 +224,16 @@ async function startBrowser() {
 
   // Hook context-level events
   browserContext.on('request', (request) => {
-    const pageIdSafe = findPageIdByFrame(request.frame());
+    let pageIdSafe = null;
+    try {
+      // Check if frame is available before accessing it
+      if (!request.isNavigationRequest()) {
+        pageIdSafe = findPageIdByFrame(request.frame());
+      }
+    } catch (e) {
+      // Frame not available for navigation requests, which is expected
+      pageIdSafe = null;
+    }
     
     // **IMPROVED**: Safely summarize postData, handling binary data.
     let postDataSummary = null;
@@ -252,7 +261,16 @@ async function startBrowser() {
 
   browserContext.on('response', async (response) => {
     const req = response.request();
-    const pageIdSafe = findPageIdByFrame(req.frame());
+    let pageIdSafe = null;
+    try {
+      // Check if frame is available before accessing it
+      if (!req.isNavigationRequest()) {
+        pageIdSafe = findPageIdByFrame(req.frame());
+      }
+    } catch (e) {
+      // Frame not available for navigation requests, which is expected
+      pageIdSafe = null;
+    }
     const context = {
         type: 'network:response',
         url: response.url(),

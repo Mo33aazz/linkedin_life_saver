@@ -124,14 +124,11 @@ const PipelineProgressSkeleton = () => (
 export const PipelineProgress = () => {
   const comments = useStore((state) => state.comments);
   const isInitializing = useStore((state) => state.isInitializing);
-  const pipelineStatus = useStore((state) => state.pipelineStatus);
+
 
   return (
     <div className="sidebar-section" data-testid="pipeline-progress">
       <h2>Pipeline Progress</h2>
-      <div data-testid="pipeline-status" className="pipeline-status">
-        Status: {pipelineStatus}
-      </div>
       {isInitializing && comments.length === 0 ? (
         <PipelineProgressSkeleton />
       ) : (

@@ -522,6 +522,100 @@ export const sendDm = async (dmText: string): Promise<boolean> => {
 };
 
 /**
+ * Sends a DM via profile page by clicking the Message button and then sending the message.
+ * This approach mimics the test's methodology for more reliable DM sending.
+ * @param dmText - The AI-generated text to send as a DM.
+ * @returns A promise that resolves to true if the action was successful, false otherwise.
+ */
+export const sendDmViaProfile = async (dmText: string): Promise<boolean> => {
+  console.log('Attempting to send DM via profile Message button...');
+
+  try {
+    // Wait for page to load
+    await delay(3000);
+
+    // Find Message button using the same logic as the test
+    const buttons = Array.from(document.querySelectorAll('button'));
+    const messageButton = buttons.find(btn => {
+      const text = (btn.textContent || btn.innerText || '').trim();
+      const ariaLabel = btn.getAttribute('aria-label') || '';
+      // Match exact "Message" text or "Message [Name]" in aria-label
+      return text === 'Message' || /^Message[ ]+[a-zA-Z]+/i.test(ariaLabel);
+    });
+
+    if (!messageButton) {
+      console.warn('Message button not found on profile page');
+      return false;
+    }
+
+    console.log('Found Message button, clicking it...');
+    messageButton.click();
+
+    // Wait for message chat popup to appear
+    await delay(2000);
+
+    // Fill in the message using the same approach as the test
+    const textbox = document.querySelector('div[role="textbox"][aria-label*="Write a message"]') as HTMLDivElement;
+    if (!textbox) {
+      console.warn('Message textbox not found after clicking Message button');
+      return false;
+    }
+
+    textbox.click();
+    textbox.focus();
+    textbox.innerHTML = `<p>${dmText}</p>`;
+    textbox.dispatchEvent(new Event('input', { bubbles: true }));
+
+    // Wait for the message input to be processed
+    await delay(500);
+
+    // Click the Send button with improved detection from the test
+    const sendButton = 
+      // Try exact text match first
+      Array.from(document.querySelectorAll('button')).find(btn => 
+        (btn.textContent || btn.innerText || '').trim() === 'Send'
+      ) ||
+      // Try aria-label containing 'Send'
+      Array.from(document.querySelectorAll('button')).find(btn => 
+        (btn.getAttribute('aria-label') || '').toLowerCase().includes('send')
+      ) ||
+      // Try data-control-name or other LinkedIn-specific attributes
+      document.querySelector('button[data-control-name*="send"]') ||
+      // Try class names that might contain 'send'
+      Array.from(document.querySelectorAll('button')).find(btn => 
+        btn.className.toLowerCase().includes('send')
+      );
+
+    if (!sendButton) {
+      console.warn('Send button not found');
+      return false;
+    }
+
+    // Ensure button is visible and enabled
+    if ((sendButton as HTMLElement).offsetParent === null) {
+      console.warn('Send button is not visible');
+      return false;
+    }
+    if ((sendButton as HTMLButtonElement).disabled) {
+      console.warn('Send button is disabled');
+      return false;
+    }
+
+    // Click the send button
+    (sendButton as HTMLButtonElement).click();
+
+    // Wait for message to be sent
+    await delay(3000);
+
+    console.log('Successfully sent DM via profile Message button');
+    return true;
+  } catch (error) {
+    console.error('Error sending DM via profile:', error);
+    return false;
+  }
+};
+
+/**
  * Captures the current state of the post from the DOM, including all comments.
  * This is intended to be called after the extension has performed actions to
  * ensure the captured state is up-to-date.

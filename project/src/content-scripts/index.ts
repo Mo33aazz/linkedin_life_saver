@@ -1,4 +1,4 @@
-import { likeComment, replyToComment, sendDm } from './domInteractor';
+import { likeComment, replyToComment, sendDm, sendDmViaProfile } from './domInteractor';
 import { mountApp, unmountApp } from '../ui';
 import css from '../index.css?inline';
 
@@ -115,6 +115,14 @@ chrome.runtime.onMessage.addListener((message, _sender, sendResponse) => {
   if (message.type === 'SEND_DM') {
     console.log('Content script received SEND_DM:', message.payload);
     sendDm(message.payload.dmText)
+      .then(success => sendResponse({ status: 'success', payload: success }))
+      .catch(error => sendResponse({ status: 'error', message: error.message }));
+    return true; // Indicates async response
+  }
+
+  if (message.type === 'SEND_DM_VIA_PROFILE') {
+    console.log('Content script received SEND_DM_VIA_PROFILE:', message.payload);
+    sendDmViaProfile(message.payload.dmText)
       .then(success => sendResponse({ status: 'success', payload: success }))
       .catch(error => sendResponse({ status: 'error', message: error.message }));
     return true; // Indicates async response

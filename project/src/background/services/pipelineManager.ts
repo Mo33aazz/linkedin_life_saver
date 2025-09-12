@@ -1,4 +1,3 @@
-// src/background/services/pipelineManager.ts
 import { logger } from '../logger';
 import {
   RunState,
@@ -8,7 +7,7 @@ import {
   UIState,
   CapturedPostState,
 } from '../../shared/types';
-import { getPostState, savePostState, loadPostState, mergeCapturedState, calculateCommentStats } from './stateManager';
+import { getPostState, savePostState, loadPostState, calculateCommentStats } from './stateManager';
 import { getConfig } from './configManager';
 import { OpenRouterClient } from './openRouterClient';
 
@@ -92,16 +91,13 @@ export const setMaxRepliesLimit = (limit: number): void => {
 
 const findNextComment = (postState: PostState): Comment | null => {
   for (const comment of postState.comments) {
-    // First priority: check connection status if unknown
+    // Priority 1: A comment that needs its connection status checked.
+    // This step will now also handle the DM if applicable.
     if (typeof comment.connected === 'undefined') {
       return comment;
     }
-    // A comment needs processing if its like or reply status is not 'DONE' or 'FAILED'
+    // Priority 2: A comment that needs a like or reply, and whose DM step is complete.
     if (comment.likeStatus === '' || comment.replyStatus === '') {
-      return comment;
-    }
-    // New check for DM
-    if (comment.connected && comment.dmStatus === '') {
       return comment;
     }
   }
@@ -127,21 +123,19 @@ const generateReply = async (
 
     const client = new OpenRouterClient(aiConfig.apiKey, aiConfig.attribution);
 
-    // Note: Some template variables are placeholders for now.
-    // In a future task, these would be dynamically populated.
-    const systemPrompt = aiConfig.reply?.customPrompt; // Simplified for now
+    const systemPrompt = aiConfig.reply?.customPrompt;
     const userMessageContent = `
-      Post URL: ${postState._meta.postUrl}
-      My persona: ${systemPrompt}
-      Original comment (from ${comment.ownerProfileUrl}):
-      '${comment.text}'
-      Output: ONLY the reply text. Only output '__SKIP__' if the comment contains:
-      - Explicit profanity, hate speech, or personal attacks
-      - Clear spam (repeated promotional links, unrelated product sales)
-      - Completely off-topic content unrelated to the post
-      - Bot-like repetitive text or gibberish
-      Otherwise, always generate a thoughtful reply even for brief or simple comments.
-    `;
+       Post URL: ${postState._meta.postUrl}
+       My persona: ${systemPrompt}
+       Original comment (from ${comment.ownerProfileUrl}):
+       '${comment.text}'
+       Output: ONLY the reply text. Only output '__SKIP__' if the comment contains:
+       - Explicit profanity, hate speech, or personal attacks
+       - Clear spam (repeated promotional links, unrelated product sales)
+       - Completely off-topic content unrelated to the post
+       - Bot-like repetitive text or gibberish
+       Otherwise, always generate a thoughtful reply even for brief or simple comments.
+     `;
 
     const messages: ChatMessage[] = [
       {
@@ -166,7 +160,7 @@ const generateReply = async (
     return replyText;
   } catch (error) {
     logger.error('Failed to generate AI reply', error, context);
-    throw error; // Re-throw to allow the caller to handle it
+    throw error;
   }
 };
 
@@ -190,12 +184,12 @@ const generateDm = async (
     const client = new OpenRouterClient(aiConfig.apiKey, aiConfig.attribution);
 
     const userMessageContent = `
-      Their comment on my post: '${comment.text}'
-      My custom instructions for this DM: ${aiConfig.dm?.customPrompt}
-      My post URL for context: ${postState._meta.postUrl}
-      Commenter Profile URL: ${comment.ownerProfileUrl}
-      Output: ONLY the direct message text. Be concise, personable, and professional.
-    `;
+       Their comment on my post: '${comment.text}'
+       My custom instructions for this DM: ${aiConfig.dm?.customPrompt}
+       My post URL for context: ${postState._meta.postUrl}
+       Commenter Profile URL: ${comment.ownerProfileUrl}
+       Output: ONLY the direct message text. Be concise, personable, and professional.
+     `;
 
     const messages: ChatMessage[] = [
       {
@@ -240,19 +234,19 @@ const processComment = async (
     dmStatus: comment.dmStatus,
   });
   try {
-    // STEP 1: Check connection status if it's unknown
+    // STEP 1: Check connection status and send DM if connected
     if (typeof comment.connected === 'undefined') {
-      const stepContext = { ...context, step: 'CONNECTION_CHECK' };
-      logger.info('Attempting to check connection status', {
+      const stepContext = { ...context, step: 'CONNECTION_AND_DM_CHECK' };
+      logger.info('Attempting to check connection status and potentially send DM', {
         ...stepContext,
         profileUrl: comment.ownerProfileUrl,
       });
       let connectionTabId: number | undefined;
       try {
-        logger.debug('Creating background tab for profile', { ...stepContext });
+        logger.debug('Creating new active tab for profile visit...', stepContext);
         const tab = await chrome.tabs.create({
           url: comment.ownerProfileUrl,
-          active: false,
+          active: true, // Make the tab active to ensure scripts can run reliably
         });
         connectionTabId = tab.id;
         if (!connectionTabId) {
@@ -260,163 +254,346 @@ const processComment = async (
         }
         logger.debug('Created tab for connection check', { ...stepContext, connectionTabId });
 
-        // Wait for the tab to complete loading with a timeout
         await new Promise<void>((resolve, reject) => {
           const timeout = setTimeout(() => {
             chrome.tabs.onUpdated.removeListener(listener);
             reject(new Error('Tab loading timed out after 45 seconds.'));
-          }, 45000); // Increased timeout
+          }, 45000);
 
           const listener = (
             tabId: number,
             changeInfo: chrome.tabs.TabChangeInfo,
-            tab: chrome.tabs.Tab
+            _tab: chrome.tabs.Tab
           ) => {
-            if (tabId === connectionTabId) {
-              // Resolve if the tab is complete or even interactive
-              if (
-                changeInfo.status === 'complete' ||
-                (tab.status === 'interactive' && !tab.url?.startsWith('chrome://'))
-              ) {
-                clearTimeout(timeout);
-                chrome.tabs.onUpdated.removeListener(listener);
-                logger.debug('Tab reported ready status', {
-                  ...stepContext,
-                  connectionTabId,
-                  status: changeInfo.status || tab.status,
-                });
-                resolve();
-              }
+            if (tabId === connectionTabId && (changeInfo.status === 'complete' || (changeInfo.status === 'interactive' && !_tab.url?.startsWith('chrome://')))) {
+              logger.debug('Tab reported ready state', { ...stepContext, status: changeInfo.status });
+              clearTimeout(timeout);
+              chrome.tabs.onUpdated.removeListener(listener);
+              resolve();
             }
           };
-
           chrome.tabs.onUpdated.addListener(listener);
-
-          // Additional check in case the tab is already loaded from cache
-          if (connectionTabId) {
-            chrome.tabs.get(connectionTabId, (tab) => {
-              if (
-                tab &&
-                (tab.status === 'complete' || tab.status === 'interactive') &&
-                !tab.url?.startsWith('chrome://')
-              ) {
-                clearTimeout(timeout);
-                chrome.tabs.onUpdated.removeListener(listener);
-                logger.debug('Tab was already loaded', {
-                  ...stepContext,
-                  connectionTabId,
-                  status: tab.status,
-                });
-                resolve();
-              }
-            });
-          }
         });
-
-        logger.debug('Executing in-page script to detect connection badge', { ...stepContext, connectionTabId });
+        
+        logger.debug('Injecting script to check connection status...', stepContext);
         const injectionResults = await chrome.scripting.executeScript({
           target: { tabId: connectionTabId },
           func: () => {
-            // This function is executed in the context of the new tab
-            const distanceBadge = document.querySelector(
-              'span.distance-badge .dist-value'
-            );
-            return !!(
-              distanceBadge && distanceBadge.textContent?.trim() === '1st'
-            );
+            const distanceBadge = document.querySelector('span.distance-badge .dist-value');
+            return !!(distanceBadge && distanceBadge.textContent?.trim() === '1st');
           },
         });
-        logger.debug('Script injection completed', { ...stepContext, resultsCount: injectionResults?.length ?? 0 });
+        
         if (injectionResults && injectionResults.length > 0) {
           comment.connected = injectionResults[0].result as boolean;
-          logger.info('Connection status determined successfully', {
-            ...stepContext,
-            connected: comment.connected,
-          });
+          logger.info('Connection status determined successfully', { ...stepContext, connected: comment.connected });
+
+          if (comment.connected) {
+            logger.info('User is a 1st-degree connection. Attempting to send DM.', { ...stepContext });
+            try {
+              logger.debug('Generating DM text...', stepContext);
+              const dmText = await generateDm(comment, postState);
+              if (!dmText) throw new Error('AI DM generation failed.');
+              comment.pipeline.generatedDm = dmText;
+              logger.debug('DM text generated successfully', { ...stepContext, dmLength: dmText.length });
+
+              const sendDmInTab = async () => {
+                // Wait for page to be fully loaded before attempting to close chat windows
+                logger.debug('Waiting for page to load before closing chat windows...', stepContext);
+                await new Promise(resolve => {
+                  const checkPageReady = () => {
+                    chrome.scripting.executeScript({
+                      target: { tabId: connectionTabId! },
+                      func: () => document.readyState === 'complete' && document.body && document.querySelector('main')
+                    }).then(results => {
+                      if (results && results[0]?.result) {
+                        resolve(void 0);
+                      } else {
+                        setTimeout(checkPageReady, 500);
+                      }
+                    }).catch(() => setTimeout(checkPageReady, 500));
+                  };
+                  checkPageReady();
+                });
+                
+                logger.debug('Injecting script to close any open chat windows...', stepContext);
+                const preCloseResults = await chrome.scripting.executeScript({
+                    target: { tabId: connectionTabId! },
+                    func: () => {
+                        // Wait for elements to be fully rendered
+                        const waitForElements = () => {
+                            return new Promise<void>((resolve) => {
+                                const checkElements = () => {
+                                    const buttons = document.querySelectorAll('button');
+                                    if (buttons.length > 0) {
+                                        resolve();
+                                    } else {
+                                        setTimeout(checkElements, 100);
+                                    }
+                                };
+                                checkElements();
+                            });
+                        };
+                        
+                        return waitForElements().then(() => {
+                             // Multiple selector strategies for close buttons
+                             // Target specific conversation close buttons with multiple criteria
+                             let closeButtons: NodeListOf<Element> | Element[] = document.querySelectorAll('button.msg-overlay-bubble-header__control.artdeco-button--circle');
+                             closeButtons = Array.from(closeButtons).filter(btn => {
+                                 const textContent = btn.textContent || (btn as HTMLElement).innerText || '';
+                                 const hasCloseIcon = btn.querySelector('svg[data-test-icon="close-small"]') !== null;
+                                 const hasConversationText = textContent.includes('Close your conversation with');
+                                 
+                                 // Only click if it has both the close icon and conversation text
+                                 return hasCloseIcon && hasConversationText;
+                             });
+                            
+                            let closedCount = 0;
+                            closeButtons.forEach(btn => {
+                                try {
+                                    // Ensure button is visible and clickable
+                                    const element = btn as HTMLElement;
+                                    if (element.offsetParent !== null && !element.hasAttribute('disabled')) {
+                                        element.click();
+                                        closedCount++;
+                                    }
+                                } catch (e) {
+                                    console.warn('Failed to click close button:', e);
+                                }
+                            });
+                            
+                            return { closedCount };
+                        });
+                    },
+                });
+                logger.debug(`Closed ${preCloseResults[0]?.result?.closedCount || 0} pre-existing chat windows.`, stepContext);
+                await new Promise(r => setTimeout(r, 500));
+                
+                logger.debug('Injecting script to click "Message" button...', stepContext);
+                const clickResults = await chrome.scripting.executeScript({
+                  target: { tabId: connectionTabId! },
+                  func: () => {
+                    const buttons = Array.from(document.querySelectorAll('button'));
+                    const messageButton = buttons.find(btn => {
+                      const text = (btn.textContent || btn.innerText || '').trim();
+                      const ariaLabel = btn.getAttribute('aria-label') || '';
+                      return text === 'Message' || /^Message[ ]+[a-zA-Z]+/i.test(ariaLabel);
+                    });
+                    if (messageButton) {
+                      (messageButton as HTMLElement).click();
+                      return { success: true };
+                    }
+                    return { success: false, error: 'Message button not found' };
+                  },
+                });
+                if (!clickResults || !clickResults[0]?.result?.success) throw new Error(`Failed to click Message button: ${clickResults[0]?.result?.error || 'Unknown error'}`);
+                logger.debug('"Message" button clicked. Waiting for chat popup...', stepContext);
+                await new Promise(r => setTimeout(r, 2000));
+
+                logger.debug('Injecting script to fill DM textbox...', stepContext);
+                const fillResults = await chrome.scripting.executeScript({
+                  target: { tabId: connectionTabId! },
+                  args: [dmText],
+                  func: (textToFill: string) => {
+                    const textbox = document.querySelector('div[role="textbox"][aria-label*="Write a message"]');
+                    if (textbox) {
+                      textbox.innerHTML = `<p>${textToFill}</p>`;
+                      textbox.dispatchEvent(new Event('input', { bubbles: true }));
+                      return { success: true };
+                    }
+                    return { success: false, error: 'Message textbox not found' };
+                  },
+                });
+                if (!fillResults || !fillResults[0]?.result?.success) throw new Error(`Failed to fill DM textbox: ${fillResults[0]?.result?.error || 'Unknown error'}`);
+                logger.debug('DM textbox filled. Waiting before sending...', stepContext);
+                await new Promise(r => setTimeout(r, 500));
+
+                logger.debug('Injecting script to click "Send" button...', stepContext);
+                const sendResults = await chrome.scripting.executeScript<any[], { success: boolean; error?: string; availableButtons?: unknown[] }>({
+                  target: { tabId: connectionTabId! },
+                  func: () => {
+                    const sendButton = 
+                      Array.from(document.querySelectorAll('button')).find(btn => (btn.textContent || btn.innerText || '').trim() === 'Send') ||
+                      Array.from(document.querySelectorAll('button')).find(btn => (btn.getAttribute('aria-label') || '').toLowerCase().includes('send')) ||
+                      document.querySelector('button[data-control-name*="send"]') ||
+                      Array.from(document.querySelectorAll('button')).find(btn => btn.className.toLowerCase().includes('send'));
+                    
+                    if (sendButton) {
+                      if ((sendButton as HTMLElement).offsetParent === null) return { success: false, error: 'Send button is not visible' };
+                      if ((sendButton as HTMLButtonElement).disabled) return { success: false, error: 'Send button is disabled' };
+                      (sendButton as HTMLElement).click();
+                      return { success: true };
+                    }
+                    
+                    const allButtons = Array.from(document.querySelectorAll('button')).map(btn => ({
+                      text: (btn.textContent || btn.innerText || '').trim(),
+                      ariaLabel: btn.getAttribute('aria-label'),
+                      className: btn.className,
+                      disabled: (btn as HTMLButtonElement).disabled,
+                      visible: (btn as HTMLElement).offsetParent !== null
+                    }));
+                    return { success: false, error: 'Send button not found', availableButtons: allButtons.slice(0, 10) };
+                  },
+                });
+
+                const sendResult = sendResults?.[0]?.result as { success: boolean; error?: string; availableButtons?: unknown[] } | undefined;
+                if (!sendResult || !sendResult.success) {
+                    logger.error('Send button script failed.', { ...stepContext, result: sendResult });
+                    throw new Error(`Failed to click Send button: ${sendResult?.error || 'Unknown error'}`);
+                }
+
+                await new Promise(r => setTimeout(r, 1000));
+                
+                // Wait for page to be ready before closing chat windows after sending
+                logger.debug('Waiting for page to be ready before closing chat windows after sending...', stepContext);
+                await new Promise(resolve => {
+                  const checkPageReady = () => {
+                    chrome.scripting.executeScript({
+                      target: { tabId: connectionTabId! },
+                      func: () => document.readyState === 'complete' && document.body
+                    }).then(results => {
+                      if (results && results[0]?.result) {
+                        resolve(void 0);
+                      } else {
+                        setTimeout(checkPageReady, 300);
+                      }
+                    }).catch(() => setTimeout(checkPageReady, 300));
+                  };
+                  checkPageReady();
+                });
+                
+                logger.debug('Injecting script to close chat window after sending...', stepContext);
+                const postCloseResults = await chrome.scripting.executeScript({
+                    target: { tabId: connectionTabId! },
+                    func: () => {
+                        // Wait for elements to be fully rendered after sending
+                        const waitForElements = () => {
+                            return new Promise<void>((resolve) => {
+                                const checkElements = () => {
+                                    const buttons = document.querySelectorAll('button');
+                                    if (buttons.length > 0) {
+                                        resolve();
+                                    } else {
+                                        setTimeout(checkElements, 100);
+                                    }
+                                };
+                                checkElements();
+                            });
+                        };
+                        
+                        return waitForElements().then(() => {
+                            // Target specific conversation close buttons with multiple criteria
+                             let closeButtons: NodeListOf<Element> | Element[] = document.querySelectorAll('button.msg-overlay-bubble-header__control.artdeco-button--circle');
+                             closeButtons = Array.from(closeButtons).filter(btn => {
+                                 const textContent = btn.textContent || (btn as HTMLElement).innerText || '';
+                                 const hasCloseIcon = btn.querySelector('svg[data-test-icon="close-small"]') !== null;
+                                 const hasConversationText = textContent.includes('Close your conversation with');
+                                 
+                                 // Only click if it has both the close icon and conversation text
+                                 return hasCloseIcon && hasConversationText;
+                             });
+                            
+                            let closedCount = 0;
+                            closeButtons.forEach(btn => {
+                                try {
+                                    // Ensure button is visible and clickable
+                                    const element = btn as HTMLElement;
+                                    if (element.offsetParent !== null && !element.hasAttribute('disabled')) {
+                                        element.click();
+                                        closedCount++;
+                                    }
+                                } catch (e) {
+                                    console.warn('Failed to click close button:', e);
+                                }
+                            });
+                            
+                            return { closedCount };
+                        });
+                    },
+                });
+                logger.debug(`Closed ${postCloseResults[0]?.result?.closedCount || 0} chat windows post-send.`, stepContext);
+              };
+
+              await retryAsyncFunction(sendDmInTab, {
+                maxRetries: MAX_RETRIES,
+                initialDelay: INITIAL_DELAY,
+                onRetry: (error, attempt) => logger.warn(`Send DM sequence attempt ${attempt}/${MAX_RETRIES} failed`, { ...stepContext, error: error.message }),
+              });
+
+              comment.dmStatus = 'DONE';
+              comment.pipeline.dmAt = new Date().toISOString();
+              logger.info('DM sent successfully from profile page', { ...stepContext });
+            } catch (dmError) {
+              logger.error('Failed to send DM from profile page', dmError, { ...stepContext });
+              comment.dmStatus = 'FAILED';
+              comment.lastError = (dmError as Error).message;
+            }
+          } else {
+            logger.info('User is not a 1st-degree connection. Skipping DM.', { ...stepContext });
+            comment.dmStatus = 'DONE';
+            comment.lastError = 'DM skipped: Not a 1st-degree connection.';
+          }
         } else {
-          throw new Error('Script injection failed or returned no result.');
+          throw new Error('Script injection failed for connection check.');
         }
       } catch (error) {
-        logger.error('Failed to check connection status', error, {
-          ...stepContext,
-          profileUrl: comment.ownerProfileUrl,
-        });
-        comment.connected = false; // Default to false on error
+        logger.error('Failed during connection check/DM step', error, { ...stepContext });
+        comment.connected = false;
+        comment.dmStatus = 'FAILED';
         comment.lastError = (error as Error).message;
       } finally {
         if (connectionTabId) {
-          logger.debug('Closing connection check tab', { ...stepContext, connectionTabId });
+          logger.debug('Closing profile tab.', { ...stepContext, tabId: connectionTabId });
           await chrome.tabs.remove(connectionTabId);
-          logger.debug('Closed connection check tab', { ...stepContext, connectionTabId });
+        }
+        // Switch focus back to the original tab for a better user experience
+        if (activeTabId) {
+          try {
+            await chrome.tabs.update(activeTabId, { active: true });
+            logger.debug('Focus returned to original pipeline tab.', { tabId: activeTabId });
+          } catch (e) {
+            logger.warn('Failed to return focus to original tab, it may have been closed.', { tabId: activeTabId, error: (e as Error).message });
+          }
         }
       }
 
       await savePostState(activePostUrn!, postState);
       broadcastState({ pipelineStatus, postUrn: activePostUrn ?? undefined, comments: postState.comments });
-      // Do NOT return here; continue processing this same comment so we don't
-      // get stuck doing connection checks for all comments before acting.
-      logger.debug('Connection check complete; proceeding to next steps for same comment', {
-        ...context,
-        connected: comment.connected,
-      });
     }
 
     // STATE: QUEUED -> LIKED
     if (comment.likeStatus === '') {
       const stepContext = { ...context, step: 'LIKE_ATTEMPT' };
       logger.info('Attempting to like comment', stepContext);
-      if (!activeTabId) {
-        throw new Error('Cannot like comment, active tab ID is not set.');
-      }
+      if (!activeTabId) throw new Error('Cannot like comment, active tab ID is not set.');
       comment.attempts.like = 0;
 
       try {
         await retryAsyncFunction(
           async () => {
-            logger.debug('Attempting like action', { ...stepContext, attempt: comment.attempts.like + 1 });
             comment.attempts.like++;
             const likeSuccess = await sendMessageToTab<boolean>(activeTabId!, {
               type: 'LIKE_COMMENT',
               payload: { commentId: comment.commentId },
             });
-            if (!likeSuccess) {
-              throw new Error(
-                `Content script failed to like comment ${comment.commentId}`
-              );
-            }
+            if (!likeSuccess) throw new Error(`Content script failed to like comment ${comment.commentId}`);
           },
           {
             maxRetries: MAX_RETRIES,
             initialDelay: INITIAL_DELAY,
-            onRetry: (error, attempt) => {
-              logger.warn(`Like attempt ${attempt}/${MAX_RETRIES} failed`, {
-                ...stepContext,
-                attempt,
-                error: error.message,
-              });
-            },
+            onRetry: (error, attempt) => logger.warn(`Like attempt ${attempt}/${MAX_RETRIES} failed`, { ...stepContext, error: error.message }),
           }
         );
-
         comment.likeStatus = 'DONE';
         comment.pipeline.likedAt = new Date().toISOString();
-        logger.info('Comment liked successfully', {
-          ...context,
-          step: 'LIKE_SUCCESS',
-        });
+        logger.info('Comment liked successfully', { ...context, step: 'LIKE_SUCCESS' });
       } catch (error) {
-        logger.error('Failed to like comment after all retries', error, {
-          ...context,
-          step: 'LIKE_FAILED_FINAL',
-        });
+        logger.error('Failed to like comment after all retries', error, { ...context, step: 'LIKE_FAILED_FINAL' });
         comment.likeStatus = 'FAILED';
         comment.lastError = (error as Error).message;
       }
-
       await savePostState(activePostUrn!, postState);
-      broadcastState({ pipelineStatus, postUrn: activePostUrn ?? undefined, comments: postState.comments });
-      // Continue to reply step in same invocation
-      logger.debug('Like step complete; continuing to reply evaluation', context);
+      broadcastState({ pipelineStatus, comments: postState.comments });
     }
 
     // STATE: LIKED -> REPLIED
@@ -426,350 +603,108 @@ const processComment = async (
       comment.attempts.reply = 0;
 
       try {
-        // If the commenter is not connected, use the configured non-connected template (no LLM call)
         const aiConfig = getConfig();
-        let replyText: string | null = null;
+        let replyText: string | null;
 
         if (comment.connected === false) {
-          replyText =
-            aiConfig.reply?.nonConnectedTemplate ||
-            "Thanks for your comment! I'd love to connect first so we can continue the conversation.";
-          logger.info('Using non-connected reply template', {
-            ...stepContext,
-            connected: comment.connected,
-          });
+          replyText = aiConfig.reply?.nonConnectedTemplate || "Thanks for your comment! I'd love to connect first.";
+          logger.info('Using non-connected reply template', { ...stepContext });
         } else {
           replyText = await generateReply(comment, postState);
         }
 
-        if (replyText === null) {
-          // This case now primarily handles non-error paths where a reply isn't generated,
-          // like a missing API key, which returns null without throwing.
-          throw new Error('AI reply generation failed. Check logs for details.');
-        }
+        if (replyText === null) throw new Error('AI reply generation failed.');
 
         if (replyText === '__SKIP__') {
-          logger.info('AI requested to skip comment, skipping reply', {
-            ...context,
-            step: 'REPLY_SKIPPED_AI',
-            commentText: comment.text,
-            commentOwner: comment.ownerProfileUrl,
-            reason: 'AI determined comment should be skipped based on content guidelines',
-          });
-          comment.replyStatus = 'DONE'; // Mark as done to skip
+          logger.info('AI requested to skip comment, skipping reply', { ...context });
+          comment.replyStatus = 'DONE';
           comment.lastError = 'Skipped by AI';
-          comment.pipeline.repliedAt = new Date().toISOString();
-          await savePostState(activePostUrn!, postState);
-          broadcastState({ pipelineStatus, postUrn: activePostUrn ?? undefined, comments: postState.comments });
-          return;
-        }
-
-        logger.info('Generated reply, submitting to page', {
-          ...context,
-          step: 'SUBMIT_REPLY',
-          replyLength: replyText.length,
-        });
-        comment.pipeline.generatedReply = replyText;
-
-        if (!activeTabId) {
-          throw new Error('Cannot reply to comment, active tab ID is not set.');
-        }
-
-        await retryAsyncFunction(
-          async () => {
-            comment.attempts.reply++;
-            const replySuccess = await sendMessageToTab<boolean>(activeTabId!, {
-              type: 'REPLY_TO_COMMENT',
-              payload: { commentId: comment.commentId, replyText },
-            });
-            if (!replySuccess) {
-              throw new Error(
-                `Content script failed to reply to comment ${comment.commentId}`
-              );
-            }
-          },
-          {
-            maxRetries: MAX_RETRIES,
-            initialDelay: INITIAL_DELAY,
-            onRetry: (error, attempt) => {
-              logger.warn(`Reply attempt ${attempt}/${MAX_RETRIES} failed`, {
-                ...stepContext,
-                attempt,
-                error: error.message,
-              });
-            },
-          }
-        );
-
-        comment.replyStatus = 'DONE';
-        comment.pipeline.repliedAt = new Date().toISOString();
-        logger.info('Comment replied to successfully', {
-          ...context,
-          step: 'REPLY_SUCCESS',
-        });
-
-        // Real-time counter update: Recalculate and broadcast updated stats immediately
-        const updatedStats = calculateCommentStats(
-          (postState.comments || []).map(c => ({ type: c.type, threadId: c.threadId, ownerProfileUrl: c.ownerProfileUrl })),
-          postState._meta.userProfileUrl || ''
-        );
-        broadcastState({ stats: updatedStats });
-      } catch (error) {
-        logger.error('Failed to reply to comment', error, {
-          ...context,
-          step: 'REPLY_FAILED_FINAL',
-        });
-        comment.replyStatus = 'FAILED';
-        comment.lastError = (error as Error).message;
-      }
-
-      await savePostState(activePostUrn!, postState);
-      broadcastState({ pipelineStatus, postUrn: activePostUrn ?? undefined, comments: postState.comments });
-      logger.debug('Reply step complete; continuing to DM evaluation (if applicable)', context);
-    }
-
-    // STATE: REPLIED -> DM_SENT (for connected users)
-    if (comment.connected && comment.dmStatus === '') {
-      const stepContext = { ...context, step: 'DM_ATTEMPT' };
-      logger.info('Attempting to send DM', stepContext);
-      comment.attempts.dm = 0;
-
-      try {
-        const profileIdMatch = comment.ownerProfileUrl.match(/\/in\/([^/]+)/);
-        if (!profileIdMatch || !profileIdMatch[1]) {
-          throw new Error(
-            `Could not extract profile ID from URL: ${comment.ownerProfileUrl}`
-          );
-        }
-        const profileId = profileIdMatch[1];
-        const messagingUrl = `https://www.linkedin.com/messaging/thread/new/?recipient=${profileId}`;
-
-        const dmText = await generateDm(comment, postState);
-        if (!dmText) {
-          throw new Error('AI DM generation failed after all retries.');
-        }
-
-        logger.info('Generated DM, sending message', {
-          ...context,
-          step: 'SEND_DM',
-          dmLength: dmText.length,
-        });
-        comment.pipeline.generatedDm = dmText;
-
-        let dmTabId: number | undefined;
-        try {
-          const tab = await chrome.tabs.create({
-            url: messagingUrl,
-            active: false,
-          });
-          dmTabId = tab.id;
-          if (!dmTabId) {
-            throw new Error('Failed to create a new tab for sending DM.');
-          }
-
-          logger.debug('Created tab for DM', { ...stepContext, dmTabId });
-          await new Promise<void>((resolve, reject) => {
-            const timeout = setTimeout(
-              () => reject(new Error('DM tab loading timed out')),
-              20000
-            );
-            const listener = (
-              tabId: number,
-              changeInfo: chrome.tabs.TabChangeInfo
-            ) => {
-              if (tabId === dmTabId && changeInfo.status === 'complete') {
-                clearTimeout(timeout);
-                chrome.tabs.onUpdated.removeListener(listener);
-                logger.debug('DM tab reported complete', { ...stepContext, dmTabId });
-                resolve();
-              }
-            };
-            chrome.tabs.onUpdated.addListener(listener);
-          });
-
-          await new Promise((resolve) => setTimeout(resolve, 3000));
+        } else {
+          comment.pipeline.generatedReply = replyText;
+          if (!activeTabId) throw new Error('Cannot reply, active tab ID is not set.');
 
           await retryAsyncFunction(
             async () => {
-              logger.debug('Attempting DM send', { ...stepContext, attempt: comment.attempts.dm + 1 });
-              comment.attempts.dm++;
-              const dmSuccess = await sendMessageToTab<boolean>(dmTabId!, {
-                type: 'SEND_DM',
-                payload: { dmText },
+              comment.attempts.reply++;
+              const replySuccess = await sendMessageToTab<boolean>(activeTabId!, {
+                type: 'REPLY_TO_COMMENT',
+                payload: { commentId: comment.commentId, replyText },
               });
-              if (!dmSuccess) {
-                throw new Error('Content script failed to send DM');
-              }
+              if (!replySuccess) throw new Error(`Content script failed to reply to comment ${comment.commentId}`);
             },
             {
               maxRetries: MAX_RETRIES,
               initialDelay: INITIAL_DELAY,
-              onRetry: (error, attempt) => {
-                logger.warn(
-                  `Send DM attempt ${attempt}/${MAX_RETRIES} failed`,
-                  { ...stepContext, attempt, error: error.message }
-                );
-              },
+              onRetry: (error, attempt) => logger.warn(`Reply attempt ${attempt}/${MAX_RETRIES} failed`, { ...stepContext, error: error.message }),
             }
           );
-
-          comment.dmStatus = 'DONE';
-          comment.pipeline.dmAt = new Date().toISOString();
-          logger.info('DM sent successfully', {
-            ...context,
-            step: 'DM_SUCCESS',
-          });
-        } finally {
-          if (dmTabId) {
-            await chrome.tabs.remove(dmTabId);
-          }
+          comment.replyStatus = 'DONE';
+          logger.info('Comment replied to successfully', { ...context });
         }
+        comment.pipeline.repliedAt = new Date().toISOString();
+        const updatedStats = calculateCommentStats((postState.comments || []).map(c => ({ type: c.type, threadId: c.threadId, ownerProfileUrl: c.ownerProfileUrl })), postState._meta.userProfileUrl || '');
+        broadcastState({ stats: updatedStats });
       } catch (error) {
-        logger.error('Failed to send DM after all retries', error, {
-          ...context,
-          step: 'DM_FAILED_FINAL',
-        });
-        comment.dmStatus = 'FAILED';
+        logger.error('Failed to reply to comment', error, { ...context, step: 'REPLY_FAILED_FINAL' });
+        comment.replyStatus = 'FAILED';
         comment.lastError = (error as Error).message;
       }
-
       await savePostState(activePostUrn!, postState);
-      broadcastState({ pipelineStatus, postUrn: activePostUrn ?? undefined, comments: postState.comments });
-      logger.debug('DM step complete for comment', context);
+      broadcastState({ pipelineStatus, comments: postState.comments });
     }
   } catch (error) {
-    logger.error('An unexpected error occurred while processing comment', error, {
-      ...context,
-      step: 'PROCESS_COMMENT_UNEXPECTED_ERROR',
-    });
-    // Mark the current step as failed if possible
+    logger.error('An unexpected error occurred while processing comment', error, context);
     if (comment.likeStatus === '') comment.likeStatus = 'FAILED';
     else if (comment.replyStatus === '') comment.replyStatus = 'FAILED';
-    else if (comment.connected && comment.dmStatus === '')
-      comment.dmStatus = 'FAILED';
-
     comment.lastError = `Unexpected error: ${(error as Error).message}`;
     await savePostState(activePostUrn!, postState);
-    broadcastState({ pipelineStatus, postUrn: activePostUrn ?? undefined, comments: postState.comments });
+    broadcastState({ pipelineStatus, comments: postState.comments });
   }
 };
 
 const processQueue = async (): Promise<void> => {
-  if (isProcessing) {
-    logger.info('Processing is already in progress.');
-    return;
-  }
+  if (isProcessing) return;
   isProcessing = true;
-  logger.info('Starting processing queue.', {
-    postUrn: activePostUrn,
-    step: 'PROCESS_QUEUE_START',
-  });
+  logger.info('Starting processing queue.', { postUrn: activePostUrn });
 
   while (pipelineStatus === 'running') {
     if (!activePostUrn) {
-      logger.error('No active post URN. Stopping pipeline.');
       pipelineStatus = 'error';
       break;
     }
 
     const postState = getPostState(activePostUrn);
     if (!postState) {
-      logger.error('State for post not found. Stopping.', undefined, {
-        postUrn: activePostUrn,
-      });
       pipelineStatus = 'error';
       break;
     }
 
-    // Check max replies limit
     const completedReplies = postState.comments.filter(c => c.replyStatus === 'DONE').length;
     if (completedReplies >= maxRepliesLimit) {
-      logger.info('Max replies limit reached. Stopping pipeline.', {
-        completedReplies,
-        maxRepliesLimit,
-        postUrn: activePostUrn,
-      });
+      logger.info('Max replies limit reached. Stopping pipeline.', { maxRepliesLimit });
       pipelineStatus = 'idle';
-      postState._meta.runState = 'idle';
-      await savePostState(activePostUrn, postState);
       break;
     }
 
     const nextComment = findNextComment(postState);
-    logger.debug('Evaluated next comment to process', {
-      postUrn: activePostUrn,
-      hasNext: !!nextComment,
-      nextCommentId: nextComment?.commentId,
-    });
 
     if (!nextComment) {
-      logger.info('All comments have been processed. Capturing final state.', {
-        postUrn: activePostUrn,
-      });
-      // --- TRIGGER CAPTURE HERE ---
-      if (activeTabId && activePostUrn) {
-        sendMessageToTab<CapturedPostState>(activeTabId, {
-          type: 'CAPTURE_POST_STATE',
-        })
-          .then(response => {
-            if (response && response.postUrn) {
-              // console.log('Response from final CAPTURE_POST_STATE:', response);
-              // Send the data to the background script's main listener for processing
-              const { postUrn, comments } = response;
-              mergeCapturedState(postUrn, { comments });
-
-              // After merging, compute updated stats and broadcast
-              const state = getPostState(postUrn);
-              if (state) {
-                const stats = calculateCommentStats(
-                  (state.comments || []).map(c => ({ type: c.type, threadId: c.threadId, ownerProfileUrl: c.ownerProfileUrl })),
-                  state._meta.userProfileUrl || ''
-                );
-                broadcastState({ stats });
-              }
-            } else {
-              logger.warn('Captured post state but postUrn was missing.', {
-                response,
-              });
-            }
-          })
-          .catch(error => {
-            logger.error('Failed to capture final post state', error, {
-              postUrn: activePostUrn,
-            });
-          });
-      }
-      // --- END TRIGGER ---
-
+      logger.info('All comments have been processed.', { postUrn: activePostUrn });
       pipelineStatus = 'idle';
-      postState._meta.runState = 'idle';
-      await savePostState(activePostUrn, postState);
-      break; // Exit the loop
+      break;
     }
 
-    logger.info('Processing next comment', {
-      postId: postState._meta.postId,
-      commentId: nextComment.commentId,
-      step: 'PROCESS_COMMENT_START',
-    });
     await processComment(nextComment, postState);
-
-    // TODO: Implement a configurable delay with jitter later
-    await new Promise((resolve) => setTimeout(resolve, 2000)); // 2-second delay
+    await new Promise((resolve) => setTimeout(resolve, 2000));
   }
 
   isProcessing = false;
-  logger.info('Processing loop ended.', {
-    finalStatus: pipelineStatus,
-    postUrn: activePostUrn,
-    step: 'PROCESS_QUEUE_END',
-  });
-  const finalPostState = activePostUrn ? getPostState(activePostUrn) : undefined;
-  broadcastState({
-    pipelineStatus,
-    comments: finalPostState?.comments,
-    postUrn: activePostUrn || undefined,
-  }); // Broadcast final status and comments
+  logger.info('Processing loop ended.', { finalStatus: pipelineStatus });
+  if (activePostUrn) {
+    const finalPostState = getPostState(activePostUrn);
+    if(finalPostState) finalPostState._meta.runState = pipelineStatus;
+    broadcastState({ pipelineStatus, comments: finalPostState?.comments });
+  }
 };
 
 export const startPipeline = async (
@@ -779,99 +714,31 @@ export const startPipeline = async (
   maxComments?: number
 ): Promise<void> => {
   if (pipelineStatus !== 'idle') {
-    logger.warn('Pipeline cannot be started', {
-      currentState: pipelineStatus,
-      postUrn,
-    });
+    logger.warn('Pipeline cannot be started', { currentState: pipelineStatus, postUrn });
     return;
   }
   
-  // Set max replies limit if provided
-  if (maxReplies !== undefined) {
-    setMaxRepliesLimit(maxReplies);
-  }
-  let postState = getPostState(postUrn);
-  // HACK: If state is not in the cache, try loading from storage.
-  // This suggests a potential issue in stateManager's initialization, where
-  // it doesn't rehydrate the cache from storage on service worker startup.
-  // HACK: This is a temporary fix to address a race condition where the state
-  // might not be in the cache if the service worker was recently activated.
-  // A better solution would involve ensuring stateManager is fully hydrated
-  // before any pipeline operations can start.
+  if (maxReplies !== undefined) setMaxRepliesLimit(maxReplies);
+  
+  let postState = await loadPostState(postUrn);
+  
   if (!postState) {
-    const loadedState = await loadPostState(postUrn);
-    postState = loadedState || undefined;
-  }
-  // If we have an existing state, ensure comments are normalized
-  if (postState) {
-    const needsNormalization = (postState.comments || []).some(
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      (c: any) => typeof c.likeStatus === 'undefined' || typeof c.attempts === 'undefined'
-    );
-    if (needsNormalization) {
-      logger.warn('Normalizing existing post state comments for pipeline fields', { postUrn });
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      postState.comments = (postState.comments as any[]).map((c) => ({
-        ...c,
-        connected: typeof c.connected === 'undefined' ? undefined : c.connected,
-        likeStatus: typeof c.likeStatus === 'string' ? c.likeStatus : '',
-        replyStatus: typeof c.replyStatus === 'string' ? c.replyStatus : '',
-        dmStatus: typeof c.dmStatus === 'string' ? c.dmStatus : '',
-        attempts: c.attempts && typeof c.attempts === 'object' ? c.attempts : { like: 0, reply: 0, dm: 0 },
-        lastError: typeof c.lastError === 'string' ? c.lastError : '',
-        pipeline: c.pipeline && typeof c.pipeline === 'object'
-          ? c.pipeline
-          : { queuedAt: new Date().toISOString(), likedAt: '', repliedAt: '', dmAt: '' },
-      }));
-      await savePostState(postUrn, postState);
-    }
-  }
-
-  if (!postState) {
-    logger.info(
-      'No state found for post. Creating a new one for pipeline to start.',
-      { postUrn }
-    );
     try {
       const response = await sendMessageToTab<CapturedPostState>(tabId, {
         type: 'CAPTURE_POST_STATE',
         payload: { maxComments },
       });
-      console.log('Response from CAPTURE_POST_STATE:', response);
       if (response && response.postUrn) {
-        const { postUrn, comments, userProfileUrl } = response;
-        // Normalize captured comments into full pipeline-aware Comment objects
-        const normalizedComments: Comment[] = (Array.isArray(comments)
-          ? (comments as unknown as import('../../shared/types').ParsedComment[])
-          : []
-        ).map((c) => {
-          // If comment already has a user reply, mark reply status as DONE
-          const replyStatus = c.hasUserReply ? 'DONE' : '';
-          const repliedAt = c.hasUserReply ? new Date().toISOString() : '';
-          
-          if (c.hasUserReply) {
-            logger.info('Comment already has user reply, marking as completed', {
-              commentId: c.commentId,
-              text: `${c.text.substring(0, 50)}...`,
-            });
-          }
-          
-          return {
-            ...c,
-            connected: undefined,
-            likeStatus: '',
-            replyStatus,
-            dmStatus: '',
-            attempts: { like: 0, reply: 0, dm: 0 },
-            lastError: c.hasUserReply ? 'Already replied by user' : '',
-            pipeline: {
-              queuedAt: new Date().toISOString(),
-              likedAt: '',
-              repliedAt,
-              dmAt: '',
-            },
-          };
-        });
+        const normalizedComments: Comment[] = (response.comments || []).map(c => ({
+          ...c,
+          connected: undefined,
+          likeStatus: '',
+          replyStatus: c.hasUserReply ? 'DONE' : '',
+          dmStatus: '',
+          attempts: { like: 0, reply: 0, dm: 0 },
+          lastError: c.hasUserReply ? 'Already replied by user' : '',
+          pipeline: { queuedAt: new Date().toISOString(), likedAt: '', repliedAt: c.hasUserReply ? new Date().toISOString() : '', dmAt: '' },
+        }));
 
         const newPostState: PostState = {
           _meta: {
@@ -879,31 +746,26 @@ export const startPipeline = async (
             postUrl: `https://www.linkedin.com/feed/update/${postUrn}`,
             runState: 'idle',
             lastUpdated: new Date().toISOString(),
-            userProfileUrl: userProfileUrl || '',
+            userProfileUrl: response.userProfileUrl || '',
           },
           comments: normalizedComments,
         };
         await savePostState(postUrn, newPostState);
         postState = newPostState;
-
-        // Calculate and broadcast initial stats
-        const stats = calculateCommentStats(
-          (postState.comments || []).map(c => ({ type: c.type, threadId: c.threadId, ownerProfileUrl: c.ownerProfileUrl })),
-          postState._meta.userProfileUrl || ''
-        );
+        const stats = calculateCommentStats((postState.comments || []).map(c => ({ type: c.type, threadId: c.threadId, ownerProfileUrl: c.ownerProfileUrl })), postState._meta.userProfileUrl || '');
         broadcastState({ stats });
       }
     } catch (error) {
       logger.error('Failed to capture initial post state', error, { postUrn });
+      return;
     }
   }
+
   if (!postState) {
-    logger.error('Cannot start pipeline, failed to obtain post state.', {
-      postUrn,
-    });
+    logger.error('Cannot start pipeline, failed to obtain post state.', { postUrn });
     return;
   }
-  logger.info('Starting pipeline', { postUrn, tabId, step: 'PIPELINE_START' });
+  
   pipelineStatus = 'running';
   activePostUrn = postUrn;
   activeTabId = tabId;
@@ -915,64 +777,40 @@ export const startPipeline = async (
 };
 
 export const stopPipeline = async (): Promise<void> => {
-  if (pipelineStatus !== 'running') {
-    logger.warn('Pipeline is not running, cannot stop.', {
-      status: pipelineStatus,
-    });
-    return;
-  }
+  if (pipelineStatus !== 'running') return;
   if (!activePostUrn) {
-    logger.error('Cannot stop pipeline, no active post.');
-    pipelineStatus = 'error'; // Should not happen
+    pipelineStatus = 'error';
     return;
   }
 
-  logger.info('Stopping pipeline...', {
-    postUrn: activePostUrn,
-    step: 'PIPELINE_STOP',
-  });
+  logger.info('Stopping pipeline...', { postUrn: activePostUrn });
   pipelineStatus = 'paused';
 
   const postState = getPostState(activePostUrn);
-
   if (postState) {
     postState._meta.runState = 'paused';
     await savePostState(activePostUrn, postState);
   }
-  broadcastState({ pipelineStatus: 'paused', postUrn: activePostUrn });
+  broadcastState({ pipelineStatus: 'paused' });
 };
 
 export const resumePipeline = async (postUrn?: string, tabId?: number): Promise<void> => {
-  logger.info('Resume requested', { currentStatus: pipelineStatus, activePostUrn, providedUrn: postUrn, providedTabId: tabId, step: 'PIPELINE_RESUME_REQUEST' });
-
-  // If already running, no-op
-  if (pipelineStatus === 'running') {
-    logger.warn('Pipeline already running; ignoring resume request.', { activePostUrn, activeTabId });
-    return;
-  }
-
-  // Determine target URN
+  if (pipelineStatus === 'running') return;
+  
   const targetUrn = postUrn || activePostUrn;
   if (!targetUrn) {
     logger.error('Cannot resume: no post URN provided or active.');
     return;
   }
 
-  // Ensure we have a state to resume
-  let postState = getPostState(targetUrn);
-  if (!postState) {
-    postState = await loadPostState(targetUrn);
-  }
+  const postState = await loadPostState(targetUrn);
   if (!postState) {
     logger.error('Cannot resume: no saved state found for post', undefined, { postUrn: targetUrn });
     return;
   }
 
-  // Update manager state
   activePostUrn = targetUrn;
   if (tabId) activeTabId = tabId;
-
-  logger.info('Resuming pipeline', { postUrn: activePostUrn, tabId: activeTabId, previousRunState: postState._meta.runState, step: 'PIPELINE_RESUME' });
   pipelineStatus = 'running';
   postState._meta.runState = 'running';
   await savePostState(activePostUrn, postState);
@@ -982,8 +820,6 @@ export const resumePipeline = async (postUrn?: string, tabId?: number): Promise<
 };
 
 export const resetPipeline = async (postUrn?: string): Promise<void> => {
-  logger.info('Resetting pipeline session', { postUrn, activePostUrn, step: 'PIPELINE_RESET' });
-  // If resetting the current active post, drop runtime pointers
   if (!postUrn || postUrn === activePostUrn) {
     pipelineStatus = 'idle';
     activePostUrn = null;
@@ -995,4 +831,8 @@ export const resetPipeline = async (postUrn?: string): Promise<void> => {
 
 export const getPipelineStatus = (): RunState => {
   return pipelineStatus;
+};
+
+export const getActiveTabId = (): number | null => {
+  return activeTabId;
 };
