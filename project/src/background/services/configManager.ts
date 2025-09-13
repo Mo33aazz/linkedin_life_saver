@@ -17,7 +17,7 @@ const defaultAIConfig: AIConfig = {
   reply: {
     customPrompt:
       'Keep it warm, brief, specific; acknowledge their point; avoid salesy tone; 0–1 emoji.',
-    nonConnectedTemplate:
+    nonConnectedPrompt:
       "Thanks for your comment! I'd love to connect first so we can continue the conversation.",
   },
   dm: {

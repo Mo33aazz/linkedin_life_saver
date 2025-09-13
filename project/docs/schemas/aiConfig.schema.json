@@ -46,8 +46,8 @@
           "description": "The user-defined prompt for generating replies.",
           "type": "string"
         },
-        "nonConnectedTemplate": {
-          "description": "Plain text used as-is when the commenter is not connected (no AI call).",
+        "nonConnectedPrompt": {
+          "description": "AI prompt used when the commenter is not a 1st-degree connection.",
           "type": "string"
         }
       },

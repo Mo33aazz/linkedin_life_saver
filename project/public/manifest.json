@@ -1,7 +1,7 @@
 {
   "manifest_version": 3,
-  "name": "LinkedIn Engagement Assistant",
-  "version": "1.0.0",
+  "name": "LinkedIn Life Saver",
+  "version": "1.0",
   "description": "An intelligent browser extension to automate and scale engagement on LinkedIn.",
   "permissions": [
     "storage",
@@ -31,17 +31,22 @@
   },
   "icons": {
     "16": "icons/icon-16.png",
-    "48": "icons/icon-48.png"
+    "48": "icons/icon-48.png",
+    "128": "icons/icon-128.png"
   },
   "web_accessible_resources": [
     {
       "resources": [
         "chunks/*",
-        "assets/*"
+        "assets/*",
+        "logo.svg"
       ],
       "matches": [
         "https://www.linkedin.com/*"
       ]
     }
-  ]
+  ],
+  "content_security_policy": {
+    "extension_pages": "script-src 'self'; object-src 'self'; font-src 'self' https://fonts.gstatic.com; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com;"
+  }
 }

@@ -117,13 +117,19 @@ export interface AIConfig {
   minDelay?: number;
   maxDelay?: number;
   requireConnectionForAI?: boolean;
+  aiEnabled?: boolean; // Toggle for AI on/off
   reply?: {
     customPrompt?: string;
-    // Used as a direct reply when the commenter is not connected (no LLM call)
-    nonConnectedTemplate?: string;
+    // AI prompt used when the commenter is not a 1st-degree connection
+    nonConnectedPrompt?: string;
   };
   dm?: {
     customPrompt?: string;
+  };
+  staticTexts?: {
+    replyText?: string;
+    nonConnectedText?: string;
+    dmText?: string;
   };
   attribution?: {
     httpReferer?: string;

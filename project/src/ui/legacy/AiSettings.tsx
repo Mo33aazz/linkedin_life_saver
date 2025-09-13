@@ -1,3 +1,5 @@
+/** @jsx h */
+import { h } from 'preact';
 import { useState, useEffect, useCallback } from 'preact/hooks';
 import { OpenRouterModel, AIConfig } from '../../shared/types';
 
@@ -72,7 +74,7 @@ export const AiSettings = () => {
         setReplyPrompt(config.reply?.customPrompt || '');
         setDmPrompt(config.dm?.customPrompt || '');
         setNonConnectedTemplate(
-          config.reply?.nonConnectedTemplate ||
+          config.reply?.nonConnectedPrompt ||
             "Thanks for your comment! I'd love to connect first so we can continue the conversation."
         );
 
@@ -97,7 +99,7 @@ export const AiSettings = () => {
         top_p: topP,
         reply: {
           customPrompt: replyPrompt,
-          nonConnectedTemplate,
+          nonConnectedPrompt: nonConnectedTemplate,
         },
         dm: {
           customPrompt: dmPrompt,
@@ -177,7 +179,7 @@ export const AiSettings = () => {
             setNonConnectedTemplate((e.target as HTMLTextAreaElement).value)
           }
         />
-        <small>Used when the commenter is not a 1st-degree connection. Sent as-is.</small>
+        <small>AI prompt used when the commenter is not a 1st-degree connection.</small>
       </div>
 
       <div className="form-group">
@@ -189,6 +191,31 @@ export const AiSettings = () => {
           value={dmPrompt}
           onInput={(e) => setDmPrompt((e.target as HTMLTextAreaElement).value)}
         />
+      </div>
+
+      {/* AI Model - moved outside Advanced Settings */}
+      <div className="form-group">
+        <label htmlFor="model">Model</label>
+        <select
+          id="model"
+          name="model"
+          value={selectedModel}
+          onChange={(e) => setSelectedModel((e.target as HTMLSelectElement).value)}
+          disabled={isLoading || models.length === 0}
+        >
+          <option value="" disabled>
+            {isLoading
+              ? 'Fetching models...'
+              : models.length > 0
+              ? 'Select a model...'
+              : 'Enter API key and test'}
+          </option>
+          {models.map((model) => (
+            <option key={model.id} value={model.id}>
+              {model.name}
+            </option>
+          ))}
+        </select>
       </div>
 
       {/* Advanced Settings - Collapsible */}
@@ -206,31 +233,6 @@ export const AiSettings = () => {
         
         {isAdvancedExpanded && (
           <div className="collapsible-content">
-            <div className="form-group">
-              <label htmlFor="model">Model</label>
-              <select
-                id="model"
-                name="model"
-                value={selectedModel}
-                onChange={(e) =>
-                  setSelectedModel((e.target as HTMLSelectElement).value)
-                }
-                disabled={isLoading || models.length === 0}
-              >
-                <option value="" disabled>
-                  {isLoading
-                    ? 'Fetching models...'
-                    : models.length > 0
-                    ? 'Select a model...'
-                    : 'Enter API key and test'}
-                </option>
-                {models.map((model) => (
-                  <option key={model.id} value={model.id}>
-                    {model.name}
-                  </option>
-                ))}
-              </select>
-            </div>
 
             <div className="form-group">
               <label htmlFor="temperature">

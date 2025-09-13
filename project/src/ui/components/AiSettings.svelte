@@ -9,6 +9,7 @@
   // UI state
   let saveMessage = '';
   let isAdvancedExpanded = false;
+  let isAiEnabled = true; // Toggle for AI on/off
 
   // AI settings state
   let apiKey = '';
@@ -22,6 +23,11 @@
   let replyPrompt = '';
   let dmPrompt = '';
   let nonConnectedTemplate = '';
+
+  // Static text fields (used when AI is off)
+  let staticReplyText = '';
+  let staticNonConnectedText = '';
+  let staticDmText = '';
 
   // Other settings
   let temperature = 0.7;
@@ -69,16 +75,22 @@
         replyPrompt = config.reply?.customPrompt || '';
         dmPrompt = config.dm?.customPrompt || '';
         nonConnectedTemplate =
-          config.reply?.nonConnectedTemplate ||
+          config.reply?.nonConnectedPrompt ||
           "Thanks for your comment! I'd love to connect first so we can continue the conversation.";
+        
+        // Load AI enabled state and static texts
+        isAiEnabled = config.aiEnabled !== undefined ? config.aiEnabled : true;
+        staticReplyText = config.staticTexts?.replyText || '';
+        staticNonConnectedText = config.staticTexts?.nonConnectedText || '';
+        staticDmText = config.staticTexts?.dmText || '';
 
         // If an API key is already present, fetch models automatically.
         if (config.apiKey) {
           handleFetchModels(config.apiKey, config.model);
         }
       } else {
-        console.error('Failed to load AI config:', response.message);
-        error = `Failed to load AI config: ${response.message}`;
+        console.error('Failed to load reply settings:', response.message);
+        error = `Failed to load reply settings: ${response.message}`;
       }
     });
     
@@ -115,22 +127,29 @@
         top_p: topP,
         reply: {
           customPrompt: replyPrompt,
-          nonConnectedTemplate,
+          nonConnectedPrompt: nonConnectedTemplate,
         },
         dm: {
           customPrompt: dmPrompt,
         },
+        // Add static text fields and AI toggle state
+        staticTexts: {
+          replyText: staticReplyText,
+          nonConnectedText: staticNonConnectedText,
+          dmText: staticDmText,
+        },
+        aiEnabled: isAiEnabled,
       };
       chrome.runtime.sendMessage(
         { type: 'UPDATE_AI_CONFIG', payload: partialConfig },
         (response) => {
           if (response && response.status === 'success') {
-            console.log('AI Config saved.');
+            console.log('Reply settings saved.');
             saveMessage = 'Settings saved successfully!';
             setTimeout(() => (saveMessage = ''), 3000); // Clear after 3s
             resolve();
           } else {
-            const errorMsg = `Failed to save AI config: ${
+            const errorMsg = `Failed to save reply settings: ${
               response?.message || 'No response from background script.'
             }`;
             console.error(errorMsg);
@@ -149,111 +168,174 @@
 
 <div class="ai-settings-section bg-white rounded-xl shadow-sm border border-gray-100 p-4 mb-4 animate-slide-up" bind:this={containerElement}>
   <div class="sidebar-section-header">
-    <div class="flex items-center space-x-2">
-      <div class="w-2 h-2 rounded-full bg-gradient-to-r from-purple-500 to-violet-500"></div>
-      <h2 class="font-semibold text-gray-900">AI Settings</h2>
-    </div>
-  </div>
-
-  <div class="form-group mb-4" bind:this={formElements[0]}>
-    <label for="apiKey" class="block text-sm font-medium text-gray-800 mb-2 uppercase tracking-wide">OpenRouter API Key</label>
-    <div class="input-group">
-      <input
-        type="password"
-        id="apiKey"
-        name="apiKey"
-        placeholder="sk-or-..."
-        bind:value={apiKey}
-        class="flex-1 px-3 py-2 text-base border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-600 focus:border-transparent transition-all duration-200 bg-gray-50 hover:bg-white"
-      />
-      <button on:click={onTestClick} disabled={isLoading || !apiKey} class="px-4 py-2 text-base font-medium text-white bg-purple-600 rounded-lg hover:bg-purple-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors duration-200">
-        {isLoading ? 'Testing...' : 'Test'}
-      </button>
-    </div>
-    {#if testStatus === 'success'}
-      <p class="success-message">API Key is valid. Models loaded.</p>
-    {/if}
-    {#if error}
-      <p class="error-message">{error}</p>
-    {/if}
-  </div>
-
-  <div class="form-group mb-4" bind:this={formElements[1]}>
-    <label for="replyPrompt" class="block text-sm font-medium text-gray-800 mb-2 uppercase tracking-wide">Custom Reply Prompt</label>
-    <textarea
-      id="replyPrompt"
-      name="replyPrompt"
-      rows={4}
-      bind:value={replyPrompt}
-      class="w-full px-3 py-2 text-base border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-600 focus:border-transparent transition-all duration-200 bg-gray-50 hover:bg-white resize-none"
-    ></textarea>
-  </div>
-
-  <div class="form-group mb-4" bind:this={formElements[2]}>
-    <label for="nonConnectedTemplate" class="block text-sm font-medium text-gray-800 mb-2 uppercase tracking-wide">Non-connected Reply Text</label>
-    <textarea
-      id="nonConnectedTemplate"
-      name="nonConnectedTemplate"
-      rows={3}
-      bind:value={nonConnectedTemplate}
-      class="w-full px-3 py-2 text-base border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-600 focus:border-transparent transition-all duration-200 bg-gray-50 hover:bg-white resize-none"
-    ></textarea>
-    <small class="text-sm text-gray-700 mt-1 block">Used when the commenter is not a 1st-degree connection. Sent as-is.</small>
-  </div>
-
-  <div class="form-group mb-4" bind:this={formElements[3]}>
-    <label for="dmPrompt" class="block text-sm font-medium text-gray-800 mb-2 uppercase tracking-wide">Custom DM Prompt</label>
-    <textarea
-      id="dmPrompt"
-      name="dmPrompt"
-      rows={4}
-      bind:value={dmPrompt}
-      class="w-full px-3 py-2 text-base border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-600 focus:border-transparent transition-all duration-200 bg-gray-50 hover:bg-white resize-none"
-    ></textarea>
-  </div>
-
-  <!-- Advanced Settings - Collapsible -->
-  <div class="collapsible-section mb-4">
-    <button
-      type="button"
-      class="collapsible-header w-full flex items-center justify-between p-3 bg-gray-50 hover:bg-gray-100 rounded-lg border border-gray-200 transition-all duration-200"
-      on:click={() => (isAdvancedExpanded = !isAdvancedExpanded)}
-      aria-expanded={isAdvancedExpanded}
-    >
+    <div class="flex items-center justify-between">
       <div class="flex items-center space-x-2">
-        <div class="w-2 h-2 rounded-full bg-gradient-to-r from-blue-500 to-indigo-500"></div>
-        <h3 class="font-medium text-gray-900">Advanced Settings</h3>
+        <div class="w-2 h-2 rounded-full bg-gradient-to-r from-purple-500 to-violet-500"></div>
+        <h2 class="font-semibold text-gray-900">Reply Settings</h2>
       </div>
-      <span class="collapse-icon transform transition-transform duration-200 text-gray-500 {isAdvancedExpanded ? 'rotate-180' : ''}">
-        ▼
-      </span>
-    </button>
+      <!-- AI Toggle Button -->
+      <div class="flex items-center space-x-2">
+        <span class="text-sm text-gray-600">{isAiEnabled ? 'AI' : 'Manual'}</span>
+        <button
+          type="button"
+          class="relative inline-flex h-6 w-11 items-center rounded-full transition-colors focus:outline-none focus:ring-2 focus:ring-purple-500 focus:ring-offset-2 {isAiEnabled ? 'bg-purple-600' : 'bg-gray-200'}"
+          on:click={() => isAiEnabled = !isAiEnabled}
+          aria-pressed={isAiEnabled}
+          aria-label="Toggle AI mode"
+        >
+          <span class="inline-block h-4 w-4 transform rounded-full bg-white transition-transform {isAiEnabled ? 'translate-x-6' : 'translate-x-1'}"></span>
+        </button>
+      </div>
+    </div>
+  </div>
+
+  {#if isAiEnabled}
+    <!-- AI Configuration Section -->
+    <div class="form-group mb-4" bind:this={formElements[0]}>
+      <label for="apiKey" class="block text-sm font-medium text-gray-800 mb-2 uppercase tracking-wide">OpenRouter API Key</label>
+      <div class="input-group">
+        <input
+          type="password"
+          id="apiKey"
+          name="apiKey"
+          placeholder="sk-or-..."
+          bind:value={apiKey}
+          class="flex-1 px-3 py-2 text-base border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-600 focus:border-transparent transition-all duration-200 bg-gray-50 hover:bg-white"
+        />
+        <button on:click={onTestClick} disabled={isLoading || !apiKey} class="px-4 py-2 text-base font-medium text-white bg-purple-600 rounded-lg hover:bg-purple-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors duration-200">
+          {isLoading ? 'Testing...' : 'Test'}
+        </button>
+      </div>
+      {#if testStatus === 'success'}
+        <p class="success-message">API Key is valid. Models loaded.</p>
+      {/if}
+      {#if error}
+        <p class="error-message">{error}</p>
+      {/if}
+    </div>
+  {:else}
+    <!-- Static Text Fields Section -->
+    <div class="form-group mb-4">
+      <label for="staticReplyText" class="block text-sm font-medium text-gray-800 mb-2 uppercase tracking-wide">Reply Text</label>
+      <textarea
+        id="staticReplyText"
+        name="staticReplyText"
+        rows={3}
+        bind:value={staticReplyText}
+        placeholder="Enter your standard reply text..."
+        class="w-full px-3 py-2 text-base border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-600 focus:border-transparent transition-all duration-200 bg-gray-50 hover:bg-white resize-none"
+      ></textarea>
+      <small class="text-sm text-gray-700 mt-1 block">This text will be used for all replies when AI is disabled.</small>
+    </div>
+
+    <div class="form-group mb-4">
+      <label for="staticNonConnectedText" class="block text-sm font-medium text-gray-800 mb-2 uppercase tracking-wide">Non-Connected Reply Text</label>
+      <textarea
+        id="staticNonConnectedText"
+        name="staticNonConnectedText"
+        rows={3}
+        bind:value={staticNonConnectedText}
+        placeholder="Enter your reply for non-connected users..."
+        class="w-full px-3 py-2 text-base border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-600 focus:border-transparent transition-all duration-200 bg-gray-50 hover:bg-white resize-none"
+      ></textarea>
+      <small class="text-sm text-gray-700 mt-1 block">Used when the commenter is not a 1st-degree connection.</small>
+    </div>
+
+    <div class="form-group mb-4">
+      <label for="staticDmText" class="block text-sm font-medium text-gray-800 mb-2 uppercase tracking-wide">DM Text</label>
+      <textarea
+        id="staticDmText"
+        name="staticDmText"
+        rows={3}
+        bind:value={staticDmText}
+        placeholder="Enter your standard DM text..."
+        class="w-full px-3 py-2 text-base border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-600 focus:border-transparent transition-all duration-200 bg-gray-50 hover:bg-white resize-none"
+      ></textarea>
+      <small class="text-sm text-gray-700 mt-1 block">This text will be used for all direct messages when AI is disabled.</small>
+    </div>
+  {/if}
+
+  {#if isAiEnabled}
+    <div class="form-group mb-4" bind:this={formElements[1]}>
+      <label for="replyPrompt" class="block text-sm font-medium text-gray-800 mb-2 uppercase tracking-wide">Custom Reply Prompt</label>
+      <textarea
+        id="replyPrompt"
+        name="replyPrompt"
+        rows={4}
+        bind:value={replyPrompt}
+        class="w-full px-3 py-2 text-base border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-600 focus:border-transparent transition-all duration-200 bg-gray-50 hover:bg-white resize-none"
+      ></textarea>
+    </div>
+
+    <div class="form-group mb-4" bind:this={formElements[2]}>
+      <label for="nonConnectedTemplate" class="block text-sm font-medium text-gray-800 mb-2 uppercase tracking-wide">Non-connected Reply Prompt</label>
+      <textarea
+        id="nonConnectedTemplate"
+        name="nonConnectedTemplate"
+        rows={3}
+        bind:value={nonConnectedTemplate}
+        class="w-full px-3 py-2 text-base border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-600 focus:border-transparent transition-all duration-200 bg-gray-50 hover:bg-white resize-none"
+      ></textarea>
+      <small class="text-sm text-gray-700 mt-1 block">AI prompt used when the commenter is not a 1st-degree connection.</small>
+    </div>
+
+    <div class="form-group mb-4" bind:this={formElements[3]}>
+      <label for="dmPrompt" class="block text-sm font-medium text-gray-800 mb-2 uppercase tracking-wide">Custom DM Prompt</label>
+      <textarea
+        id="dmPrompt"
+        name="dmPrompt"
+        rows={4}
+        bind:value={dmPrompt}
+        class="w-full px-3 py-2 text-base border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-600 focus:border-transparent transition-all duration-200 bg-gray-50 hover:bg-white resize-none"
+      ></textarea>
+    </div>
+
+    <!-- AI Model - moved outside Advanced Settings -->
+    <div class="form-group mb-4" bind:this={formElements[4]}>
+      <label for="model" class="block text-sm font-medium text-gray-800 mb-2 uppercase tracking-wide">AI Model</label>
+      <select
+        id="model"
+        name="model"
+        bind:value={selectedModel}
+        disabled={isLoading || models.length === 0}
+        class="w-full px-3 py-2 text-base border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-600 focus:border-transparent transition-all duration-200 bg-white"
+      >
+        <option value="" disabled>
+          {isLoading
+            ? 'Fetching models...'
+            : models.length > 0
+            ? 'Select a model...'
+            : 'Enter API key and test'}
+        </option>
+        {#each models as model (model.id)}
+          <option value={model.id}>
+            {model.name}
+          </option>
+        {/each}
+      </select>
+    </div>
+  {/if}
+
+  <!-- Advanced Settings - Collapsible (only show when AI is enabled) -->
+  {#if isAiEnabled}
+    <div class="collapsible-section mb-4">
+      <button
+        type="button"
+        class="collapsible-header w-full flex items-center justify-between p-3 bg-gray-50 hover:bg-gray-100 rounded-lg border border-gray-200 transition-all duration-200"
+        on:click={() => (isAdvancedExpanded = !isAdvancedExpanded)}
+        aria-expanded={isAdvancedExpanded}
+      >
+        <div class="flex items-center space-x-2">
+          <div class="w-2 h-2 rounded-full bg-gradient-to-r from-blue-500 to-indigo-500"></div>
+          <h3 class="font-medium text-gray-900">Advanced Settings</h3>
+        </div>
+        <span class="collapse-icon transform transition-transform duration-200 text-gray-500 {isAdvancedExpanded ? 'rotate-180' : ''}">
+          ▼
+        </span>
+      </button>
     
     {#if isAdvancedExpanded}
       <div class="collapsible-content mt-3 space-y-4 p-3 bg-gray-25 rounded-lg border border-gray-100">
-        <div class="form-group">
-          <label for="model" class="block text-sm font-medium text-gray-800 mb-2 uppercase tracking-wide">AI Model</label>
-          <select
-            id="model"
-            name="model"
-            bind:value={selectedModel}
-            disabled={isLoading || models.length === 0}
-            class="w-full px-3 py-2 text-base border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-600 focus:border-transparent transition-all duration-200 bg-white"
-          >
-            <option value="" disabled>
-              {isLoading
-                ? 'Fetching models...'
-                : models.length > 0
-                ? 'Select a model...'
-                : 'Enter API key and test'}
-            </option>
-            {#each models as model (model.id)}
-              <option value={model.id}>
-                {model.name}
-              </option>
-            {/each}
-          </select>
-        </div>
 
         <div class="form-group">
           <label for="temperature" class="block text-sm font-medium text-gray-800 mb-2 uppercase tracking-wide">
@@ -309,7 +391,8 @@
         </div>
       </div>
     {/if}
-  </div>
+    </div>
+  {/if}
 
   <div class="mt-6 pt-4 border-t border-gray-200">
     <button 

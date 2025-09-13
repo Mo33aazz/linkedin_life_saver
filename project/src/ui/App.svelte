@@ -57,9 +57,13 @@
   <div class="ui-scale">
   <!-- Header with animated title -->
   <div class="mb-6">
-    <h1 class="text-3xl font-bold bg-gradient-to-r from-primary-600 to-secondary-600 bg-clip-text text-transparent mb-2 animate-slide-up">
-      LinkedIn Engagement Assistant
+    <h1 class="text-3xl font-bold text-white mb-1 animate-slide-up flex items-center gap-3" style="font-family: 'Saira', 'Inter', 'Segoe UI', 'Roboto', 'Helvetica Neue', Arial, sans-serif;">
+      <img src={chrome?.runtime?.getURL('logo.svg') || '/logo.svg'} alt="LinkedIn Life Saver Logo" class="w-8 h-8" />
+      LinkedIn Life Saver
     </h1>
+    <p class="text-sm text-gray-500 mb-2 font-medium">
+      v.1.0
+    </p>
     <div class="h-1 bg-gradient-to-r from-primary-500 to-secondary-500 rounded-full w-full animate-bounce-gentle"></div>
   </div>
 

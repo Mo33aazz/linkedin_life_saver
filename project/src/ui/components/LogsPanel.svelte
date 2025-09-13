@@ -18,14 +18,16 @@
     ERROR: { color: 'text-red-600', bgColor: 'bg-red-100', icon: '❌' }
   };
 
-  // Filter logs based on level and search term
+  // Filter logs based on level and search term. Show newest first.
   $: filteredLogs = $logs.filter(log => {
     const levelMatch = selectedLevel === 'ALL' || log.level === selectedLevel;
     const searchMatch = searchTerm === '' || 
       log.message.toLowerCase().includes(searchTerm.toLowerCase()) ||
       (log.context && JSON.stringify(log.context).toLowerCase().includes(searchTerm.toLowerCase()));
     return levelMatch && searchMatch;
-  }).slice(-50); // Show only last 50 logs for performance
+  })
+    .slice(-50) // Take latest 50
+    .reverse(); // Newest at the top
 
   // Get log count by level
   $: logCounts = {
@@ -88,10 +90,10 @@
     });
   }
 
-  // Animate new log entries
+  // Animate new log entries (animate top entries since newest are first)
   $: if (filteredLogs.length > 0) {
     setTimeout(() => {
-      const newEntries = logEntries.filter(Boolean).slice(-3); // Animate last 3 entries
+      const newEntries = logEntries.filter(Boolean).slice(0, 3); // Animate first 3 entries
       gsap.fromTo(newEntries,
         { opacity: 0, x: 20, scale: 0.95 },
         { 

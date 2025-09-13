@@ -6,6 +6,9 @@ export default {
   ],
   theme: {
     extend: {
+      fontFamily: {
+        'saira': ['Saira', 'sans-serif'],
+      },
       colors: {
         primary: {
           50: '#eff6ff',

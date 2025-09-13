@@ -185,13 +185,14 @@
     {/each}
   </div>
   
-  <!-- Summary Stats -->
+  <!-- Summary Stats (temporarily disabled)
   <div class="mt-4 pt-4 border-t border-gray-100">
     <div class="flex justify-between items-center text-sm text-gray-600">
       <span>Top Level (No Replies): <strong class="text-gray-800">{$stats.totalTopLevelNoReplies}</strong></span>
       <span>User Comments: <strong class="text-gray-800">{$stats.userTopLevelNoReplies}</strong></span>
     </div>
   </div>
+  -->
 </div>
 
 <style>

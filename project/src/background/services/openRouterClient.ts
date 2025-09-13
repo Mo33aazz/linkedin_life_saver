@@ -7,6 +7,8 @@ import {
 import { logger } from '../logger';
 
 // Define the base URL for the OpenRouter API as a constant.
+// Note: To avoid hitting provider rate limits, fetching fewer than
+// ~80 times per day is recommended.
 const API_BASE_URL = 'https://openrouter.ai/api/v1';
 const MAX_RETRIES = 3;
 const INITIAL_DELAY = 1000; // 1 second

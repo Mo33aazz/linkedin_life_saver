@@ -146,7 +146,7 @@ test('Extension UI renders and toggle works on LinkedIn post', async () => {
     `,
   });
   expect(reHeader?.result?.isHidden).toBeFalsy();
-  expect(reHeader?.result?.text).toBe('LinkedIn Engagement Assistant');
+  expect(reHeader?.result?.text).toBe('LinkedIn Life Saver');
   expect(reHeader?.result?.chevron).toBe('‹');
 
   // 8) Cleanup this page

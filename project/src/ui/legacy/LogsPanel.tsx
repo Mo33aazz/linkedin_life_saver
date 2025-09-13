@@ -66,14 +66,18 @@ export const LogsPanel = () => {
     });
   };
 
-  const filteredLogs = currentLogs.filter((log: LogEntry) => activeFilters.has(log.level));
+  // Show newest logs at the top
+  const filteredLogs = currentLogs
+    .filter((log: LogEntry) => activeFilters.has(log.level))
+    .slice(-100)
+    .reverse();
 
   useEffect(() => {
     if (logContainerRef.current) {
-      // Simple auto-scroll to bottom
-      logContainerRef.current.scrollTop = logContainerRef.current.scrollHeight;
+      // Keep view pinned to the top since newest are first
+      logContainerRef.current.scrollTop = 0;
     }
-  }, [filteredLogs.length]); // Auto-scroll when new filtered logs are added
+  }, [filteredLogs.length]); // Adjust scroll when new filtered logs are added
 
   return (
     <div className="sidebar-section">

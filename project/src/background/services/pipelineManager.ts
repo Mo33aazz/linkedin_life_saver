@@ -106,9 +106,27 @@ const generateReply = async (
     commentId: comment.commentId,
     step: 'GENERATE_REPLY',
   };
+  
+  const aiConfig = getConfig();
+  
+  // Check if AI is disabled, use static text
+  if (aiConfig.aiEnabled === false) {
+    logger.info('Using static reply text (AI disabled)', context);
+    const staticText = comment.connected 
+      ? aiConfig.staticTexts?.replyText 
+      : aiConfig.staticTexts?.nonConnectedText;
+    
+    if (!staticText) {
+      logger.warn('No static text configured for reply', context);
+      return null;
+    }
+    
+    return staticText;
+  }
+  
+  // AI is enabled, proceed with AI generation
   logger.info('Generating AI reply', context);
   try {
-    const aiConfig = getConfig();
     if (!aiConfig.apiKey) {
       logger.error('OpenRouter API key is not set.', undefined, context);
       return null;
@@ -116,7 +134,11 @@ const generateReply = async (
 
     const client = new OpenRouterClient(aiConfig.apiKey, aiConfig.attribution);
 
-    const systemPrompt = aiConfig.reply?.customPrompt;
+    // Use different prompts based on connection status
+    const systemPrompt = comment.connected 
+      ? aiConfig.reply?.customPrompt
+      : aiConfig.reply?.nonConnectedPrompt;
+    
     const userMessageContent = `
        Post URL: ${postState._meta.postUrl}
        My persona: ${systemPrompt}
@@ -166,9 +188,25 @@ const generateDm = async (
     commentId: comment.commentId,
     step: 'GENERATE_DM',
   };
+  
+  const aiConfig = getConfig();
+  
+  // Check if AI is disabled, use static text
+  if (aiConfig.aiEnabled === false) {
+    logger.info('Using static DM text (AI disabled)', context);
+    const staticDmText = aiConfig.staticTexts?.dmText;
+    
+    if (!staticDmText) {
+      logger.warn('No static DM text configured', context);
+      return null;
+    }
+    
+    return staticDmText;
+  }
+  
+  // AI is enabled, proceed with AI generation
   logger.info('Generating AI DM', context);
   try {
-    const aiConfig = getConfig();
     if (!aiConfig.apiKey) {
       logger.error('OpenRouter API key is not set.', undefined, context);
       return null;
@@ -600,7 +638,7 @@ const processComment = async (
         let replyText: string | null;
 
         if (comment.connected === false) {
-          replyText = aiConfig.reply?.nonConnectedTemplate || "Thanks for your comment! I'd love to connect first.";
+          replyText = aiConfig.reply?.nonConnectedPrompt || "Thanks for your comment! I'd love to connect first.";
           logger.info('Using non-connected reply template', { ...stepContext });
         } else {
           replyText = await generateReply(comment, postState);
