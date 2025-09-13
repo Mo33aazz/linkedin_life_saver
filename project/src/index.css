@@ -620,3 +620,69 @@
     @apply border-2 border-gray-900;
   }
 }
+
+/* Font scaling overrides for Tailwind text utilities */
+/* These overrides ensure all text respects the --ui-font-scale variable */
+.sidebar .text-xs {
+  font-size: calc(0.75rem * var(--ui-font-scale, 1)) !important;
+}
+
+.sidebar .text-sm {
+  font-size: calc(0.875rem * var(--ui-font-scale, 1)) !important;
+}
+
+.sidebar .text-base {
+  font-size: calc(1rem * var(--ui-font-scale, 1)) !important;
+}
+
+.sidebar .text-lg {
+  font-size: calc(1.125rem * var(--ui-font-scale, 1)) !important;
+}
+
+.sidebar .text-xl {
+  font-size: calc(1.25rem * var(--ui-font-scale, 1)) !important;
+}
+
+.sidebar .text-2xl {
+  font-size: calc(1.5rem * var(--ui-font-scale, 1)) !important;
+}
+
+.sidebar .text-3xl {
+  font-size: calc(1.875rem * var(--ui-font-scale, 1)) !important;
+}
+
+.sidebar .text-4xl {
+  font-size: calc(2.25rem * var(--ui-font-scale, 1)) !important;
+}
+
+.sidebar .text-5xl {
+  font-size: calc(3rem * var(--ui-font-scale, 1)) !important;
+}
+
+.sidebar .text-6xl {
+  font-size: calc(3.75rem * var(--ui-font-scale, 1)) !important;
+}
+
+/* Override for success and error messages in Svelte components */
+.sidebar .success-message,
+.sidebar .error-message {
+  font-size: calc(0.75rem * var(--ui-font-scale, 1)) !important;
+}
+
+/* Ensure labels and small text also scale */
+.sidebar label,
+.sidebar small {
+  font-size: calc(0.875rem * var(--ui-font-scale, 1)) !important;
+}
+
+/* Button text scaling */
+.sidebar button {
+  font-size: calc(1rem * var(--ui-font-scale, 1)) !important;
+}
+
+/* Input and textarea text scaling */
+.sidebar input,
+.sidebar textarea,
+.sidebar select {
+  font-size: calc(1rem * var(--ui-font-scale, 1)) !important;
+}

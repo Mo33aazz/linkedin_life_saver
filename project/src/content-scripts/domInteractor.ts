@@ -9,18 +9,29 @@ const delay = (ms: number): Promise<void> => {
 };
 
 /**
- * Automatically scrolls the page down to load all comments.
+ * Automatically scrolls the page down to load comments based on the target number.
  * It continues scrolling until the page height no longer increases,
- * or until a maximum number of scroll attempts is reached.
+ * or until enough comments are loaded to meet the target.
+ * @param targetComments The target number of comments to fetch (determines scroll behavior)
  */
-export const autoScrollPage = async (): Promise<void> => {
+export const autoScrollPage = async (targetComments: number = 10): Promise<void> => {
   const SCROLL_DELAY_MS = 2000;
-  const MAX_SCROLLS = 20;
+  
+  // Calculate scroll attempts based on target comments
+  // For 1 comment: no scrolling needed
+  // For more comments: scale scrolls based on target (roughly 2-3 comments per scroll)
+  const MAX_SCROLLS = targetComments <= 1 ? 0 : Math.min(Math.ceil(targetComments / 2.5), 50);
   let scrolls = 0;
 
   let lastHeight = document.body.scrollHeight;
 
-  console.log('Starting auto-scroll to load all comments...');
+  console.log(`Starting auto-scroll to load ${targetComments} comments (max ${MAX_SCROLLS} scrolls)...`);
+
+  // If only 1 comment needed, skip scrolling entirely
+  if (targetComments <= 1) {
+    console.log('Target is 1 comment - skipping auto-scroll.');
+    return;
+  }
 
   while (scrolls < MAX_SCROLLS) {
     window.scrollTo(0, document.body.scrollHeight);
@@ -36,11 +47,18 @@ export const autoScrollPage = async (): Promise<void> => {
     lastHeight = newHeight;
     scrolls++;
     console.log(`Scrolled... Attempt ${scrolls}/${MAX_SCROLLS}`);
+    
+    // Check if we have enough comments loaded
+    const currentComments = document.querySelectorAll('article.comments-comment-entity:not(.comments-comment-entity--reply)').length;
+    if (currentComments >= targetComments) {
+      console.log(`Found ${currentComments} comments, target reached. Stopping scroll.`);
+      break;
+    }
   }
 
   if (scrolls >= MAX_SCROLLS) {
     console.warn(
-      'Max scroll attempts reached. There might be more content to load.'
+      `Max scroll attempts (${MAX_SCROLLS}) reached for target ${targetComments} comments. There might be more content to load.`
     );
   }
 };

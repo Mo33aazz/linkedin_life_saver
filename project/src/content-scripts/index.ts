@@ -139,17 +139,13 @@ chrome.runtime.onMessage.addListener((message, _sender, sendResponse) => {
         const mod = await import('./domInteractor');
         const payload = message.payload as { noScroll?: boolean; maxComments?: number } || {};
         const disableScroll = Boolean(payload.noScroll);
-        const maxComments = payload.maxComments;
+        const maxComments = payload.maxComments || 10;
+        
         if (!disableScroll) {
-          // Quick scroll to trigger lazy-loading without long waits
-          const delay = (ms: number) => new Promise(r => setTimeout(r, ms));
-          for (let i = 0; i < 6; i++) {
-            window.scrollTo(0, document.body.scrollHeight);
-            await delay(400);
-          }
-          window.scrollTo(0, 0);
-          await delay(200);
+          // Use the new autoScrollPage function that respects maxComments
+          await mod.autoScrollPage(maxComments);
         }
+        
         const postStateData = mod.capturePostStateFromDOM(maxComments);
         sendResponse({ status: 'success', payload: postStateData });
       } catch (error) {

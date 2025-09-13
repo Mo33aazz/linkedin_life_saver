@@ -144,7 +144,7 @@ export type ExtensionMessage =
   | { type: 'STATE_UPDATE'; payload: Partial<UIState> }
   | { type: 'LOG_ENTRY'; payload: LogEntry }
   | { type: 'ping' }
-  | { type: 'START_PIPELINE'; payload: { postUrn?: string } }
+  | { type: 'START_PIPELINE'; payload: { postUrn?: string; maxComments?: number; delayMin?: number; delayMax?: number } }
   | { type: 'STOP_PIPELINE' }
   | { type: 'RESUME_PIPELINE' }
   | { type: 'GET_AI_CONFIG'; payload?: never }

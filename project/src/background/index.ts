@@ -501,13 +501,13 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
     (async () => {
       try {
         await configInitializationPromise;
-        const { postUrn, maxReplies, maxComments } = message.payload as { postUrn: string; maxReplies?: number; maxComments?: number };
+        const { postUrn, maxComments } = message.payload as { postUrn: string; maxComments?: number };
         const tabId = sender.tab?.id;
         if (!tabId) {
           throw new Error('Could not get tab ID to start pipeline.');
         }
-        logger.info('Received START_PIPELINE message', { postUrn, tabId, maxReplies, maxComments });
-        await startPipeline(postUrn, tabId, maxReplies, maxComments);
+        logger.info('Received START_PIPELINE message', { postUrn, tabId, maxComments });
+        await startPipeline(postUrn, tabId, maxComments);
         sendResponse({ status: 'success' });
       } catch (error) {
         logger.error('Failed to start pipeline', error, {

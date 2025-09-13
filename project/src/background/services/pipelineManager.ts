@@ -20,7 +20,7 @@ let pipelineStatus: RunState = 'idle';
 let activePostUrn: string | null = null;
 let activeTabId: number | null = null;
 let isProcessing = false;
-let maxRepliesLimit: number = 10; // Default max replies limit // A lock to prevent concurrent processing loops
+// A lock to prevent concurrent processing loops
 
 // This will be set by the main service worker script to broadcast updates
 let broadcastState: (state: Partial<UIState>) => void = () => {
@@ -80,14 +80,7 @@ export const initPipelineManager = (
   logger.info('PipelineManager initialized.');
 };
 
-/**
- * Updates the max replies limit for the current session.
- * @param limit The maximum number of replies to process
- */
-export const setMaxRepliesLimit = (limit: number): void => {
-  maxRepliesLimit = Math.max(1, limit); // Ensure minimum of 1
-  logger.info('Max replies limit updated', { maxRepliesLimit });
-};
+// Max replies limit functionality removed - now using Comments to Fetch parameter
 
 const findNextComment = (postState: PostState): Comment | null => {
   for (const comment of postState.comments) {
@@ -680,8 +673,11 @@ const processQueue = async (): Promise<void> => {
     }
 
     const completedReplies = postState.comments.filter(c => c.replyStatus === 'DONE').length;
-    if (completedReplies >= maxRepliesLimit) {
-      logger.info('Max replies limit reached. Stopping pipeline.', { maxRepliesLimit });
+    const totalComments = postState.comments.length;
+    
+    // Stop when all available comments have been processed
+    if (completedReplies >= totalComments) {
+      logger.info('All available comments have been processed. Stopping pipeline.', { completedReplies, totalComments });
       pipelineStatus = 'idle';
       break;
     }
@@ -710,15 +706,12 @@ const processQueue = async (): Promise<void> => {
 export const startPipeline = async (
   postUrn: string,
   tabId: number,
-  maxReplies?: number,
   maxComments?: number
 ): Promise<void> => {
   if (pipelineStatus !== 'idle') {
     logger.warn('Pipeline cannot be started', { currentState: pipelineStatus, postUrn });
     return;
   }
-  
-  if (maxReplies !== undefined) setMaxRepliesLimit(maxReplies);
   
   let postState = await loadPostState(postUrn);
   

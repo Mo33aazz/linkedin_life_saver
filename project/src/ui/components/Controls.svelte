@@ -6,16 +6,11 @@
 
   let controlsContainer: HTMLElement;
   let buttons: HTMLElement[] = [];
-  let isExporting = false;
 
-  // Settings state variables (ported from Controls.tsx)
-  let maxReplies = 10;
+  // Settings state variables (simplified to essential parameters only)
   let maxComments = 10;
   let delayMin = 2000;
   let delayMax = 5000;
-  let maxOpenTabs = 3;
-  let maxScrolls = 10;
-  let rateProfile: 'normal' | 'conservative' | 'aggressive' = 'normal';
 
   // Helper function to get post URN from current tab
   const getPostUrnFromCurrentTab = (): string | null => {
@@ -96,8 +91,9 @@
       type: 'START_PIPELINE',
       payload: {
         postUrn: postUrn || undefined,
-        maxReplies,
         maxComments,
+        delayMin,
+        delayMax,
       }
     });
     animateButtonClick('start');
@@ -198,19 +194,15 @@
   // Remove unused variables and functions
   // exportData and stopPipeline functions are kept for potential future use
 
-  // Send settings updates to background when they change (ported from Controls.tsx)
+  // Send settings updates to background when they change (simplified to essential parameters)
   $: {
     if (typeof chrome !== 'undefined' && chrome.runtime) {
       chrome.runtime.sendMessage({
         type: 'UPDATE_SETTINGS',
         settings: {
-          maxReplies,
           maxComments,
           delayMin,
           delayMax,
-          maxOpenTabs,
-          maxScrolls,
-          rateProfile,
         },
       });
     }
@@ -271,27 +263,14 @@
     </h3>
     
     <div class="space-y-3">
-      <!-- Max Replies -->
+      <!-- Comments to Fetch -->
       <div class="control-group">
-        <label for="max-replies" class="block text-sm font-medium text-gray-800 mb-1">Max Replies (session):</label>
-        <input
-          id="max-replies"
-          type="number"
-          min="1"
-          max="100"
-          bind:value={maxReplies}
-          class="w-full px-3 py-2 text-base border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-600 focus:border-transparent"
-        />
-      </div>
-
-      <!-- Max Comments -->
-      <div class="control-group">
-        <label for="max-comments" class="block text-sm font-medium text-gray-800 mb-1">Max Comments to Fetch:</label>
+        <label for="max-comments" class="block text-sm font-medium text-gray-800 mb-1">Comments to Fetch:</label>
         <input
           id="max-comments"
           type="number"
           min="1"
-          max="100"
+          max="1000"
           bind:value={maxComments}
           class="w-full px-3 py-2 text-base border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-600 focus:border-transparent"
         />
@@ -299,7 +278,7 @@
 
       <!-- Delay Range -->
       <div class="control-group">
-        <label class="block text-sm font-medium text-gray-800 mb-1">Delay Between Replies:</label>
+        <label class="block text-sm font-medium text-gray-800 mb-1">Delay Between Actions:</label>
         <div class="flex items-center space-x-2">
           <input
             type="number"
@@ -321,46 +300,6 @@
             class="flex-1 px-3 py-2 text-base border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-600 focus:border-transparent"
           />
         </div>
-      </div>
-
-      <!-- Max Open Tabs -->
-      <div class="control-group">
-        <label for="max-tabs" class="block text-sm font-medium text-gray-800 mb-1">Max Open Tabs:</label>
-        <input
-          id="max-tabs"
-          type="number"
-          min="1"
-          max="10"
-          bind:value={maxOpenTabs}
-          class="w-full px-3 py-2 text-base border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-600 focus:border-transparent"
-        />
-      </div>
-
-      <!-- Max Scrolls -->
-      <div class="control-group">
-        <label for="max-scrolls" class="block text-sm font-medium text-gray-800 mb-1">Max Scrolls:</label>
-        <input
-          id="max-scrolls"
-          type="number"
-          min="1"
-          max="50"
-          bind:value={maxScrolls}
-          class="w-full px-3 py-2 text-base border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-600 focus:border-transparent"
-        />
-      </div>
-
-      <!-- Rate Profile -->
-      <div class="control-group">
-        <label for="rate-profile" class="block text-sm font-medium text-gray-800 mb-1">Rate Limit Profile:</label>
-        <select
-          id="rate-profile"
-          bind:value={rateProfile}
-          class="w-full px-3 py-2 text-base border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-600 focus:border-transparent bg-white"
-        >
-          <option value="normal">Normal</option>
-          <option value="conservative">Conservative</option>
-          <option value="aggressive">Aggressive</option>
-        </select>
       </div>
     </div>
   </div>

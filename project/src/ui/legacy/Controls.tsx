@@ -23,21 +23,19 @@ export const Controls = () => {
       unsubscribePost();
     };
   }, []);
-  const [maxReplies, setMaxReplies] = useState(10);
-  const [maxComments, setMaxComments] = useState(10);
+  const [maxComments, setMaxComments] = useState(50);
   const [delayMin, setDelayMin] = useState(2000);
-  const [delayMax, setDelayMax] = useState(5000);
-  const [maxOpenTabs, setMaxOpenTabs] = useState(3);
-  const [maxScrolls, setMaxScrolls] = useState(10);
-  const [rateProfile, setRateProfile] = useState<'normal' | 'conservative' | 'aggressive'>('normal');
+  const [delayMax, setDelayMax] = useState(8000);
+  // Removed unused state variables: maxReplies, maxOpenTabs, maxScrolls, rateProfile
 
   const handleStart = () => {
     chrome.runtime.sendMessage({
       type: 'START_PIPELINE',
       payload: {
         postUrn: getPostUrnFromCurrentTab(),
-        maxReplies,
         maxComments,
+        delayMin,
+        delayMax,
         // The tabId is now sourced from the message sender object in the background script for robustness.
       }
     });
@@ -117,16 +115,12 @@ export const Controls = () => {
     chrome.runtime.sendMessage({
       type: 'UPDATE_SETTINGS',
       settings: {
-          maxReplies,
           maxComments,
           delayMin,
           delayMax,
-          maxOpenTabs,
-          maxScrolls,
-          rateProfile,
         },
     });
-  }, [maxReplies, maxComments, delayMin, delayMax, maxOpenTabs, maxScrolls, rateProfile]);
+  }, [maxComments, delayMin, delayMax]);
 
   return (
     <div className="sidebar-section controls">
@@ -188,17 +182,7 @@ export const Controls = () => {
       </div>
 
       <div className="control-inputs">
-        <div className="control-group">
-          <label htmlFor="max-replies">Max Replies (session):</label>
-          <input
-            id="max-replies"
-            type="number"
-            min="1"
-            max="100"
-            value={maxReplies}
-            onChange={(e) => setMaxReplies(parseInt((e.target as HTMLInputElement).value, 10))}
-          />
-        </div>
+
 
         <div className="control-group">
           <label htmlFor="max-comments">Max Comments to Fetch:</label>
@@ -237,42 +221,7 @@ export const Controls = () => {
           </div>
         </div>
 
-        <div className="control-group">
-          <label htmlFor="max-tabs">Max Open Tabs:</label>
-          <input
-            id="max-tabs"
-            type="number"
-            min="1"
-            max="10"
-            value={maxOpenTabs}
-            onChange={(e) => setMaxOpenTabs(parseInt((e.target as HTMLInputElement).value, 10))}
-          />
-        </div>
-
-        <div className="control-group">
-          <label htmlFor="max-scrolls">Max Scrolls:</label>
-          <input
-            id="max-scrolls"
-            type="number"
-            min="1"
-            max="50"
-            value={maxScrolls}
-            onChange={(e) => setMaxScrolls(parseInt((e.target as HTMLInputElement).value, 10))}
-          />
-        </div>
-
-        <div className="control-group">
-          <label htmlFor="rate-profile">Rate Limit Profile:</label>
-          <select
-            id="rate-profile"
-            value={rateProfile}
-            onChange={(e) => setRateProfile((e.target as HTMLSelectElement).value as 'normal' | 'conservative' | 'aggressive')}
-          >
-            <option value="normal">Normal</option>
-            <option value="conservative">Conservative</option>
-            <option value="aggressive">Aggressive</option>
-          </select>
-        </div>
+        {/* Removed unnecessary parameters: Max Open Tabs, Max Scrolls, Rate Limit Profile */}
       </div>
 
       <div className="control-actions">
