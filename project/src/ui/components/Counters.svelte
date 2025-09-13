@@ -139,10 +139,10 @@
 </script>
 
 <div class="counters-container bg-white rounded-xl shadow-sm border border-gray-100 p-4 mb-4">
-  <h3 class="text-lg font-semibold text-gray-800 mb-4 flex items-center">
-    <span class="text-2xl mr-2">📊</span>
+  <h2 class="font-semibold text-gray-900 mb-4 flex items-center">
+    <span class="text-3xl mr-2">📊</span>
     Statistics
-  </h3>
+  </h2>
   
   <div class="grid grid-cols-2 gap-3">
     {#each counterConfig as config, index}
@@ -159,10 +159,10 @@
               {config.icon}
             </span>
             <div>
-              <div class="counter-number text-xl font-bold {config.textColor}">
+              <div class="counter-number text-2xl font-bold {config.textColor}">
                 {derivedStats[config.key]}
               </div>
-              <div class="text-xs {config.textColor} opacity-70 font-medium">
+              <div class="text-sm {config.textColor} opacity-90 font-medium">
                 {config.label}
               </div>
             </div>

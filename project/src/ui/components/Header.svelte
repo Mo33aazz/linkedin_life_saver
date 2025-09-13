@@ -54,12 +54,12 @@
       
       <!-- Status Text -->
       <div bind:this={statusText} class="status-text">
-        <span class="text-sm font-semibold {currentStatus.color} transition-colors duration-300">
+        <h2 class="font-semibold {currentStatus.color} transition-colors duration-300">
           Pipeline Status
-        </span>
-        <div class="text-xs text-gray-500 mt-0.5">
+        </h2>
+        <h3 class="text-gray-700 mt-0.5">
           {currentStatus.text}
-        </div>
+        </h3>
       </div>
     </div>
 

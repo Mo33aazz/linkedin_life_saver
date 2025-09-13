@@ -81,11 +81,25 @@
 /* Base styles for the sidebar container */
 .sidebar {
   width: var(--sidebar-width);
-  min-height: 100vh;
+  height: 100vh; /* fixed height to enable internal scrolling */
+  max-height: 100vh;
   background: var(--sidebar-bg);
   box-shadow: var(--sidebar-shadow);
+  box-sizing: border-box;
+  overflow-y: auto;
+  overflow-x: hidden; /* prevent horizontal scroll due to zoom compensation */
+  overscroll-behavior: contain; /* keep wheel/touch scroll within sidebar */
+  -webkit-overflow-scrolling: touch; /* smooth scrolling on WebKit */
+  /* Revert to original sans-serif system stack */
   font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
-  color: #1f2937;
+  /* Increase base readability */
+  color: #111827; /* gray-900 for stronger contrast */
+  /* Scale all rem-based sizes via base font-size */
+  font-size: calc(16px * var(--ui-font-scale, 1));
+  line-height: 1.6;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  text-rendering: optimizeLegibility;
   overflow-y: auto;
   scrollbar-width: thin;
   scrollbar-color: #e5e7eb #f9fafb;
@@ -94,6 +108,19 @@
 /* Webkit scrollbar styling */
 .sidebar::-webkit-scrollbar {
   width: 6px;
+}
+
+/* Heading size examples (scoped to sidebar) */
+.sidebar h2 {
+  font-size: 1.25rem; /* ~text-xl */
+  line-height: 1.6;
+  font-weight: 600;
+}
+
+.sidebar h3 {
+  font-size: 1.125rem; /* ~text-lg */
+  line-height: 1.6;
+  font-weight: 600;
 }
 
 .sidebar::-webkit-scrollbar-track {
@@ -157,6 +184,38 @@
   
   .input-field {
     @apply w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent transition-all duration-200 bg-white;
+  }
+
+  /* Force readable text color inside inputs within the sidebar */
+  .sidebar input,
+  .sidebar textarea,
+  .sidebar select {
+    color: var(--gray-900) !important;
+    caret-color: var(--gray-900);
+  }
+
+  /* Improve placeholder contrast for inputs in the sidebar */
+  .sidebar input::placeholder,
+  .sidebar textarea::placeholder {
+    color: var(--gray-900) !important; /* strong contrast */
+    opacity: 1 !important; /* ensure full opacity for contrast */
+  }
+  .sidebar input::-moz-placeholder,
+  .sidebar textarea::-moz-placeholder {
+    color: var(--gray-900) !important;
+    opacity: 1 !important;
+  }
+  /* Vendor prefixes for broader support (Chrome/WebKit) */
+  .sidebar input::-webkit-input-placeholder,
+  .sidebar textarea::-webkit-input-placeholder {
+    color: var(--gray-900) !important;
+    opacity: 1 !important;
+  }
+  /* Edge/IE legacy */
+  .sidebar input:-ms-input-placeholder,
+  .sidebar textarea:-ms-input-placeholder {
+    color: var(--gray-900) !important;
+    opacity: 1 !important;
   }
   
   .counter-card {

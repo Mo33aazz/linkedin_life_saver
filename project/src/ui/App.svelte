@@ -54,9 +54,10 @@
 </script>
 
 <div bind:this={appContainer} id="sidebar-app" class="sidebar p-6 animate-fade-in">
+  <div class="ui-scale">
   <!-- Header with animated title -->
   <div class="mb-6">
-    <h1 class="text-2xl font-bold bg-gradient-to-r from-primary-600 to-secondary-600 bg-clip-text text-transparent mb-2 animate-slide-up">
+    <h1 class="text-3xl font-bold bg-gradient-to-r from-primary-600 to-secondary-600 bg-clip-text text-transparent mb-2 animate-slide-up">
       LinkedIn Engagement Assistant
     </h1>
     <div class="h-1 bg-gradient-to-r from-primary-500 to-secondary-500 rounded-full w-full animate-bounce-gentle"></div>
@@ -71,69 +72,10 @@
     <AiSettings />
     <LogsPanel />
   </div>
+  </div>
 </div>
 
 <style>
-  :global(.sidebar) {
-    position: fixed;
-    top: 0;
-    right: 0;
-    height: 100vh;
-    z-index: 9999;
-    box-shadow: -4px 0 20px rgba(0, 0, 0, 0.15);
-    overflow-y: auto;
-    scrollbar-width: thin;
-    scrollbar-color: #e5e7eb #f9fafb;
-  }
-
-  :global(.sidebar::-webkit-scrollbar) {
-    width: 6px;
-  }
-
-  :global(.sidebar::-webkit-scrollbar-track) {
-    background: #f9fafb;
-  }
-
-  :global(.sidebar::-webkit-scrollbar-thumb) {
-    background: #e5e7eb;
-    border-radius: 3px;
-  }
-
-  :global(.sidebar::-webkit-scrollbar-thumb:hover) {
-    background: #d1d5db;
-  }
-
-  /* Responsive adjustments */
-  @media (max-width: 768px) {
-    :global(.sidebar) {
-      width: 100vw;
-      right: 0;
-      padding: 1rem;
-    }
-    
-    :global(.main-content) {
-      padding: 0.75rem;
-    }
-  }
-  
-  @media (max-width: 480px) {
-    :global(.sidebar) {
-      padding: 0.75rem;
-    }
-    
-    :global(.main-content) {
-      padding: 0.5rem;
-    }
-  }
-  
-  @media (max-width: 360px) {
-    :global(.sidebar) {
-      width: 100vw;
-      right: 0;
-      padding: 0.5rem;
-    }
-  }
-
   /* Accessibility improvements */
   @media (prefers-reduced-motion: reduce) {
     :global(*) {
@@ -141,5 +83,10 @@
       animation-iteration-count: 1 !important;
       transition-duration: 0.01ms !important;
     }
+  }
+
+  /* Disable zoom-based scaling; rely on base font-size scaling */
+  .ui-scale {
+    display: contents;
   }
 </style>

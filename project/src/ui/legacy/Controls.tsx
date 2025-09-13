@@ -43,9 +43,16 @@ export const Controls = () => {
     });
   };
 
-  const handleStop = () => {
+  const handlePause = () => {
     chrome.runtime.sendMessage({
       type: 'STOP_PIPELINE',
+      postUrn: currentPostUrn,
+    });
+  };
+
+  const handleStop = () => {
+    chrome.runtime.sendMessage({
+      type: 'RESET_PIPELINE',
       postUrn: currentPostUrn,
     });
   };
@@ -138,25 +145,45 @@ export const Controls = () => {
         )}
 
         {currentPipelineStatus === 'running' && (
-          <button
-            onClick={handleStop}
-            className="control-button stop-button"
-            data-testid="stop-button"
-            aria-label="Stop pipeline"
-          >
-            Stop
-          </button>
+          <>
+            <button
+              onClick={handlePause}
+              className="control-button pause-button"
+              data-testid="pause-button"
+              aria-label="Pause pipeline"
+            >
+              Pause
+            </button>
+            <button
+              onClick={handleStop}
+              className="control-button stop-button"
+              data-testid="stop-button"
+              aria-label="Stop pipeline"
+            >
+              Stop
+            </button>
+          </>
         )}
 
         {currentPipelineStatus === 'paused' && (
-          <button
-            onClick={handleResume}
-            className="control-button resume-button"
-            data-testid="resume-button"
-            aria-label="Resume pipeline"
-          >
-            Resume
-          </button>
+          <>
+            <button
+              onClick={handleResume}
+              className="control-button resume-button"
+              data-testid="resume-button"
+              aria-label="Resume pipeline"
+            >
+              Resume
+            </button>
+            <button
+              onClick={handleStop}
+              className="control-button stop-button"
+              data-testid="stop-button"
+              aria-label="Stop pipeline"
+            >
+              Stop
+            </button>
+          </>
         )}
       </div>
 

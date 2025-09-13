@@ -110,11 +110,11 @@
 <div bind:this={logsContainer} class="logs-container bg-white rounded-xl shadow-sm border border-gray-100 p-4">
   <!-- Header -->
   <div class="flex items-center justify-between mb-4">
-    <h3 class="text-lg font-semibold text-gray-800 flex items-center">
-      <span class="text-2xl mr-2">📋</span>
+    <h2 class="font-semibold text-gray-900 flex items-center">
+      <span class="text-3xl mr-2">📋</span>
       System Logs
-      <span class="ml-2 text-sm font-normal text-gray-500">({logCounts.ALL})</span>
-    </h3>
+      <span class="ml-2 text-base font-normal text-gray-700">({logCounts.ALL})</span>
+    </h2>
     
     <div class="flex items-center space-x-2">
       <!-- Clear Logs Button -->
@@ -192,7 +192,7 @@
         {#each filteredLogs as log, index}
           <div 
             bind:this={logEntries[index]}
-            class="log-entry flex items-start space-x-3 p-3 rounded-lg border border-gray-100 hover:border-gray-200 transition-colors duration-200 {logLevelConfig[log.level].bgColor} bg-opacity-30"
+        class="log-entry flex items-start space-x-3 p-3 rounded-lg border border-gray-200 hover:border-gray-300 transition-colors duration-200 {logLevelConfig[log.level].bgColor} bg-opacity-40"
           >
             <!-- Level Icon -->
             <div class="flex-shrink-0 mt-0.5">
@@ -202,24 +202,24 @@
             <!-- Log Content -->
             <div class="flex-1 min-w-0">
               <div class="flex items-center space-x-2 mb-1">
-                <span class="text-xs font-medium {logLevelConfig[log.level].color} uppercase tracking-wide">
+                <span class="text-sm font-medium {logLevelConfig[log.level].color} uppercase tracking-wide">
                   {log.level}
                 </span>
-                <span class="text-xs text-gray-500">
+                <span class="text-sm text-gray-700">
                   {formatTimestamp(log.timestamp)}
                 </span>
               </div>
               
-              <p class="text-sm text-gray-800 leading-relaxed">
+              <p class="text-base text-gray-900 leading-relaxed">
                 {log.message}
               </p>
               
               {#if log.context && Object.keys(log.context).length > 0}
                 <details class="mt-2">
-                  <summary class="text-xs text-gray-500 cursor-pointer hover:text-gray-700 transition-colors duration-200">
+                  <summary class="text-sm text-gray-700 cursor-pointer hover:text-gray-900 transition-colors duration-200">
                     Context
                   </summary>
-                  <pre class="mt-1 text-xs text-gray-600 bg-gray-50 p-2 rounded border overflow-x-auto">{JSON.stringify(log.context, null, 2)}</pre>
+                  <pre class="mt-1 text-sm text-gray-800 bg-gray-50 p-2 rounded border overflow-x-auto">{JSON.stringify(log.context, null, 2)}</pre>
                 </details>
               {/if}
             </div>

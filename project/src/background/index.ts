@@ -158,6 +158,30 @@ chrome.tabs.onRemoved.addListener((tabId) => {
   }
 });
 
+// Auto-reset pipeline to idle when the active tab reloads or navigates
+chrome.tabs.onUpdated.addListener((tabId, changeInfo) => {
+  try {
+    const activeTab = getActiveTabId();
+    const status = getPipelineStatus();
+    if (
+      tabId === activeTab &&
+      status === 'running' &&
+      (changeInfo.status === 'loading' || typeof changeInfo.url === 'string')
+    ) {
+      logger.info('Active pipeline tab reloaded/navigated. Auto-resetting pipeline to idle.', {
+        tabId,
+        changeInfo,
+      });
+      // Use reset to move to idle state and clear active references
+      resetPipeline().catch((error) => {
+        logger.error('Failed to auto-reset pipeline on tab update', error, { tabId });
+      });
+    }
+  } catch (error) {
+    logger.error('tabs.onUpdated handler encountered an error', error as Error, { tabId, changeInfo });
+  }
+});
+
 // A curated list of popular and recommended models to show at the top.
 const CURATED_MODELS = [
   'anthropic/claude-3.5-sonnet',
@@ -521,6 +545,26 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
         sendResponse({ status: 'success' });
       } catch (error) {
         logger.error('Failed to resume pipeline', error);
+        sendResponse({ status: 'error', message: (error as Error).message });
+      }
+    })();
+    return true;
+  }
+
+  // Reset pipeline to idle without clearing saved state
+  if (message.type === 'RESET_PIPELINE') {
+    (async () => {
+      try {
+        await configInitializationPromise;
+        const postUrn = (message.postUrn as string) || (message.payload?.postUrn as string) || (() => {
+          const m = sender.tab?.url?.match(/(urn:li:activity:\d+)/);
+          return m && m[1] ? m[1] : undefined;
+        })();
+        logger.info('Received RESET_PIPELINE request', { postUrn });
+        await resetPipeline(postUrn);
+        sendResponse({ status: 'success' });
+      } catch (error) {
+        logger.error('Failed to reset pipeline', error);
         sendResponse({ status: 'error', message: (error as Error).message });
       }
     })();

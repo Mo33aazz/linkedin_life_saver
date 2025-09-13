@@ -90,7 +90,7 @@ const sampleComments: Comment[] = [
 // Initial state
 const initialState: UIState = {
   isInitializing: false, // Set to false to show the timeline immediately
-  pipelineStatus: 'running' as RunState,
+  pipelineStatus: 'idle' as RunState,
   stats: {
     totalTopLevelNoReplies: 4,
     userTopLevelNoReplies: 4,

@@ -91,10 +91,11 @@
 
   // Pipeline control functions
   function startPipeline() {
+    const postUrn = getPostUrnFromCurrentTab();
     sendMessage({
       type: 'START_PIPELINE',
       payload: {
-        postUrn: getPostUrnFromCurrentTab(),
+        postUrn: postUrn || undefined,
         maxReplies,
         maxComments,
       }
@@ -104,43 +105,23 @@
 
   function pausePipeline() {
     sendMessage({ 
-      type: 'STOP_PIPELINE',
-      payload: { postUrn: $postUrn || getPostUrnFromCurrentTab() }
-    });
+      type: 'STOP_PIPELINE'
+    } as any);
     animateButtonClick('pause');
   }
 
   function resumePipeline() {
     sendMessage({ 
-      type: 'RESUME_PIPELINE',
-      payload: { postUrn: $postUrn || getPostUrnFromCurrentTab() }
-    });
+      type: 'RESUME_PIPELINE'
+    } as any);
     animateButtonClick('resume');
   }
 
   function stopPipeline() {
     sendMessage({ 
-      type: 'STOP_PIPELINE',
-      payload: { postUrn: $postUrn || getPostUrnFromCurrentTab() }
-    });
+      type: 'RESET_PIPELINE'
+    } as any);
     animateButtonClick('stop');
-  }
-
-  async function exportData() {
-    if (isExporting) return;
-    
-    isExporting = true;
-    animateButtonClick('export');
-    
-    try {
-      sendMessage({ type: 'REQUEST_POST_STATE_FOR_EXPORT' });
-      
-      await new Promise(resolve => setTimeout(resolve, 1000));
-    } catch (error) {
-      console.error('Export failed:', error);
-    } finally {
-      isExporting = false;
-    }
   }
 
   function handleExportJSON() {
@@ -237,10 +218,10 @@
 </script>
 
 <div bind:this={controlsContainer} class="controls-container bg-white rounded-xl shadow-sm border border-gray-100 p-4 mb-4">
-  <h3 class="text-lg font-semibold text-gray-800 mb-4 flex items-center">
+  <h2 class="font-semibold text-gray-900 mb-4 flex items-center">
     <span class="text-2xl mr-2">🎮</span>
     Pipeline Controls
-  </h3>
+  </h2>
 
   <!-- Main Control Button -->
   <div class="flex gap-3 mb-4">
@@ -254,8 +235,8 @@
       aria-label={currentButton.label}
     >
       <div class="flex items-center justify-center space-x-2">
-        <span class="text-lg">{currentButton.icon}</span>
-        <span class="text-sm font-medium">{currentButton.label}</span>
+        <span class="text-xl">{currentButton.icon}</span>
+        <span class="text-base font-medium">{currentButton.label}</span>
       </div>
       
       <!-- Ripple effect -->
@@ -272,8 +253,8 @@
         aria-label="Stop Pipeline"
       >
         <div class="flex items-center justify-center space-x-2">
-          <span class="text-lg">⏹️</span>
-          <span class="text-sm font-medium">Stop</span>
+          <span class="text-xl">⏹️</span>
+          <span class="text-base font-medium">Stop</span>
         </div>
         
         <!-- Ripple effect -->
@@ -284,41 +265,41 @@
 
   <!-- Settings Section -->
   <div class="border-t border-gray-100 pt-4 mb-4">
-    <h4 class="text-md font-medium text-gray-700 mb-3 flex items-center">
-      <span class="text-lg mr-2">⚙️</span>
+    <h3 class="font-medium text-gray-900 mb-3 flex items-center">
+      <span class="text-xl mr-2">⚙️</span>
       Pipeline Settings
-    </h4>
+    </h3>
     
     <div class="space-y-3">
       <!-- Max Replies -->
       <div class="control-group">
-        <label for="max-replies" class="block text-xs font-medium text-gray-600 mb-1">Max Replies (session):</label>
+        <label for="max-replies" class="block text-sm font-medium text-gray-800 mb-1">Max Replies (session):</label>
         <input
           id="max-replies"
           type="number"
           min="1"
           max="100"
           bind:value={maxReplies}
-          class="w-full px-3 py-2 text-sm border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+          class="w-full px-3 py-2 text-base border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-600 focus:border-transparent"
         />
       </div>
 
       <!-- Max Comments -->
       <div class="control-group">
-        <label for="max-comments" class="block text-xs font-medium text-gray-600 mb-1">Max Comments to Fetch:</label>
+        <label for="max-comments" class="block text-sm font-medium text-gray-800 mb-1">Max Comments to Fetch:</label>
         <input
           id="max-comments"
           type="number"
           min="1"
           max="100"
           bind:value={maxComments}
-          class="w-full px-3 py-2 text-sm border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+          class="w-full px-3 py-2 text-base border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-600 focus:border-transparent"
         />
       </div>
 
       <!-- Delay Range -->
       <div class="control-group">
-        <label class="block text-xs font-medium text-gray-600 mb-1">Delay Between Replies:</label>
+        <label class="block text-sm font-medium text-gray-800 mb-1">Delay Between Replies:</label>
         <div class="flex items-center space-x-2">
           <input
             type="number"
@@ -327,9 +308,9 @@
             step="1000"
             bind:value={delayMin}
             placeholder="Min (ms)"
-            class="flex-1 px-3 py-2 text-sm border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+            class="flex-1 px-3 py-2 text-base border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-600 focus:border-transparent"
           />
-          <span class="text-gray-500">-</span>
+          <span class="text-gray-700">-</span>
           <input
             type="number"
             min="1000"
@@ -337,44 +318,44 @@
             step="1000"
             bind:value={delayMax}
             placeholder="Max (ms)"
-            class="flex-1 px-3 py-2 text-sm border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+            class="flex-1 px-3 py-2 text-base border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-600 focus:border-transparent"
           />
         </div>
       </div>
 
       <!-- Max Open Tabs -->
       <div class="control-group">
-        <label for="max-tabs" class="block text-xs font-medium text-gray-600 mb-1">Max Open Tabs:</label>
+        <label for="max-tabs" class="block text-sm font-medium text-gray-800 mb-1">Max Open Tabs:</label>
         <input
           id="max-tabs"
           type="number"
           min="1"
           max="10"
           bind:value={maxOpenTabs}
-          class="w-full px-3 py-2 text-sm border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+          class="w-full px-3 py-2 text-base border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-600 focus:border-transparent"
         />
       </div>
 
       <!-- Max Scrolls -->
       <div class="control-group">
-        <label for="max-scrolls" class="block text-xs font-medium text-gray-600 mb-1">Max Scrolls:</label>
+        <label for="max-scrolls" class="block text-sm font-medium text-gray-800 mb-1">Max Scrolls:</label>
         <input
           id="max-scrolls"
           type="number"
           min="1"
           max="50"
           bind:value={maxScrolls}
-          class="w-full px-3 py-2 text-sm border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+          class="w-full px-3 py-2 text-base border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-600 focus:border-transparent"
         />
       </div>
 
       <!-- Rate Profile -->
       <div class="control-group">
-        <label for="rate-profile" class="block text-xs font-medium text-gray-600 mb-1">Rate Limit Profile:</label>
+        <label for="rate-profile" class="block text-sm font-medium text-gray-800 mb-1">Rate Limit Profile:</label>
         <select
           id="rate-profile"
           bind:value={rateProfile}
-          class="w-full px-3 py-2 text-sm border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white"
+          class="w-full px-3 py-2 text-base border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-600 focus:border-transparent bg-white"
         >
           <option value="normal">Normal</option>
           <option value="conservative">Conservative</option>
@@ -396,8 +377,8 @@
         aria-label="Export JSON data"
       >
         <div class="flex items-center justify-center space-x-2">
-          <span class="text-lg">📄</span>
-          <span class="text-sm">Export JSON</span>
+          <span class="text-xl">📄</span>
+          <span class="text-base">Export JSON</span>
         </div>
       </button>
 
@@ -410,8 +391,8 @@
         aria-label="Export logs"
       >
         <div class="flex items-center justify-center space-x-2">
-          <span class="text-lg">📋</span>
-          <span class="text-sm">Export Logs</span>
+          <span class="text-xl">📋</span>
+          <span class="text-base">Export Logs</span>
         </div>
       </button>
 
@@ -424,34 +405,20 @@
         aria-label="Reset session"
       >
         <div class="flex items-center justify-center space-x-2">
-          <span class="text-lg">🔄</span>
-          <span class="text-sm">Reset Session</span>
+          <span class="text-xl">🔄</span>
+          <span class="text-base">Reset Session</span>
         </div>
       </button>
 
-      <!-- Capture State Button -->
-      <button
-        bind:this={buttons[5]}
-        class="control-button secondary-button bg-gradient-to-r from-indigo-100 to-purple-100 hover:from-indigo-200 hover:to-purple-200 text-indigo-700 font-medium py-2.5 px-4 rounded-lg border border-indigo-300 transition-all duration-300 transform hover:scale-105 hover:shadow-md focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
-        on:click={() => {
-          sendMessage({ type: 'CAPTURE_POST_STATE' });
-          animateButtonClick('capture');
-        }}
-        aria-label="Capture current state"
-      >
-        <div class="flex items-center justify-center space-x-2">
-          <span class="text-lg">📸</span>
-          <span class="text-sm">Capture State</span>
-        </div>
-      </button>
+      
     </div>
   </div>
 
   <!-- Status Indicator -->
   <div class="mt-4 flex items-center justify-center">
-    <div class="flex items-center space-x-2 text-xs text-gray-500">
+    <div class="flex items-center space-x-2 text-gray-700">
       <div class="w-2 h-2 rounded-full {$pipelineStatus === 'running' ? 'bg-emerald-500 animate-pulse' : $pipelineStatus === 'paused' ? 'bg-amber-500' : $pipelineStatus === 'error' ? 'bg-red-500 animate-pulse' : 'bg-gray-400'}"></div>
-      <span class="capitalize">{$pipelineStatus}</span>
+      <h3 class="capitalize">{$pipelineStatus}</h3>
     </div>
   </div>
 </div>

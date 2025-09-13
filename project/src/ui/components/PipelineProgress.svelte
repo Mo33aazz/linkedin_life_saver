@@ -161,11 +161,11 @@
   }
 
   .comment-author {
-    @apply text-sm font-semibold text-gray-800 mb-1 truncate;
+    @apply text-base font-semibold text-gray-900 mb-1 truncate;
   }
 
   .comment-text {
-    @apply text-xs text-gray-600 leading-relaxed line-clamp-2;
+    @apply text-sm text-gray-700 leading-relaxed line-clamp-2;
   }
 
   /* Horizontal Stepper - Right Side */
@@ -184,7 +184,7 @@
 
   /* Step Circle */
   .step-circle {
-    @apply w-8 h-8 rounded-full flex items-center justify-center text-xs font-bold border-2 transition-all duration-200 relative z-10;
+    @apply w-8 h-8 rounded-full flex items-center justify-center text-sm font-bold border-2 transition-all duration-200 relative z-10;
   }
 
   .step-circle.step-complete {
@@ -205,7 +205,7 @@
 
   /* Step Name */
   .step-name {
-    @apply absolute top-10 left-1/2 transform -translate-x-1/2 text-xs font-medium text-gray-700 whitespace-nowrap;
+    @apply absolute top-10 left-1/2 transform -translate-x-1/2 text-sm font-medium text-gray-800 whitespace-nowrap;
   }
 
   /* Step Connector Line */
@@ -236,7 +236,7 @@
 
   /* Idle message */
   .idle-message {
-    @apply text-center text-gray-500 py-8 px-4 text-sm;
+    @apply text-center text-gray-700 py-8 px-4 text-base;
   }
 
   /* Responsive adjustments */

@@ -4,6 +4,10 @@ import css from '../index.css?inline';
 
 console.log('Content script starting...');
 
+// UI layout and scale settings
+const SIDEBAR_WIDTH = 500; // slightly wider for better fit and no cropping
+const UI_FONT_SCALE = 1.5; // scale base font-size (affects Tailwind rem units)
+
 const isOnLinkedInPost = (): boolean => {
   try {
     const href = window.location.href;
@@ -66,7 +70,7 @@ const updateToggleButtonPosition = () => {
   if (!toggleEl) return;
   // When open, place the toggle on the inner edge of the sidebar
   // so it sits near the content area; otherwise keep it near the viewport edge.
-  toggleEl.style.right = sidebarOpen ? '428px' : '8px';
+  toggleEl.style.right = sidebarOpen ? `${SIDEBAR_WIDTH + 8}px` : '8px';
 };
 
 const applyContentShift = (open: boolean) => {
@@ -77,7 +81,7 @@ const applyContentShift = (open: boolean) => {
   if (!layoutStyleEl) {
     layoutStyleEl = document.createElement('style');
     layoutStyleEl.id = 'lea-layout-style';
-    layoutStyleEl.textContent = `body{margin-right:420px !important;}`;
+    layoutStyleEl.textContent = `body{margin-right:${SIDEBAR_WIDTH}px !important;}`;
     document.head.appendChild(layoutStyleEl);
   }
 };
@@ -175,8 +179,8 @@ const injectUI = () => {
       position: 'fixed',
       top: '0',
       right: '0',
-      padding: '1rem',
-      width: '420px',
+      padding: '0',
+      width: `${SIDEBAR_WIDTH}px`,
       height: '100vh',
       zIndex: '99999',
       borderLeft: '1px solid #e0e0e0',
@@ -186,10 +190,22 @@ const injectUI = () => {
     document.body.appendChild(host);
     const shadowRoot = host.attachShadow({ mode: 'open' });
     const styleElement = document.createElement('style');
-    styleElement.textContent = css;
+    // Ensure high-contrast text and placeholders within the shadow DOM
+    const contrastOverrides = `
+      .sidebar input, .sidebar textarea, .sidebar select { color: #111827 !important; caret-color: #111827; }
+      .sidebar input::placeholder, .sidebar textarea::placeholder { color: #111827 !important; opacity: 1 !important; }
+      .sidebar input::-webkit-input-placeholder, .sidebar textarea::-webkit-input-placeholder { color: #111827 !important; opacity: 1 !important; }
+      .sidebar input::-moz-placeholder, .sidebar textarea::-moz-placeholder { color: #111827 !important; opacity: 1 !important; }
+      .sidebar input:-ms-input-placeholder, .sidebar textarea:-ms-input-placeholder { color: #111827 !important; opacity: 1 !important; }
+    `;
+    styleElement.textContent = `${css}\n${contrastOverrides}`;
     shadowRoot.appendChild(styleElement);
     const appRoot = document.createElement('div');
     appRoot.id = 'app-root';
+    // Set font scaling for the shadow DOM content (affects rem-based sizes)
+    appRoot.style.setProperty('--ui-font-scale', String(UI_FONT_SCALE));
+    // Ensure inner sidebar width matches the host width
+    appRoot.style.setProperty('--sidebar-width', `${SIDEBAR_WIDTH}px`);
     shadowRoot.appendChild(appRoot);
     mountApp(appRoot);
     hostEl = host;

@@ -151,12 +151,12 @@
   <div class="sidebar-section-header">
     <div class="flex items-center space-x-2">
       <div class="w-2 h-2 rounded-full bg-gradient-to-r from-purple-500 to-violet-500"></div>
-      <h2 class="text-sm font-semibold text-gray-700">AI Settings</h2>
+      <h2 class="font-semibold text-gray-900">AI Settings</h2>
     </div>
   </div>
 
   <div class="form-group mb-4" bind:this={formElements[0]}>
-    <label for="apiKey" class="block text-xs font-medium text-gray-600 mb-2 uppercase tracking-wide">OpenRouter API Key</label>
+    <label for="apiKey" class="block text-sm font-medium text-gray-800 mb-2 uppercase tracking-wide">OpenRouter API Key</label>
     <div class="input-group">
       <input
         type="password"
@@ -164,9 +164,9 @@
         name="apiKey"
         placeholder="sk-or-..."
         bind:value={apiKey}
-        class="flex-1 px-3 py-2 text-sm border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent transition-all duration-200 bg-gray-50 hover:bg-white"
+        class="flex-1 px-3 py-2 text-base border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-600 focus:border-transparent transition-all duration-200 bg-gray-50 hover:bg-white"
       />
-      <button on:click={onTestClick} disabled={isLoading || !apiKey} class="px-4 py-2 text-sm font-medium text-white bg-purple-500 rounded-lg hover:bg-purple-600 disabled:opacity-50 disabled:cursor-not-allowed transition-colors duration-200">
+      <button on:click={onTestClick} disabled={isLoading || !apiKey} class="px-4 py-2 text-base font-medium text-white bg-purple-600 rounded-lg hover:bg-purple-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors duration-200">
         {isLoading ? 'Testing...' : 'Test'}
       </button>
     </div>
@@ -179,36 +179,36 @@
   </div>
 
   <div class="form-group mb-4" bind:this={formElements[1]}>
-    <label for="replyPrompt" class="block text-xs font-medium text-gray-600 mb-2 uppercase tracking-wide">Custom Reply Prompt</label>
+    <label for="replyPrompt" class="block text-sm font-medium text-gray-800 mb-2 uppercase tracking-wide">Custom Reply Prompt</label>
     <textarea
       id="replyPrompt"
       name="replyPrompt"
       rows={4}
       bind:value={replyPrompt}
-      class="w-full px-3 py-2 text-sm border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent transition-all duration-200 bg-gray-50 hover:bg-white resize-none"
+      class="w-full px-3 py-2 text-base border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-600 focus:border-transparent transition-all duration-200 bg-gray-50 hover:bg-white resize-none"
     ></textarea>
   </div>
 
   <div class="form-group mb-4" bind:this={formElements[2]}>
-    <label for="nonConnectedTemplate" class="block text-xs font-medium text-gray-600 mb-2 uppercase tracking-wide">Non-connected Reply Text</label>
+    <label for="nonConnectedTemplate" class="block text-sm font-medium text-gray-800 mb-2 uppercase tracking-wide">Non-connected Reply Text</label>
     <textarea
       id="nonConnectedTemplate"
       name="nonConnectedTemplate"
       rows={3}
       bind:value={nonConnectedTemplate}
-      class="w-full px-3 py-2 text-sm border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent transition-all duration-200 bg-gray-50 hover:bg-white resize-none"
+      class="w-full px-3 py-2 text-base border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-600 focus:border-transparent transition-all duration-200 bg-gray-50 hover:bg-white resize-none"
     ></textarea>
-    <small class="text-xs text-gray-500 mt-1 block">Used when the commenter is not a 1st-degree connection. Sent as-is.</small>
+    <small class="text-sm text-gray-700 mt-1 block">Used when the commenter is not a 1st-degree connection. Sent as-is.</small>
   </div>
 
   <div class="form-group mb-4" bind:this={formElements[3]}>
-    <label for="dmPrompt" class="block text-xs font-medium text-gray-600 mb-2 uppercase tracking-wide">Custom DM Prompt</label>
+    <label for="dmPrompt" class="block text-sm font-medium text-gray-800 mb-2 uppercase tracking-wide">Custom DM Prompt</label>
     <textarea
       id="dmPrompt"
       name="dmPrompt"
       rows={4}
       bind:value={dmPrompt}
-      class="w-full px-3 py-2 text-sm border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent transition-all duration-200 bg-gray-50 hover:bg-white resize-none"
+      class="w-full px-3 py-2 text-base border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-600 focus:border-transparent transition-all duration-200 bg-gray-50 hover:bg-white resize-none"
     ></textarea>
   </div>
 
@@ -222,7 +222,7 @@
     >
       <div class="flex items-center space-x-2">
         <div class="w-2 h-2 rounded-full bg-gradient-to-r from-blue-500 to-indigo-500"></div>
-        <span class="text-sm font-medium text-gray-700">Advanced Settings</span>
+        <h3 class="font-medium text-gray-900">Advanced Settings</h3>
       </div>
       <span class="collapse-icon transform transition-transform duration-200 text-gray-500 {isAdvancedExpanded ? 'rotate-180' : ''}">
         ▼
@@ -232,13 +232,13 @@
     {#if isAdvancedExpanded}
       <div class="collapsible-content mt-3 space-y-4 p-3 bg-gray-25 rounded-lg border border-gray-100">
         <div class="form-group">
-          <label for="model" class="block text-xs font-medium text-gray-600 mb-2 uppercase tracking-wide">AI Model</label>
+          <label for="model" class="block text-sm font-medium text-gray-800 mb-2 uppercase tracking-wide">AI Model</label>
           <select
             id="model"
             name="model"
             bind:value={selectedModel}
             disabled={isLoading || models.length === 0}
-            class="w-full px-3 py-2 text-sm border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-200 bg-white"
+            class="w-full px-3 py-2 text-base border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-600 focus:border-transparent transition-all duration-200 bg-white"
           >
             <option value="" disabled>
               {isLoading
@@ -256,7 +256,7 @@
         </div>
 
         <div class="form-group">
-          <label for="temperature" class="block text-xs font-medium text-gray-600 mb-2 uppercase tracking-wide">
+          <label for="temperature" class="block text-sm font-medium text-gray-800 mb-2 uppercase tracking-wide">
             Temperature: <span class="text-blue-600 font-semibold">{temperature.toFixed(1)}</span>
           </label>
           <input
@@ -269,14 +269,14 @@
             bind:value={temperature}
             class="w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer slider"
           />
-          <div class="flex justify-between text-xs text-gray-500 mt-1">
+          <div class="flex justify-between text-sm text-gray-700 mt-1">
             <span>Conservative</span>
             <span>Creative</span>
           </div>
         </div>
 
         <div class="form-group">
-          <label for="topP" class="block text-xs font-medium text-gray-600 mb-2 uppercase tracking-wide">
+          <label for="topP" class="block text-sm font-medium text-gray-800 mb-2 uppercase tracking-wide">
             Top P: <span class="text-blue-600 font-semibold">{topP.toFixed(1)}</span>
           </label>
           <input
@@ -289,23 +289,23 @@
             bind:value={topP}
             class="w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer slider"
           />
-          <div class="flex justify-between text-xs text-gray-500 mt-1">
+          <div class="flex justify-between text-sm text-gray-700 mt-1">
             <span>Focused</span>
             <span>Diverse</span>
           </div>
         </div>
 
         <div class="form-group">
-          <label for="maxTokens" class="block text-xs font-medium text-gray-600 mb-2 uppercase tracking-wide">Max Tokens</label>
-          <input type="number" id="maxTokens" name="maxTokens" min="1" value="220" class="w-full px-3 py-2 text-sm border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-200 bg-white" />
+          <label for="maxTokens" class="block text-sm font-medium text-gray-800 mb-2 uppercase tracking-wide">Max Tokens</label>
+          <input type="number" id="maxTokens" name="maxTokens" min="1" value="220" class="w-full px-3 py-2 text-base border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-600 focus:border-transparent transition-all duration-200 bg-white" />
         </div>
 
         <div class="form-group">
           <label class="flex items-center space-x-3 cursor-pointer">
             <input type="checkbox" name="stream" checked class="w-4 h-4 text-blue-600 bg-gray-100 border-gray-300 rounded focus:ring-blue-500 focus:ring-2" />
-            <span class="text-sm font-medium text-gray-700">Stream Tokens</span>
+            <span class="text-base font-medium text-gray-900">Stream Tokens</span>
           </label>
-          <small class="text-xs text-gray-500 mt-1 block ml-7">Enable real-time token streaming for faster responses</small>
+          <small class="text-sm text-gray-700 mt-1 block ml-7">Enable real-time token streaming for faster responses</small>
         </div>
       </div>
     {/if}
@@ -313,7 +313,7 @@
 
   <div class="mt-6 pt-4 border-t border-gray-200">
     <button 
-      class="save-button w-full px-4 py-3 text-sm font-semibold text-white bg-gradient-to-r from-purple-500 to-violet-500 hover:from-purple-600 hover:to-violet-600 rounded-lg transition-all duration-200 transform hover:scale-[1.02] active:scale-[0.98] disabled:opacity-50 disabled:cursor-not-allowed disabled:transform-none shadow-sm hover:shadow-md" 
+      class="save-button w-full px-4 py-3 text-base font-semibold text-white bg-gradient-to-r from-purple-600 to-violet-600 hover:from-purple-700 hover:to-violet-700 rounded-lg transition-all duration-200 transform hover:scale-[1.02] active:scale-[0.98] disabled:opacity-50 disabled:cursor-not-allowed disabled:transform-none shadow-sm hover:shadow-md" 
       on:click={handleSaveConfig}
     >
       <div class="flex items-center justify-center space-x-2">
@@ -408,8 +408,8 @@
   }
 
   .success-message {
-    color: #10b981;
-    font-size: 0.875rem;
+    color: #111827; /* black for readability */
+    font-size: 0.75rem; /* smaller text */
     margin-top: 0.5rem;
   }
 
