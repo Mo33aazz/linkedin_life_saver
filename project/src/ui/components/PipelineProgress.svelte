@@ -72,13 +72,7 @@
     return text.length > maxLength ? `${text.substring(0, maxLength - 3)}...` : text;
   }
 
-  // Simple percent progress from step statuses
-  function getProgressPercent(statuses: StepStatus[]): number {
-    const total = statuses.length;
-    const complete = statuses.filter((s) => s === 'complete').length;
-    const partial = statuses.includes('active') ? 0.5 : 0;
-    return Math.min(100, Math.round(((complete + partial) / total) * 100));
-  }
+  // Progress bar removed; timeline shows stage status directly
 
   // Summary for compact footer stats (computed from store)
   $: summary = (() => {
@@ -94,8 +88,8 @@
   $: isInitializing = $uiState.isInitializing;
 </script>
 
-<div class="sidebar-section" data-testid="pipeline-progress">
-  <h2>Pipeline</h2>
+<div class="pipeline-container bg-white rounded-xl shadow-sm border border-gray-100 p-4 mb-4" data-testid="pipeline-progress">
+  <h2 class="font-semibold text-gray-900 mb-3">Pipeline</h2>
   {#if isInitializing && $comments.length === 0}
     <!-- Skeleton Loading State -->
     <div class="pipeline-list">
@@ -105,9 +99,7 @@
              <div class="skeleton-author"></div>
              <div class="skeleton-text"></div>
            </div>
-           <div class="stepper-container">
-             <div class="skeleton-stepper"></div>
-           </div>
+           <div class="skeleton-stepper mt-4"></div>
          </div>
        {/each}
      </div>
@@ -121,7 +113,7 @@
           {@const shortText = truncateText(comment.text)}
           {@const stepStatuses = getStepperStatuses(comment)}
           {@const steps = ['Queued', 'Liked', 'DM Sent', 'Replied']}
-          {@const pct = getProgressPercent(stepStatuses)}
+          
           
           <div 
             class="comment-row"
@@ -140,51 +132,44 @@
                 </span>
               </div>
               <p class="comment-text" title={comment.text}>{shortText}</p>
-              <div class="mt-2">
-                <div class="flex justify-between items-center text-xs text-gray-600 mb-1">
-                  <span>Progress</span>
-                  <span>{pct}%</span>
-                </div>
-                <div class="w-full bg-gray-200 rounded-full h-1.5 overflow-hidden">
-                  <div class="bg-blue-500 h-1.5 rounded-full transition-all duration-500" style={`width: ${pct}%`}></div>
-                </div>
-              </div>
-            </div>
-            <div class="stepper-horizontal">
-              {#each steps as step, index}
-                {@const s = stepStatuses[index]}
-                <div class="step-wrapper">
-                  <div 
-                    class="step-circle step-{s}"
-                    data-testid="step-indicator-{step.replace(' ', '-')}"
-                    aria-label={`${step}: ${s}`}
-                    title={`${step}: ${s}`}
-                  >
-                    {#if s === 'complete'}
-                      <CheckCircle2 size={18} />
-                    {:else if s === 'failed'}
-                      <XCircle size={18} />
-                    {:else if s === 'active'}
-                      <Loader2 size={18} class="animate-spin" />
-                    {:else}
-                      {#if index === 0}
-                        <Clock size={16} />
-                      {:else if index === 1}
-                        <Heart size={16} />
-                      {:else if index === 2}
-                        <Send size={16} />
+              <!-- Pipeline timeline moved here (replacing progress bar) -->
+              <div class="stepper-horizontal mt-4 mb-1">
+                {#each steps as step, index}
+                  {@const s = stepStatuses[index]}
+                  <div class="step-wrapper">
+                    <div 
+                      class="step-circle step-{s}"
+                      data-testid="step-indicator-{step.replace(' ', '-')}"
+                      aria-label={`${step}: ${s}`}
+                      title={`${step}: ${s}`}
+                    >
+                      {#if s === 'complete'}
+                        <CheckCircle2 size={18} />
+                      {:else if s === 'failed'}
+                        <XCircle size={18} />
+                      {:else if s === 'active'}
+                        <Loader2 size={18} class="animate-spin" />
                       {:else}
-                        <MessageCircle size={16} />
+                        {#if index === 0}
+                          <Clock size={16} />
+                        {:else if index === 1}
+                          <Heart size={16} />
+                        {:else if index === 2}
+                          <Send size={16} />
+                        {:else}
+                          <MessageCircle size={16} />
+                        {/if}
                       {/if}
+                    </div>
+                    <span class="step-name">{step}</span>
+                    {#if index < steps.length - 1}
+                      <div class="step-connector {s === 'complete' ? 'step-connector-complete' : 'step-connector-incomplete'}"></div>
                     {/if}
                   </div>
-                  <span class="step-name">{step}</span>
-                  {#if index < steps.length - 1}
-                    <div class="step-connector {s === 'complete' ? 'step-connector-complete' : 'step-connector-incomplete'}"></div>
-                  {/if}
-                </div>
-              {/each}
+                {/each}
+              </div>
             </div>
+            <!-- removed right-side stepper; timeline is now inside comment-info -->
           </div>
         {/each}
         <!-- Compact summary aligned to sidebar visuals -->
@@ -253,7 +238,9 @@
     padding: 0.25rem 0;
     width: 100%;
     max-width: 100%;
-    overflow-x: auto;
+    /* Space steps across available width and disable horizontal scrolling */
+    justify-content: space-between;
+    overflow-x: hidden;
     overflow-y: hidden;
     box-sizing: border-box;
   }
@@ -367,11 +354,11 @@
     }
     
     .stepper-horizontal {
-      @apply w-full justify-center;
+      @apply w-full justify-between;
       padding: 0.5rem 0;
       gap: 0.25rem;
       flex-wrap: nowrap;
-      overflow-x: auto;
+      overflow-x: hidden;
     }
 
     .step-circle {
@@ -427,6 +414,7 @@
       padding: 0.5rem 0;
       gap: 0.125rem;
       min-height: 50px;
+      overflow-x: hidden;
     }
 
     .step-circle {

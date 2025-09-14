@@ -148,7 +148,27 @@
               </div>
 
               <h1 class="mt-2 text-2xl sm:text-3xl font-extrabold tracking-tight bg-clip-text text-transparent bg-gradient-to-b from-gray-900 to-gray-700" style="font-family: 'Saira', 'Inter', 'Segoe UI', 'Roboto', 'Helvetica Neue', Arial, sans-serif;">
-                LinkedIn Life Saver
+                <span class="inline-flex items-center gap-2 align-middle">
+                  <!-- LinkedIn logo to the left of the title -->
+                  <svg
+                    aria-hidden="true"
+                    focusable="false"
+                    viewBox="0 0 24 24"
+                    class="h-7 w-7 shrink-0"
+                  >
+                    <rect x="0" y="0" width="24" height="24" rx="4" fill="#0A66C2" />
+                    <text
+                      x="12"
+                      y="16"
+                      text-anchor="middle"
+                      font-size="12"
+                      font-weight="700"
+                      font-family="Inter, Segoe UI, Roboto, Helvetica Neue, Arial, sans-serif"
+                      fill="#FFFFFF"
+                    >in</text>
+                  </svg>
+                  <span>LinkedIn Life Saver</span>
+                </span>
               </h1>
               <p class="mt-1 text-sm text-gray-600 leading-relaxed">Smart LinkedIn automation and insight tools — neatly organized in your sidebar.</p>
             </div>
@@ -156,7 +176,7 @@
             <img
               src={chrome?.runtime?.getURL('logo.svg') || '/logo.svg'}
               alt="LinkedIn Life Saver"
-              class="h-8 w-8 shrink-0 opacity-90"
+              class="h-8 w-8 shrink-0 opacity-90 invert"
             />
           </div>
         </div>
@@ -194,8 +214,9 @@
 <style>
   #sidebar-app {
     width: 100%;
-    max-width: 520px;
-    min-width: 320px;
+    /* Keep container in sync with injected sidebar width */
+    max-width: var(--sidebar-width, 420px);
+    min-width: 280px;
     padding: 1.5rem;
     box-sizing: border-box;
     overflow-x: hidden;

@@ -1,8 +1,18 @@
 <script lang="ts">
   import { onMount } from 'svelte';
   import { gsap } from 'gsap';
-  import { stats, comments } from '../store';
+  import { comments } from '../store';
   import type { Comment } from '../../shared/types';
+  import { 
+    Heart, 
+    MessageCircle, 
+    Mail, 
+    Clock, 
+    AlertCircle, 
+    TrendingUp, 
+    BarChart3, 
+    CheckCircle2 
+  } from 'lucide-svelte';
 
   let counterElements: HTMLElement[] = [];
   
@@ -18,66 +28,43 @@
     ).length
   };
   
+  // Aggregates used in summary and progress visuals
+  $: successTotal = derivedStats.totalLikes + derivedStats.totalReplies + derivedStats.totalDMs;
+  $: successRatio = (successTotal / Math.max(derivedStats.totalComments, 1)) * 100;
+  $: pendingRatio = (derivedStats.pendingActions / Math.max(derivedStats.totalComments, 1)) * 100;
+  
   let previousStats = { ...derivedStats };
 
-  // Counter configuration with vibrant colors
-  const counterConfig: Array<{
-    key: keyof typeof derivedStats;
+  type CounterKey = 'totalLikes' | 'totalReplies' | 'totalDMs' | 'totalComments' | 'pendingActions' | 'totalErrors';
+
+  // Card definitions aligned with the React template (icons, labels, colors)
+  const cardDefs: Array<{
+    key: CounterKey;
     label: string;
-    icon: string;
-    color: string;
-    bgColor: string;
-    textColor: string;
+    icon: any;
+    iconBg: string;
+    stripe: string;
+    showTrend?: boolean;
   }> = [
-    {
-      key: 'totalLikes',
-      label: 'Likes',
-      icon: '👍',
-      color: 'from-pink-500 to-rose-500',
-      bgColor: 'bg-pink-50',
-      textColor: 'text-pink-700'
-    },
-    {
-      key: 'totalReplies', 
-      label: 'Replies',
-      icon: '💬',
-      color: 'from-blue-500 to-indigo-500',
-      bgColor: 'bg-blue-50',
-      textColor: 'text-blue-700'
-    },
-    {
-      key: 'totalDMs',
-      label: 'DMs',
-      icon: '📩',
-      color: 'from-purple-500 to-violet-500', 
-      bgColor: 'bg-purple-50',
-      textColor: 'text-purple-700'
-    },
-    {
-      key: 'totalComments',
-      label: 'Comments',
-      icon: '📝',
-      color: 'from-emerald-500 to-teal-500',
-      bgColor: 'bg-emerald-50', 
-      textColor: 'text-emerald-700'
-    },
-    {
-      key: 'pendingActions',
-      label: 'Pending',
-      icon: '⏳',
-      color: 'from-amber-500 to-orange-500',
-      bgColor: 'bg-amber-50',
-      textColor: 'text-amber-700'
-    },
-    {
-      key: 'totalErrors',
-      label: 'Errors', 
-      icon: '⚠️',
-      color: 'from-red-500 to-pink-500',
-      bgColor: 'bg-red-50',
-      textColor: 'text-red-700'
-    }
+    { key: 'totalLikes', label: 'Likes', icon: Heart, iconBg: 'bg-pink-500', stripe: 'from-pink-500 to-rose-500', showTrend: true },
+    { key: 'totalReplies', label: 'Replies', icon: MessageCircle, iconBg: 'bg-blue-500', stripe: 'from-blue-500 to-indigo-500', showTrend: true },
+    { key: 'totalDMs', label: 'DMs', icon: Mail, iconBg: 'bg-green-500', stripe: 'from-green-500 to-emerald-500', showTrend: true },
+    { key: 'pendingActions', label: 'Pending', icon: Clock, iconBg: 'bg-yellow-500', stripe: 'from-amber-500 to-orange-500' },
+    { key: 'totalErrors', label: 'Errors', icon: AlertCircle, iconBg: 'bg-red-500', stripe: 'from-red-500 to-rose-500' },
+    { key: 'totalComments', label: 'Success', icon: CheckCircle2, iconBg: 'bg-violet-500', stripe: 'from-violet-500 to-purple-500' },
   ];
+
+  // Build render-time cards with values and short-term trend from previous render
+  $: statCards = cardDefs.map((def) => {
+    const current = Number(derivedStats[def.key] || 0);
+    const prev = Number(previousStats[def.key] || 0);
+    let trend: number | undefined = undefined;
+    if (def.showTrend) {
+      if (prev === 0) trend = current > 0 ? 100 : 0;
+      else trend = Math.round(((current - prev) / Math.max(prev, 1)) * 100);
+    }
+    return { ...def, value: current, trend };
+  });
 
   onMount(() => {
     // Initial stagger animation
@@ -138,61 +125,87 @@
   }
 </script>
 
-<div class="counters-container bg-white rounded-xl shadow-sm border border-gray-100 p-4 mb-4">
-  <h2 class="font-semibold text-gray-900 mb-4 flex items-center">
-    <span class="text-3xl mr-2">📊</span>
-    Statistics
-  </h2>
+<div class="counters-container bg-white rounded-xl shadow-sm border border-gray-100 p-4 mb-4" role="region" aria-labelledby="analytics-heading">
+  <div class="flex items-center justify-between mb-3">
+    <div class="flex items-center gap-2 min-w-0">
+      <BarChart3 class="h-6 w-6 text-blue-600" aria-hidden="true" />
+      <h2 id="analytics-heading" class="text-sm font-semibold text-gray-900 truncate">Real-Time Analytics</h2>
+    </div>
+    <div class="flex items-center gap-2 text-xs text-gray-500" title="Live updates active">
+      <span class="relative flex h-2.5 w-2.5">
+        <span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-60"></span>
+        <span class="relative inline-flex rounded-full h-2.5 w-2.5 bg-emerald-500"></span>
+      </span>
+      <span class="sr-only">Live</span>
+    </div>
+  </div>
   
-  <div class="grid grid-cols-2 gap-3">
-    {#each counterConfig as config, index}
-      <div 
+  <div class="grid grid-cols-2 gap-4">
+    {#each statCards as card, index}
+      <div
         bind:this={counterElements[index]}
-        class="counter-card {config.bgColor} rounded-lg p-3 border border-opacity-20 hover:shadow-md transition-all duration-300 cursor-pointer group"
-        role="button"
-        tabindex="0"
-        aria-label="{config.label}: {derivedStats[config.key]}"
+        class="relative overflow-hidden rounded-xl border border-gray-100 bg-white shadow-sm p-0 group"
+        aria-label="{card.label}: {card.value}"
       >
-        <div class="flex items-center justify-between">
-          <div class="flex items-center space-x-2">
-            <span class="text-lg group-hover:scale-110 transition-transform duration-200">
-              {config.icon}
-            </span>
-            <div>
-              <div class="counter-number text-2xl font-bold {config.textColor}">
-                {derivedStats[config.key]}
-              </div>
-              <div class="text-sm {config.textColor} opacity-90 font-medium">
-                {config.label}
-              </div>
-            </div>
+        <div class="flex flex-row items-center justify-between space-y-0 pb-2 px-6 pt-4">
+          <div class="text-sm font-medium text-gray-500">{card.label}</div>
+          <div class={`p-1.5 rounded-md ${card.iconBg}`}>
+            <svelte:component this={card.icon} class="h-4 w-4 text-white" aria-hidden="true" />
           </div>
-          
-          <!-- Gradient accent -->
-          <div class="w-1 h-8 bg-gradient-to-b {config.color} rounded-full opacity-60 group-hover:opacity-100 transition-opacity duration-200"></div>
         </div>
-        
-        <!-- Progress indicator for pending actions -->
-        {#if config.key === 'pendingActions' && derivedStats.pendingActions > 0}
-          <div class="mt-2 bg-white bg-opacity-50 rounded-full h-1 overflow-hidden">
-            <div 
-              class="h-full bg-gradient-to-r {config.color} rounded-full transition-all duration-500"
-              style="width: {Math.min((derivedStats.pendingActions / Math.max(derivedStats.totalComments, 1)) * 100, 100)}%"
-            ></div>
+        <div class="px-6 pb-5">
+          <div class="counter-number text-2xl font-bold text-gray-900">{card.value}</div>
+          {#if card.trend !== undefined}
+            <div class="flex items-center text-xs text-gray-500 mt-1">
+              <TrendingUp class="h-3 w-3 mr-1" aria-hidden="true" />
+              <span class={card.trend >= 0 ? 'text-emerald-600' : 'text-red-600'}>
+                {card.trend >= 0 ? '+' : ''}{card.trend}%
+              </span>
+              <span class="ml-1">from last update</span>
+            </div>
+          {/if}
+        </div>
+
+        <!-- Decorative gradient stripe to echo template style -->
+        <div class={`absolute right-0 top-1/2 -translate-y-1/2 w-1 h-10 rounded-full bg-gradient-to-b ${card.stripe} opacity-70 group-hover:opacity-100 transition-opacity`} />
+
+        <!-- Pending linear progress across bottom edge -->
+        {#if card.key === 'pendingActions' && derivedStats.pendingActions > 0}
+          <div class="absolute left-0 right-0 bottom-0 h-1 bg-gray-100 overflow-hidden">
+            <div class={`h-full bg-gradient-to-r ${card.stripe}`} style="width: {Math.min(pendingRatio, 100)}%"></div>
           </div>
         {/if}
       </div>
     {/each}
   </div>
-  
-  <!-- Summary Stats (temporarily disabled)
-  <div class="mt-4 pt-4 border-t border-gray-100">
-    <div class="flex justify-between items-center text-sm text-gray-600">
-      <span>Top Level (No Replies): <strong class="text-gray-800">{$stats.totalTopLevelNoReplies}</strong></span>
-      <span>User Comments: <strong class="text-gray-800">{$stats.userTopLevelNoReplies}</strong></span>
+  <!-- Separator -->
+  <div class="my-4 border-t border-gray-100"></div>
+
+  <!-- Activity Summary (matches template structure) -->
+  <div class="rounded-lg border border-gray-100 p-3 bg-white">
+    <div class="flex items-center justify-between text-xs">
+      <span class="text-gray-500">Total Actions</span>
+      <span class="font-semibold text-gray-900">{derivedStats.totalComments}</span>
+    </div>
+    <div class="mt-2 flex items-center justify-between text-xs">
+      <span class="text-gray-500">Completed</span>
+      <span class="font-semibold text-emerald-600">{successTotal}</span>
+    </div>
+    <div class="mt-1 flex items-center justify-between text-xs">
+      <span class="text-gray-500">In Progress</span>
+      <span class="font-semibold text-amber-600">{derivedStats.pendingActions}</span>
+    </div>
+    <div class="mt-1 flex items-center justify-between text-xs">
+      <span class="text-gray-500">Failed</span>
+      <span class="font-semibold text-red-600">{derivedStats.totalErrors}</span>
+    </div>
+    <div class="mt-3">
+      <div class="h-1.5 w-full rounded-full bg-gray-100 overflow-hidden">
+        <div class="h-full bg-gradient-to-r from-emerald-500 to-teal-500" style="width: {Math.min(successRatio, 100)}%"></div>
+      </div>
+      <div class="mt-1 text-[10px] text-gray-500">{Math.round(successRatio)}% complete</div>
     </div>
   </div>
-  -->
 </div>
 
 <style>

@@ -108,7 +108,8 @@ preloadFonts()
 console.log('Content script starting...');
 
 // UI layout and scale settings
-const SIDEBAR_WIDTH = 400; // optimized width to match new layout constraints
+// Sidebar width (px) for the injected UI
+const SIDEBAR_WIDTH = 420; // keep in sync with --sidebar-width
 const UI_FONT_SCALE = 1.5; // scale base font-size (affects Tailwind rem units)
 
 const isOnLinkedInPost = (): boolean => {

@@ -206,7 +206,8 @@ p {
 
 /* Custom CSS Variables for Chrome Extension Sidebar */
 :root {
-  --sidebar-width: 320px;
+  /* Default sidebar width for extension */
+  --sidebar-width: 420px;
   --sidebar-bg: #ffffff;
   --sidebar-shadow: 0 4px 20px rgba(0, 0, 0, 0.1);
   --border-radius-lg: 12px;

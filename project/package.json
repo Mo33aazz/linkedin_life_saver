@@ -5,8 +5,8 @@
   "type": "module",
   "scripts": {
     "dev": "vite",
-    "build": "tsc && vite build && VITE_BUILD_TARGET=content vite build",
-    "build:test": "tsc && vite build --mode test && VITE_BUILD_TARGET=content vite build --mode test",
+    "build": "node tools/safe-build.mjs",
+    "build:test": "node tools/safe-build.mjs --mode test",
     "preview": "vite preview",
     "lint": "eslint . --ext .ts,.tsx --report-unused-disable-directives --max-warnings 0",
     "format": "prettier --write .",
@@ -43,7 +43,7 @@
     "framer-motion": "^12.23.12",
     "lucide-react": "^0.544.0",
     "prettier": "^3.3.2",
-    "typescript": "^5.5.3",
+    "typescript": "^5.9.2",
     "vite": "^5.4.20"
   }
 }
