@@ -161,21 +161,29 @@
 
   function handleResetSession() {
     if (confirm('Are you sure you want to reset the session? This will clear all progress.')) {
-      chrome.runtime.sendMessage({
-        type: 'RESET_SESSION',
-        postUrn: $postUrn,
-      });
+      if (typeof chrome !== 'undefined' && chrome.runtime) {
+        chrome.runtime.sendMessage({
+          type: 'RESET_SESSION',
+          postUrn: $postUrn,
+        });
+      } else {
+        console.warn('Chrome extension APIs not available for reset session');
+      }
     }
   }
 
   function sendMessage(message: ExtensionMessage) {
-    chrome.runtime.sendMessage(message, (response) => {
-      if (chrome.runtime.lastError) {
-        console.error('Error sending message:', chrome.runtime.lastError);
-      } else {
-        console.log('Message sent successfully:', response);
-      }
-    });
+    if (typeof chrome !== 'undefined' && chrome.runtime) {
+      chrome.runtime.sendMessage(message, (response) => {
+        if (chrome.runtime.lastError) {
+          console.error('Error sending message:', chrome.runtime.lastError);
+        } else {
+          console.log('Message sent successfully:', response);
+        }
+      });
+    } else {
+      console.warn('Chrome extension APIs not available for sending message:', message.type);
+    }
   }
 
   function animateButtonClick(buttonId: string) {
@@ -277,10 +285,11 @@
       </div>
 
       <!-- Delay Range -->
-      <div class="control-group">
-        <label class="block text-sm font-medium text-gray-800 mb-1">Delay Between Actions:</label>
-        <div class="flex items-center space-x-2">
+      <fieldset class="control-group">
+        <legend class="block text-sm font-medium text-gray-800 mb-1">Delay Between Actions:</legend>
+        <div class="flex items-center space-x-2" aria-labelledby="delay-group-legend">
           <input
+            id="delay-min"
             type="number"
             min="1000"
             max="60000"
@@ -288,9 +297,11 @@
             bind:value={delayMin}
             placeholder="Min (ms)"
             class="flex-1 px-3 py-2 text-base border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-600 focus:border-transparent"
+            aria-label="Minimum delay in milliseconds"
           />
-          <span class="text-gray-700">-</span>
+          <span class="text-gray-700" aria-hidden="true">-</span>
           <input
+            id="delay-max"
             type="number"
             min="1000"
             max="60000"
@@ -298,9 +309,10 @@
             bind:value={delayMax}
             placeholder="Max (ms)"
             class="flex-1 px-3 py-2 text-base border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-600 focus:border-transparent"
+            aria-label="Maximum delay in milliseconds"
           />
         </div>
-      </div>
+      </fieldset>
     </div>
   </div>
 

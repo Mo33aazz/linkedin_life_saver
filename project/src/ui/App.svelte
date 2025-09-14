@@ -8,9 +8,29 @@
   import LogsPanel from './components/LogsPanel.svelte';
   import AiSettings from './components/AiSettings.svelte';
   import { uiStore } from './store';
+  import SidebarNav from './components/SidebarNav.svelte';
   import type { ExtensionMessage, UIState, LogEntry } from '../shared/types';
 
   let appContainer: HTMLElement;
+  let activeSection: string | null = null;
+  let observer: IntersectionObserver | null = null;
+  const sectionIds = ['counters', 'pipeline', 'controls', 'ai-settings', 'logs'];
+
+  function scrollToSection(id: string) {
+    console.log('App: scrollToSection called with id:', id);
+    // Query within our shadow root (not the page document)
+    const root = (appContainer?.getRootNode?.() as ShadowRoot | null) ?? null;
+    const el = (root && 'getElementById' in root ? root.getElementById(id) : null)
+      || appContainer?.querySelector(`#${CSS.escape(id)}`);
+    if (el instanceof HTMLElement) {
+      console.log('App: Found element for section:', id, el);
+      el.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      activeSection = id;
+      console.log('App: Set activeSection to:', activeSection);
+    } else {
+      console.warn('App: Could not find element with id inside shadow root:', id);
+    }
+  }
   let messageListener: (message: ExtensionMessage) => void;
 
   onMount(() => {
@@ -23,13 +43,15 @@
     );
 
     // Send ping to service worker
-    chrome.runtime.sendMessage({ type: 'ping' }, (response) => {
-      if (chrome.runtime.lastError) {
-        console.error('Error sending message:', chrome.runtime.lastError);
-      } else {
-        console.log('Received response from service worker:', response);
-      }
-    });
+    if (typeof chrome !== 'undefined' && chrome.runtime?.sendMessage) {
+      chrome.runtime.sendMessage({ type: 'ping' }, (response) => {
+        if (chrome.runtime.lastError) {
+          console.error('Error sending message:', chrome.runtime.lastError);
+        } else {
+          console.log('Received response from service worker:', response);
+        }
+      });
+    }
 
     // Set up message listener
     messageListener = (message: ExtensionMessage) => {
@@ -43,46 +65,105 @@
       }
     };
 
-    chrome.runtime.onMessage.addListener(messageListener);
+    if (typeof chrome !== 'undefined' && chrome.runtime?.onMessage?.addListener) {
+      chrome.runtime.onMessage.addListener(messageListener);
+    }
+
+    // Observe sections to highlight active nav item
+    // Observe sections relative to the sidebar scroll container
+    observer = new IntersectionObserver(
+      (entries) => {
+        const visible = entries
+          .filter((e) => e.isIntersecting)
+          .sort((a, b) => (b.intersectionRatio || 0) - (a.intersectionRatio || 0));
+        if (visible[0]?.target?.id) {
+          activeSection = visible[0].target.id;
+        }
+      },
+      {
+        root: appContainer, // track visibility inside the sidebar, not the page viewport
+        rootMargin: '0px 0px -60% 0px',
+        threshold: [0.25, 0.5, 0.75],
+      }
+    );
+
+    // Query sections from shadow root
+    const rootNode = (appContainer?.getRootNode?.() as ShadowRoot | null) ?? null;
+    sectionIds.forEach((id) => {
+      const el = (rootNode && 'getElementById' in rootNode ? rootNode.getElementById(id) : null)
+        || appContainer?.querySelector(`#${CSS.escape(id)}`);
+      if (el) observer?.observe(el);
+    });
   });
 
   onDestroy(() => {
-    if (messageListener) {
+    if (messageListener && typeof chrome !== 'undefined' && chrome.runtime?.onMessage?.removeListener) {
       chrome.runtime.onMessage.removeListener(messageListener);
+    }
+    if (observer) {
+      observer.disconnect();
+      observer = null;
     }
   });
 </script>
 
 <div bind:this={appContainer} id="sidebar-app" class="sidebar animate-fade-in">
   <div class="ui-scale">
-  <!-- Header with animated title -->
-  <div class="header-section">
-    <h1 class="app-title" style="font-family: 'Saira', 'Inter', 'Segoe UI', 'Roboto', 'Helvetica Neue', Arial, sans-serif;">
-      <img src={chrome?.runtime?.getURL('logo.svg') || '/logo.svg'} alt="LinkedIn Life Saver Logo" class="logo" />
-      LinkedIn Life Saver
-    </h1>
-    <p class="version-text">
-      v.1.0
-    </p>
-    <div class="progress-bar"></div>
-  </div>
+      <!-- Header with animated title, refactored to use same card style -->
+      <div class="header-section">
+        <div class="header-card bg-white rounded-xl shadow-sm border border-gray-100 p-4 mb-4 animate-slide-up">
+          <div class="flex items-center gap-3">
+            <h1
+              class="app-title"
+              style="font-family: 'Saira', 'Inter', 'Segoe UI', 'Roboto', 'Helvetica Neue', Arial, sans-serif;"
+            >
+              <img
+                src={chrome?.runtime?.getURL('logo.svg') || '/logo.svg'}
+                alt="LinkedIn Life Saver Logo"
+                class="logo"
+              />
+              LinkedIn Life Saver
+            </h1>
+          </div>
+          <p class="version-text">v1.0</p>
+          <div class="progress-bar"></div>
+        </div>
+      </div>
 
-  <!-- Main content sections -->
-  <div class="content-sections">
-    <Header />
-    <Counters />
-    <PipelineProgress />
-    <Controls />
-    <AiSettings />
-    <LogsPanel />
-  </div>
+    <!-- Main layout with navigation on the right -->
+    <div class="main-layout">
+      <!-- Main content sections -->
+      <main class="content-area">
+        <Header />
+        <section id="counters" class="section-block">
+          <Counters />
+        </section>
+        <section id="pipeline" class="section-block">
+          <PipelineProgress />
+        </section>
+        <section id="controls" class="section-block">
+          <Controls />
+        </section>
+        <section id="ai-settings" class="section-block">
+          <AiSettings />
+        </section>
+        <section id="logs" class="section-block">
+          <LogsPanel />
+        </section>
+      </main>
+      
+      <!-- Navigation positioned on the right side -->
+      <aside class="nav-sidebar">
+        <SidebarNav active={activeSection} on:navigate={(e) => scrollToSection(e.detail.id)} />
+      </aside>
+    </div>
   </div>
 </div>
 
 <style>
   #sidebar-app {
     width: 100%;
-    max-width: 420px;
+    max-width: 520px;
     min-width: 320px;
     padding: 1.5rem;
     box-sizing: border-box;
@@ -96,7 +177,6 @@
   .app-title {
     font-size: 1.875rem;
     font-weight: 700;
-    color: white;
     margin-bottom: 0.25rem;
     display: flex;
     align-items: center;
@@ -111,7 +191,7 @@
 
   .version-text {
     font-size: 0.875rem;
-    color: #9ca3af;
+    color: #6b7280;
     margin-bottom: 0.5rem;
     font-weight: 500;
   }
@@ -124,10 +204,28 @@
     animation: bounceGentle 2s ease-in-out infinite;
   }
 
-  .content-sections {
+  .section-block {
+    scroll-margin-top: 16px;
+  }
+
+  .main-layout {
+    display: flex;
+    gap: 1rem;
+    align-items: flex-start;
+  }
+
+  .content-area {
+    flex: 1;
     display: flex;
     flex-direction: column;
     gap: 1rem;
+    min-width: 0;
+  }
+
+  .nav-sidebar {
+    position: sticky;
+    top: 0.75rem;
+    flex-shrink: 0;
   }
 
   @keyframes slideUp {
@@ -175,8 +273,19 @@
       font-size: 1.5rem;
     }
 
-    .content-sections {
+    .main-layout {
+      flex-direction: column;
       gap: 0.75rem;
+    }
+
+    .content-area {
+      gap: 0.75rem;
+    }
+
+    .nav-sidebar {
+      position: static;
+      order: 2;
+      align-self: center;
     }
   }
 </style>

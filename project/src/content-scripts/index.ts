@@ -3,7 +3,7 @@ import { mountApp, unmountApp } from '../ui';
 
 import '../index.css';
 
-// Function to load CSS content
+// Function to load CSS content with fallback mechanisms
 const loadCSS = async (): Promise<string> => {
   try {
     // In development, use inline import
@@ -12,20 +12,98 @@ const loadCSS = async (): Promise<string> => {
       return cssModule.default;
     }
     // In production, fetch the built CSS file
-    const response = await fetch(chrome.runtime.getURL('assets/style.css'));
-    return await response.text();
+    if (typeof chrome !== 'undefined' && chrome.runtime && chrome.runtime.getURL) {
+      const response = await fetch(chrome.runtime.getURL('assets/style.css'));
+      if (!response.ok) {
+        throw new Error(`Failed to fetch CSS: ${response.status}`);
+      }
+      return await response.text();
+    } else {
+      // Fallback when Chrome APIs are not available
+      console.warn('Chrome extension APIs not available for CSS loading');
+      throw new Error('Chrome APIs not available');
+    }
   } catch (error) {
     console.error('Failed to load CSS:', error);
-    // Fallback to basic styles if CSS loading fails
+    // Enhanced fallback with local font definitions and complete styling
     return `
+      /* Fallback font definitions */
+      @font-face {
+        font-family: 'Inter-Fallback';
+        src: local('Inter'), local('system-ui'), local('-apple-system');
+        font-weight: 300 900;
+        font-style: normal;
+        font-display: swap;
+      }
+      
+      @font-face {
+        font-family: 'Saira-Fallback';
+        src: local('Saira'), local('system-ui'), local('-apple-system');
+        font-weight: 100 900;
+        font-style: normal;
+        font-display: swap;
+      }
+      
       .sidebar {
-        font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+        font-family: 'Inter-Fallback', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
         background: #ffffff;
+        color: #111827;
+        line-height: 1.5;
+      }
+      
+      .sidebar h1, .sidebar h2, .sidebar h3, .sidebar h4, .sidebar h5, .sidebar h6 {
+        font-family: 'Saira-Fallback', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+        font-weight: 600;
+        color: #111827;
+      }
+      
+      .sidebar button {
+        font-family: inherit;
+        background: #3b82f6;
+        color: white;
+        border: none;
+        padding: 0.5rem 1rem;
+        border-radius: 0.375rem;
+        cursor: pointer;
+      }
+      
+      .sidebar button:hover {
+        background: #2563eb;
+      }
+      
+      .sidebar input, .sidebar textarea {
+        font-family: inherit;
+        border: 1px solid #d1d5db;
+        border-radius: 0.375rem;
+        padding: 0.5rem;
         color: #111827;
       }
     `;
   }
 };
+
+// Function to preload fonts for better performance
+const preloadFonts = () => {
+  if (typeof chrome !== 'undefined' && chrome.runtime && chrome.runtime.getURL) {
+    const fontUrls = [
+      chrome.runtime.getURL('fonts/inter.woff2'),
+      chrome.runtime.getURL('fonts/saira.woff2')
+    ];
+    
+    fontUrls.forEach(url => {
+      const link = document.createElement('link');
+      link.rel = 'preload';
+      link.href = url;
+      link.as = 'font';
+      link.type = 'font/woff2';
+      link.crossOrigin = 'anonymous';
+      document.head.appendChild(link);
+    });
+  }
+};
+
+// Preload fonts early
+preloadFonts()
 
 console.log('Content script starting...');
 
@@ -118,14 +196,16 @@ const removeContentShift = () => {
   layoutStyleEl = null;
 };
 
-chrome.runtime.onMessage.addListener((message, _sender, sendResponse) => {
-  console.log('[Content Script] Message received:', message.type);
+// Only set up message listener if Chrome extension APIs are available
+if (typeof chrome !== 'undefined' && chrome.runtime && chrome.runtime.onMessage) {
+  chrome.runtime.onMessage.addListener((message, _sender, sendResponse) => {
+    console.log('[Content Script] Message received:', message.type);
 
-  // DOM actions are handled here.
-  // STATE_UPDATE and LOG_ENTRY are handled by the listener in App.tsx
-  // to ensure they are tied to the UI lifecycle.
+    // DOM actions are handled here.
+    // STATE_UPDATE and LOG_ENTRY are handled by the listener in App.tsx
+    // to ensure they are tied to the UI lifecycle.
 
-  if (message.type === 'LIKE_COMMENT') {
+    if (message.type === 'LIKE_COMMENT') {
     console.log('Content script received LIKE_COMMENT:', message.payload);
     likeComment(message.payload.commentId)
       .then(success => sendResponse({ status: 'success', payload: success }))
@@ -180,8 +260,11 @@ chrome.runtime.onMessage.addListener((message, _sender, sendResponse) => {
     return true; // Indicates async response
   }
 
-  // return true; // Keep listener open for other potential async messages
-});
+    // return true; // Keep listener open for other potential async messages
+  });
+} else {
+  console.warn('Chrome extension APIs not available - running in non-extension context');
+}
 
 // Inject the UI on supported pages
 const injectUI = async () => {
@@ -193,6 +276,9 @@ const injectUI = async () => {
     return;
   }
   try {
+    // Pre-load CSS before creating any UI elements
+    const css = await loadCSS();
+    
     const host = document.createElement('div');
     host.id = 'linkedin-engagement-assistant-root';
     host.className = 'sidebar';
@@ -208,20 +294,79 @@ const injectUI = async () => {
       boxShadow: '-2px 0 8px rgba(0,0,0,0.1)',
       backgroundColor: '#fff',
     } as Partial<CSSStyleDeclaration>);
-    document.body.appendChild(host);
+    
     const shadowRoot = host.attachShadow({ mode: 'open' });
+    
+    // Create and inject styles first
     const styleElement = document.createElement('style');
-    // Ensure high-contrast text and placeholders within the shadow DOM
-    const contrastOverrides = `
-      .sidebar input, .sidebar textarea, .sidebar select { color: #111827 !important; caret-color: #111827; }
-      .sidebar input::placeholder, .sidebar textarea::placeholder { color: #111827 !important; opacity: 1 !important; }
-      .sidebar input::-webkit-input-placeholder, .sidebar textarea::-webkit-input-placeholder { color: #111827 !important; opacity: 1 !important; }
-      .sidebar input::-moz-placeholder, .sidebar textarea::-moz-placeholder { color: #111827 !important; opacity: 1 !important; }
-      .sidebar input:-ms-input-placeholder, .sidebar textarea:-ms-input-placeholder { color: #111827 !important; opacity: 1 !important; }
+    // Enhanced Shadow DOM isolation and styling overrides
+    const shadowDOMOverrides = `
+      /* Reset and isolate all styles within shadow DOM */
+      :host {
+        all: initial;
+        display: block;
+        contain: layout style paint;
+      }
+      
+      /* Ensure high-contrast text and placeholders within the shadow DOM */
+      .sidebar input, .sidebar textarea, .sidebar select { 
+        color: #111827 !important; 
+        caret-color: #111827; 
+        font-family: inherit !important;
+      }
+      .sidebar input::placeholder, .sidebar textarea::placeholder { 
+        color: #111827 !important; 
+        opacity: 1 !important; 
+      }
+      .sidebar input::-webkit-input-placeholder, .sidebar textarea::-webkit-input-placeholder { 
+        color: #111827 !important; 
+        opacity: 1 !important; 
+      }
+      .sidebar input::-moz-placeholder, .sidebar textarea::-moz-placeholder { 
+        color: #111827 !important; 
+        opacity: 1 !important; 
+      }
+      .sidebar input:-ms-input-placeholder, .sidebar textarea:-ms-input-placeholder { 
+        color: #111827 !important; 
+        opacity: 1 !important; 
+      }
+      
+      /* Prevent LinkedIn styles from affecting our components */
+      .sidebar * {
+        box-sizing: border-box !important;
+        font-family: inherit !important;
+        pointer-events: auto !important;
+      }
+      
+      /* Ensure buttons are clickable */
+      .sidebar button {
+        pointer-events: auto !important;
+        cursor: pointer !important;
+        user-select: none !important;
+      }
+      
+      /* Ensure proper font inheritance */
+      .sidebar {
+        font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif !important;
+      }
+      
+      .sidebar h1, .sidebar h2, .sidebar h3, .sidebar h4, .sidebar h5, .sidebar h6 {
+        font-family: 'Saira', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif !important;
+      }
     `;
-    const css = await loadCSS();
-    styleElement.textContent = `${css}\n${contrastOverrides}`;
+    
+    // Process CSS to use extension URLs for fonts
+    const processedCSS = css.replace(
+      /url\('?\.?\/assets\/fonts\//g,
+      `url('${chrome.runtime?.getURL('fonts/') || './fonts/'}`
+    );
+    
+    styleElement.textContent = `${processedCSS}\n${shadowDOMOverrides}`;
     shadowRoot.appendChild(styleElement);
+    
+    // Wait for styles to be applied
+    await new Promise(resolve => setTimeout(resolve, 10));
+    
     const appRoot = document.createElement('div');
     appRoot.id = 'app-root';
     // Set font scaling for the shadow DOM content (affects rem-based sizes)
@@ -229,10 +374,15 @@ const injectUI = async () => {
     // Ensure inner sidebar width matches the host width
     appRoot.style.setProperty('--sidebar-width', `${SIDEBAR_WIDTH}px`);
     shadowRoot.appendChild(appRoot);
+    
+    // Add host to DOM after shadow root is fully prepared
+    document.body.appendChild(host);
+    
+    // Mount app after everything is ready
     mountApp(appRoot);
     hostEl = host;
     appRootEl = appRoot;
-    console.log('Mounted sidebar UI');
+    console.log('Mounted sidebar UI with proper CSS timing');
 
     ensureToggleButton();
     applyContentShift(sidebarOpen);

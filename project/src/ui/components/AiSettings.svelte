@@ -518,9 +518,7 @@
     transition: transform 0.2s;
   }
 
-  .collapse-icon.expanded {
-    transform: rotate(180deg);
-  }
+  /* removed unused .collapse-icon.expanded rule; rotation handled via .rotate-180 */
 
   .collapsible-content {
     padding: 1rem;

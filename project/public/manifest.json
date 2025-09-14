@@ -39,7 +39,8 @@
       "resources": [
         "chunks/*",
         "assets/*",
-        "logo.svg"
+        "logo.svg",
+        "fonts/*"
       ],
       "matches": [
         "https://www.linkedin.com/*"
