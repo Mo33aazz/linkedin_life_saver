@@ -1,7 +1,6 @@
 <script lang="ts">
   import { onMount, onDestroy } from 'svelte';
   import { gsap } from 'gsap';
-  import Header from './components/Header.svelte';
   import Counters from './components/Counters.svelte';
   import PipelineProgress from './components/PipelineProgress.svelte';
   import Controls from './components/Controls.svelte';
@@ -167,7 +166,6 @@
     <div class="main-layout">
       <!-- Main content sections -->
       <main class="content-area">
-        <Header />
         <section id="counters" class="section-block">
           <Counters />
         </section>
