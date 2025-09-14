@@ -7,7 +7,7 @@
   import Controls from './components/Controls.svelte';
   import LogsPanel from './components/LogsPanel.svelte';
   import AiSettings from './components/AiSettings.svelte';
-  import { uiStore } from './store';
+  import { uiStore, pipelineStatus } from './store';
   import SidebarNav from './components/SidebarNav.svelte';
   import type { ExtensionMessage, UIState, LogEntry } from '../shared/types';
   import { getById, query } from './utils/domQuery';
@@ -16,6 +16,32 @@
   let activeSection: string | null = null;
   let observer: IntersectionObserver | null = null;
   const sectionIds = ['counters', 'pipeline', 'controls', 'ai-settings', 'logs'];
+
+  // Computed styles for status chip in the header
+  $: statusChip = (() => {
+    switch ($pipelineStatus) {
+      case 'running':
+        return {
+          classes: 'from-emerald-500/15 to-emerald-500/5 border-emerald-200 text-emerald-700',
+          dot: 'bg-emerald-500'
+        };
+      case 'paused':
+        return {
+          classes: 'from-amber-500/15 to-amber-500/5 border-amber-200 text-amber-700',
+          dot: 'bg-amber-500'
+        };
+      case 'error':
+        return {
+          classes: 'from-red-500/15 to-red-500/5 border-red-200 text-red-700',
+          dot: 'bg-red-500'
+        };
+      default:
+        return {
+          classes: 'from-gray-400/15 to-gray-400/5 border-gray-200 text-gray-700',
+          dot: 'bg-gray-400'
+        };
+    }
+  })();
 
   function scrollToSection(id: string) {
     console.log('App: scrollToSection called with id:', id);
@@ -110,22 +136,30 @@
   <div class="ui-scale">
       <!-- Header with animated title, refactored to use same card style -->
       <div class="header-section">
-        <div class="header-card bg-white rounded-xl shadow-sm border border-gray-100 p-4 mb-4 animate-slide-up">
-          <div class="flex items-center gap-3">
-            <h1
-              class="app-title"
-              style="font-family: 'Saira', 'Inter', 'Segoe UI', 'Roboto', 'Helvetica Neue', Arial, sans-serif;"
-            >
-              <img
-                src={chrome?.runtime?.getURL('logo.svg') || '/logo.svg'}
-                alt="LinkedIn Life Saver Logo"
-                class="logo"
-              />
-              LinkedIn Life Saver
-            </h1>
+        <div class="header-card relative overflow-hidden rounded-2xl border border-gray-100 bg-white p-5 mb-4 shadow-sm animate-slide-up">
+          <!-- subtle gradients inspired by geometric hero (no heavy motion) -->
+          <div class="pointer-events-none absolute -top-16 -left-20 h-48 w-48 rounded-full bg-gradient-to-br from-indigo-500/10 to-rose-400/10 blur-2xl"></div>
+          <div class="pointer-events-none absolute -bottom-16 -right-20 h-40 w-40 rounded-full bg-gradient-to-tr from-violet-500/10 to-cyan-400/10 blur-2xl"></div>
+
+          <div class="relative flex items-start justify-between gap-4">
+            <div class="min-w-0">
+              <div class="inline-flex items-center gap-2 rounded-full border px-2.5 py-1 text-xs font-medium bg-gradient-to-r {statusChip.classes}">
+                <span class="inline-block h-2 w-2 rounded-full {statusChip.dot}"></span>
+                <span>{$pipelineStatus.charAt(0).toUpperCase() + $pipelineStatus.slice(1)}</span>
+              </div>
+
+              <h1 class="mt-2 text-2xl sm:text-3xl font-extrabold tracking-tight bg-clip-text text-transparent bg-gradient-to-b from-gray-900 to-gray-700" style="font-family: 'Saira', 'Inter', 'Segoe UI', 'Roboto', 'Helvetica Neue', Arial, sans-serif;">
+                LinkedIn Life Saver
+              </h1>
+              <p class="mt-1 text-sm text-gray-600 leading-relaxed">Smart LinkedIn automation and insight tools — neatly organized in your sidebar.</p>
+            </div>
+
+            <img
+              src={chrome?.runtime?.getURL('logo.svg') || '/logo.svg'}
+              alt="LinkedIn Life Saver"
+              class="h-8 w-8 shrink-0 opacity-90"
+            />
           </div>
-          <p class="version-text">v1.0</p>
-          <div class="progress-bar"></div>
         </div>
       </div>
 
@@ -188,20 +222,7 @@
     height: 2rem;
   }
 
-  .version-text {
-    font-size: 0.875rem;
-    color: #6b7280;
-    margin-bottom: 0.5rem;
-    font-weight: 500;
-  }
-
-  .progress-bar {
-    height: 0.25rem;
-    background: linear-gradient(to right, var(--primary-500), var(--secondary-500));
-    border-radius: 9999px;
-    width: 100%;
-    animation: bounceGentle 2s ease-in-out infinite;
-  }
+  /* removed version text + decorative progress to reduce noise */
 
   .section-block {
     scroll-margin-top: 16px;
