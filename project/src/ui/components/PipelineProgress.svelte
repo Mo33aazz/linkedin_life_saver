@@ -1,6 +1,7 @@
 <script lang="ts">
   import { comments, uiState } from '../store';
   import type { Comment } from '../../shared/types';
+  import { CheckCircle2, XCircle, Loader2, Clock, Heart, MessageCircle, Send } from 'lucide-svelte';
 
   type StepStatus = 'complete' | 'active' | 'pending' | 'failed';
 
@@ -30,35 +31,35 @@
       likedStatus = 'active';
     }
 
-    // Rule for Step 3: 'Replied'
-    let repliedStatus: StepStatus;
-    if (comment.replyStatus === 'DONE') {
-      repliedStatus = 'complete';
-    } else if (comment.replyStatus === 'FAILED') {
-      repliedStatus = 'failed';
-    } else if (comment.likeStatus === 'DONE' && comment.replyStatus === '') {
-      // It can only be active if the previous step ('Liked') is complete.
-      repliedStatus = 'active';
-    } else {
-      // It's pending if the 'Liked' step isn't done yet.
-      repliedStatus = 'pending';
-    }
-
-    // Rule for Step 4: 'DM Sent'
+    // Rule for Step 3: 'DM Sent' (moved before 'Replied')
     let dmSentStatus: StepStatus;
     if (comment.dmStatus === 'DONE') {
       dmSentStatus = 'complete';
     } else if (comment.dmStatus === 'FAILED') {
       dmSentStatus = 'failed';
-    } else if (comment.replyStatus === 'DONE' && comment.dmStatus === '') {
-      // It can only be active if the previous step ('Replied') is complete.
+    } else if (comment.likeStatus === 'DONE' && comment.dmStatus === '') {
+      // It can only be active if the previous step ('Liked') is complete.
       dmSentStatus = 'active';
     } else {
-      // It's pending if the 'Replied' step isn't done yet.
+      // It's pending if the 'Liked' step isn't done yet.
       dmSentStatus = 'pending';
     }
-    
-    return [queuedStatus, likedStatus, repliedStatus, dmSentStatus];
+
+    // Rule for Step 4: 'Replied' (now after 'DM Sent')
+    let repliedStatus: StepStatus;
+    if (comment.replyStatus === 'DONE') {
+      repliedStatus = 'complete';
+    } else if (comment.replyStatus === 'FAILED') {
+      repliedStatus = 'failed';
+    } else if (comment.dmStatus === 'DONE' && comment.replyStatus === '') {
+      // It can only be active if the previous step ('DM Sent') is complete.
+      repliedStatus = 'active';
+    } else {
+      // It's pending if the 'DM Sent' step isn't done yet.
+      repliedStatus = 'pending';
+    }
+
+    return [queuedStatus, likedStatus, dmSentStatus, repliedStatus];
   }
 
   // Extract author from profile URL
@@ -71,11 +72,30 @@
     return text.length > maxLength ? `${text.substring(0, maxLength - 3)}...` : text;
   }
 
+  // Simple percent progress from step statuses
+  function getProgressPercent(statuses: StepStatus[]): number {
+    const total = statuses.length;
+    const complete = statuses.filter((s) => s === 'complete').length;
+    const partial = statuses.includes('active') ? 0.5 : 0;
+    return Math.min(100, Math.round(((complete + partial) / total) * 100));
+  }
+
+  // Summary for compact footer stats (computed from store)
+  $: summary = (() => {
+    const totals = { total: $comments.length, complete: 0, processing: 0 };
+    $comments.forEach((c) => {
+      const s = getStepperStatuses(c);
+      if (s.every((x) => x === 'complete')) totals.complete += 1;
+      else totals.processing += 1;
+    });
+    return totals;
+  })();
+
   $: isInitializing = $uiState.isInitializing;
 </script>
 
 <div class="sidebar-section" data-testid="pipeline-progress">
-  <h2>Pipeline Progress</h2>
+  <h2>Pipeline</h2>
   {#if isInitializing && $comments.length === 0}
     <!-- Skeleton Loading State -->
     <div class="pipeline-list">
@@ -94,15 +114,14 @@
   {:else}
     <div class="pipeline-list">
       {#if $comments.length === 0}
-        <p class="idle-message">
-          Pipeline is idle. Start processing to see progress.
-        </p>
+        <p class="idle-message">No active items.</p>
       {:else}
         {#each $comments as comment (comment.commentId)}
           {@const author = getAuthor(comment.ownerProfileUrl)}
           {@const shortText = truncateText(comment.text)}
           {@const stepStatuses = getStepperStatuses(comment)}
-          {@const steps = ['Queued', 'Liked', 'Replied', 'DM Sent']}
+          {@const steps = ['Queued', 'Liked', 'DM Sent', 'Replied']}
+          {@const pct = getProgressPercent(stepStatuses)}
           
           <div 
             class="comment-row"
@@ -110,35 +129,81 @@
             data-comment-id={comment.commentId}
           >
             <div class="comment-info">
-              <p class="comment-author">{author}</p>
-              <p class="comment-text" title={comment.text}>
-                {shortText}
-              </p>
+              <div class="flex items-center gap-2 mb-1.5">
+                <p class="comment-author">{author}</p>
+                <span class="inline-flex items-center gap-1 rounded-full border border-gray-200 px-2 py-0.5 text-xs font-medium text-gray-700 bg-white/70">
+                  {#if stepStatuses.every((s) => s === 'complete')}
+                    <CheckCircle2 size={14} class="text-emerald-600" /> Completed
+                  {:else}
+                    <Loader2 size={14} class="animate-spin text-blue-600" /> In&nbsp;progress
+                  {/if}
+                </span>
+              </div>
+              <p class="comment-text" title={comment.text}>{shortText}</p>
+              <div class="mt-2">
+                <div class="flex justify-between items-center text-xs text-gray-600 mb-1">
+                  <span>Progress</span>
+                  <span>{pct}%</span>
+                </div>
+                <div class="w-full bg-gray-200 rounded-full h-1.5 overflow-hidden">
+                  <div class="bg-blue-500 h-1.5 rounded-full transition-all duration-500" style={`width: ${pct}%`}></div>
+                </div>
+              </div>
             </div>
             <div class="stepper-horizontal">
               {#each steps as step, index}
+                {@const s = stepStatuses[index]}
                 <div class="step-wrapper">
                   <div 
-                    class="step-circle step-{stepStatuses[index]}" 
+                    class="step-circle step-{s}"
                     data-testid="step-indicator-{step.replace(' ', '-')}"
+                    aria-label={`${step}: ${s}`}
+                    title={`${step}: ${s}`}
                   >
-                    {#if stepStatuses[index] === 'complete'}
-                      ✓
-                    {:else if stepStatuses[index] === 'failed'}
-                      ✗
+                    {#if s === 'complete'}
+                      <CheckCircle2 size={18} />
+                    {:else if s === 'failed'}
+                      <XCircle size={18} />
+                    {:else if s === 'active'}
+                      <Loader2 size={18} class="animate-spin" />
                     {:else}
-                      {index + 1}
+                      {#if index === 0}
+                        <Clock size={16} />
+                      {:else if index === 1}
+                        <Heart size={16} />
+                      {:else if index === 2}
+                        <Send size={16} />
+                      {:else}
+                        <MessageCircle size={16} />
+                      {/if}
                     {/if}
                   </div>
                   <span class="step-name">{step}</span>
                   {#if index < steps.length - 1}
-                    <div class="step-connector step-connector-{stepStatuses[index + 1] === 'complete' ? 'complete' : 'incomplete'}"></div>
+                    <div class="step-connector {s === 'complete' ? 'step-connector-complete' : 'step-connector-incomplete'}"></div>
                   {/if}
                 </div>
               {/each}
             </div>
           </div>
         {/each}
+        <!-- Compact summary aligned to sidebar visuals -->
+        <div class="mt-3 bg-gray-50 border border-gray-200 rounded-xl p-3">
+          <div class="grid grid-cols-3 gap-2 text-center">
+            <div>
+              <p class="text-lg font-bold text-gray-900">{summary.complete}</p>
+              <p class="text-xs text-gray-600">Completed</p>
+            </div>
+            <div>
+              <p class="text-lg font-bold text-gray-900">{summary.processing}</p>
+              <p class="text-xs text-gray-600">Processing</p>
+            </div>
+            <div>
+              <p class="text-lg font-bold text-gray-900">{summary.total}</p>
+              <p class="text-xs text-gray-600">Total</p>
+            </div>
+          </div>
+        </div>
       {/if}
     </div>
   {/if}
@@ -152,7 +217,7 @@
 
   /* Comment Row - Enhanced Modern Layout */
   .comment-row {
-    @apply flex items-center justify-between p-5 bg-gradient-to-r from-white to-gray-50 rounded-xl border border-gray-200 shadow-sm hover:shadow-md transition-all duration-300 backdrop-blur-sm;
+    @apply flex items-start gap-4 justify-between p-5 bg-gradient-to-r from-white to-gray-50 rounded-xl border border-gray-200 shadow-sm hover:shadow-md transition-all duration-300 backdrop-blur-sm;
     background: linear-gradient(135deg, #ffffff 0%, #f8fafc 100%);
     border: 1px solid rgba(226, 232, 240, 0.8);
     box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05), 0 1px 2px rgba(0, 0, 0, 0.1);
@@ -165,7 +230,7 @@
 
   /* Comment Info - Enhanced Left Side */
   .comment-info {
-    @apply flex-shrink-0 w-52 mr-6;
+    @apply flex-shrink-0 grow mr-2 min-w-0;
   }
 
   .comment-author {
@@ -185,7 +250,7 @@
   /* Horizontal Stepper - Enhanced Right Side */
   .stepper-horizontal {
     @apply flex items-center flex-1 relative;
-    padding: 0.5rem 0;
+    padding: 0.25rem 0;
     width: 100%;
     max-width: 100%;
     overflow-x: auto;
@@ -204,7 +269,7 @@
 
   /* Step Circle - Enhanced Design */
   .step-circle {
-    @apply w-10 h-10 rounded-full flex items-center justify-center text-sm font-bold border-2 transition-all duration-300 relative z-10 shadow-sm;
+    @apply w-9 h-9 rounded-full flex items-center justify-center text-sm font-bold border-2 transition-all duration-300 relative z-10 shadow-sm;
     backdrop-filter: blur(8px);
   }
 
@@ -234,13 +299,13 @@
 
   /* Step Name - Enhanced Typography */
   .step-name {
-    @apply absolute top-12 left-1/2 transform -translate-x-1/2 text-xs font-medium text-gray-700 whitespace-nowrap;
+    @apply absolute top-11 left-1/2 transform -translate-x-1/2 text-[11px] font-medium text-gray-700 whitespace-nowrap;
     letter-spacing: 0.025em;
   }
 
   /* Step Connector Line - Enhanced Design */
   .step-connector {
-    @apply flex-1 h-1 mx-3 transition-all duration-300 rounded-full;
+    @apply flex-1 h-0.5 mx-2 transition-all duration-300 rounded-full;
     background: linear-gradient(90deg, transparent 0%, currentColor 50%, transparent 100%);
   }
 
@@ -303,7 +368,7 @@
     
     .stepper-horizontal {
       @apply w-full justify-center;
-      padding: 0.75rem 0;
+      padding: 0.5rem 0;
       gap: 0.25rem;
       flex-wrap: nowrap;
       overflow-x: auto;
