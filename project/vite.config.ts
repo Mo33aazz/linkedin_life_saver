@@ -9,6 +9,9 @@ const __dirname = fileURLToPath(new URL('.', import.meta.url));
 
 export default defineConfig({
   plugins: [svelte()],
+  css: {
+    postcss: './postcss.config.js', // Enable PostCSS processing for Tailwind
+  },
   build: {
     minify: false,
     sourcemap: 'inline',

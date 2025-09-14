@@ -1,6 +1,31 @@
 import { likeComment, replyToComment, sendDm, sendDmViaProfile } from './domInteractor';
 import { mountApp, unmountApp } from '../ui';
-import css from '../index.css?inline';
+
+import '../index.css';
+
+// Function to load CSS content
+const loadCSS = async (): Promise<string> => {
+  try {
+    // In development, use inline import
+    if (import.meta.env.DEV) {
+      const cssModule = await import('../index.css?inline');
+      return cssModule.default;
+    }
+    // In production, fetch the built CSS file
+    const response = await fetch(chrome.runtime.getURL('assets/style.css'));
+    return await response.text();
+  } catch (error) {
+    console.error('Failed to load CSS:', error);
+    // Fallback to basic styles if CSS loading fails
+    return `
+      .sidebar {
+        font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+        background: #ffffff;
+        color: #111827;
+      }
+    `;
+  }
+};
 
 console.log('Content script starting...');
 
@@ -159,7 +184,7 @@ chrome.runtime.onMessage.addListener((message, _sender, sendResponse) => {
 });
 
 // Inject the UI on supported pages
-const injectUI = () => {
+const injectUI = async () => {
   if (hostEl || document.getElementById('linkedin-engagement-assistant-root')) {
     console.log('Sidebar already present. Skipping injection.');
     ensureToggleButton();
@@ -194,6 +219,7 @@ const injectUI = () => {
       .sidebar input::-moz-placeholder, .sidebar textarea::-moz-placeholder { color: #111827 !important; opacity: 1 !important; }
       .sidebar input:-ms-input-placeholder, .sidebar textarea:-ms-input-placeholder { color: #111827 !important; opacity: 1 !important; }
     `;
+    const css = await loadCSS();
     styleElement.textContent = `${css}\n${contrastOverrides}`;
     shadowRoot.appendChild(styleElement);
     const appRoot = document.createElement('div');
@@ -240,9 +266,9 @@ const removeUI = () => {
 };
 
 // Decide whether to show or hide the UI based on URL
-const evaluateAndToggleUI = () => {
+const evaluateAndToggleUI = async () => {
   if (isOnLinkedInPost()) {
-    injectUI();
+    await injectUI();
   } else {
     removeUI();
   }

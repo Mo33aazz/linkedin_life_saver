@@ -17,14 +17,18 @@ export default defineConfig({
     sourcemap: 'inline',
     outDir: 'dist',
     emptyOutDir: false,
+    cssCodeSplit: false,
     rollupOptions: {
       input: {
         content: resolve(__dirname, 'src/content-scripts/index.ts'),
       },
       output: {
         format: 'iife',
-        entryFileNames: 'content.js'
+        entryFileNames: 'content.js',
+        assetFileNames: 'assets/[name].[ext]',
+        inlineDynamicImports: false,
       },
+      external: [],
     },
   },
 });
