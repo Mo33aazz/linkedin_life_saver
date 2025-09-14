@@ -297,8 +297,6 @@ const injectUI = async () => {
     
     const shadowRoot = host.attachShadow({ mode: 'open' });
     
-    // Create and inject styles first
-    const styleElement = document.createElement('style');
     // Enhanced Shadow DOM isolation and styling overrides
     const shadowDOMOverrides = `
       /* Reset and isolate all styles within shadow DOM */
@@ -355,17 +353,37 @@ const injectUI = async () => {
       }
     `;
     
-    // Process CSS to use extension URLs for fonts
+    // Process CSS to use extension URLs for fonts (best-effort)
     const processedCSS = css.replace(
       /url\('?\.?\/assets\/fonts\//g,
       `url('${chrome.runtime?.getURL('fonts/') || './fonts/'}`
     );
-    
-    styleElement.textContent = `${processedCSS}\n${shadowDOMOverrides}`;
-    shadowRoot.appendChild(styleElement);
-    
-    // Wait for styles to be applied
-    await new Promise(resolve => setTimeout(resolve, 10));
+
+    const combinedCSS = `${processedCSS}\n${shadowDOMOverrides}`;
+
+    // Prefer Constructable Stylesheets for Shadow DOM
+    try {
+      const supportsAdopted = !!(shadowRoot as any).adoptedStyleSheets && typeof CSSStyleSheet !== 'undefined';
+      if (supportsAdopted) {
+        const sheet = new CSSStyleSheet();
+        await sheet.replace(combinedCSS);
+        // Replace any existing sheets to avoid duplicates on reinjection
+        (shadowRoot as any).adoptedStyleSheets = [sheet];
+      } else {
+        // Fallback to <style>
+        const styleEl = document.createElement('style');
+        styleEl.textContent = combinedCSS;
+        shadowRoot.appendChild(styleEl);
+      }
+    } catch (e) {
+      // Absolute fallback to <style> if Constructable Stylesheets error
+      const styleEl = document.createElement('style');
+      styleEl.textContent = combinedCSS;
+      shadowRoot.appendChild(styleEl);
+    }
+
+    // Wait briefly to ensure initial paint with styles
+    await new Promise((resolve) => setTimeout(resolve, 10));
     
     const appRoot = document.createElement('div');
     appRoot.id = 'app-root';

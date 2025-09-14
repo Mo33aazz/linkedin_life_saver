@@ -22,15 +22,27 @@ export default defineConfig(({ command, mode }): UserConfig => {
           if (!existsSync(fontsDir)) {
             mkdirSync(fontsDir, { recursive: true });
           }
-          // Copy font files
-          copyFileSync(
-            resolve(__dirname, 'src/assets/fonts/inter.woff2'),
-            resolve(__dirname, 'dist/fonts/inter.woff2')
-          );
-          copyFileSync(
-            resolve(__dirname, 'src/assets/fonts/saira.woff2'),
-            resolve(__dirname, 'dist/fonts/saira.woff2')
-          );
+          const pairs: Array<[string, string]> = [
+            [
+              resolve(__dirname, 'src/assets/fonts/inter.woff2'),
+              resolve(__dirname, 'dist/fonts/inter.woff2'),
+            ],
+            [
+              resolve(__dirname, 'src/assets/fonts/saira.woff2'),
+              resolve(__dirname, 'dist/fonts/saira.woff2'),
+            ],
+          ];
+          for (const [from, to] of pairs) {
+            try {
+              if (existsSync(from)) {
+                copyFileSync(from, to);
+              } else {
+                console.warn(`[copy-fonts] Skipping missing font: ${from}`);
+              }
+            } catch (err) {
+              console.warn(`[copy-fonts] Failed to copy font: ${from} -> ${to}`, err);
+            }
+          }
         }
       }
     ],

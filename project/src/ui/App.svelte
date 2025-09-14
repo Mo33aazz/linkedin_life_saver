@@ -10,6 +10,7 @@
   import { uiStore } from './store';
   import SidebarNav from './components/SidebarNav.svelte';
   import type { ExtensionMessage, UIState, LogEntry } from '../shared/types';
+  import { getById, query } from './utils/domQuery';
 
   let appContainer: HTMLElement;
   let activeSection: string | null = null;
@@ -19,10 +20,9 @@
   function scrollToSection(id: string) {
     console.log('App: scrollToSection called with id:', id);
     // Query within our shadow root (not the page document)
-    const root = (appContainer?.getRootNode?.() as ShadowRoot | null) ?? null;
-    const el = (root && 'getElementById' in root ? root.getElementById(id) : null)
-      || appContainer?.querySelector(`#${CSS.escape(id)}`);
-    if (el instanceof HTMLElement) {
+    const el = (appContainer && getById<HTMLElement>(appContainer, id))
+      || (appContainer && query<HTMLElement>(appContainer, `#${CSS.escape(id)}`));
+    if (el) {
       console.log('App: Found element for section:', id, el);
       el.scrollIntoView({ behavior: 'smooth', block: 'start' });
       activeSection = id;
@@ -88,11 +88,10 @@
     );
 
     // Query sections from shadow root
-    const rootNode = (appContainer?.getRootNode?.() as ShadowRoot | null) ?? null;
     sectionIds.forEach((id) => {
-      const el = (rootNode && 'getElementById' in rootNode ? rootNode.getElementById(id) : null)
-        || appContainer?.querySelector(`#${CSS.escape(id)}`);
-      if (el) observer?.observe(el);
+      const el = (appContainer && getById<HTMLElement>(appContainer, id))
+        || (appContainer && query<HTMLElement>(appContainer, `#${CSS.escape(id)}`));
+      if (el) observer?.observe(el as Element);
     });
   });
 
