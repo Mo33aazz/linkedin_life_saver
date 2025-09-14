@@ -30,12 +30,11 @@
   
   // Aggregates used in summary and progress visuals
   $: successTotal = derivedStats.totalLikes + derivedStats.totalReplies + derivedStats.totalDMs;
-  $: successRatio = (successTotal / Math.max(derivedStats.totalComments, 1)) * 100;
   $: pendingRatio = (derivedStats.pendingActions / Math.max(derivedStats.totalComments, 1)) * 100;
   
   let previousStats = { ...derivedStats };
 
-  type CounterKey = 'totalLikes' | 'totalReplies' | 'totalDMs' | 'totalComments' | 'pendingActions' | 'totalErrors';
+  type CounterKey = 'totalLikes' | 'totalReplies' | 'totalDMs' | 'pendingActions' | 'totalErrors' | 'success';
 
   // Card definitions aligned with the React template (icons, labels, colors)
   const cardDefs: Array<{
@@ -51,12 +50,14 @@
     { key: 'totalDMs', label: 'DMs', icon: Mail, iconBg: 'bg-green-500', stripe: 'from-green-500 to-emerald-500', showTrend: true },
     { key: 'pendingActions', label: 'Pending', icon: Clock, iconBg: 'bg-yellow-500', stripe: 'from-amber-500 to-orange-500' },
     { key: 'totalErrors', label: 'Errors', icon: AlertCircle, iconBg: 'bg-red-500', stripe: 'from-red-500 to-rose-500' },
-    { key: 'totalComments', label: 'Success', icon: CheckCircle2, iconBg: 'bg-violet-500', stripe: 'from-violet-500 to-purple-500' },
+    { key: 'success', label: 'Success', icon: CheckCircle2, iconBg: 'bg-violet-500', stripe: 'from-violet-500 to-purple-500' },
   ];
 
   // Build render-time cards with values and short-term trend from previous render
   $: statCards = cardDefs.map((def) => {
-    const current = Number(derivedStats[def.key] || 0);
+    const current = def.key === 'success' 
+      ? Number(successTotal) 
+      : Number((derivedStats as any)[def.key] || 0);
     const prev = Number(previousStats[def.key] || 0);
     let trend: number | undefined = undefined;
     if (def.showTrend) {
@@ -65,6 +66,9 @@
     }
     return { ...def, value: current, trend };
   });
+
+  // Track previous success for animation purposes
+  let previousSuccess = successTotal;
 
   onMount(() => {
     // Initial stagger animation
@@ -111,17 +115,20 @@
 
   // Watch for changes and animate
   $: {
-    counterConfig.forEach((config, index) => {
-      const currentValue = derivedStats[config.key];
-      const previousValue = previousStats[config.key] || 0;
-      
+    cardDefs.forEach((def, index) => {
+      const currentValue = def.key === 'success'
+        ? Number(successTotal)
+        : Number((derivedStats as any)[def.key] || 0);
+      const previousValue = def.key === 'success'
+        ? Number(previousSuccess || 0)
+        : Number(previousStats[def.key] || 0);
       if (counterElements[index] && currentValue !== previousValue) {
         animateCounterChange(counterElements[index], currentValue, previousValue);
       }
     });
-    
-    // Update previous stats
-    previousStats = { ...derivedStats };
+    // Update previous stats for next-frame comparisons
+    previousStats = { ...derivedStats } as any;
+    previousSuccess = successTotal;
   }
 </script>
 
@@ -161,13 +168,12 @@
               <span class={card.trend >= 0 ? 'text-emerald-600' : 'text-red-600'}>
                 {card.trend >= 0 ? '+' : ''}{card.trend}%
               </span>
-              <span class="ml-1">from last update</span>
             </div>
           {/if}
         </div>
 
         <!-- Decorative gradient stripe to echo template style -->
-        <div class={`absolute right-0 top-1/2 -translate-y-1/2 w-1 h-10 rounded-full bg-gradient-to-b ${card.stripe} opacity-70 group-hover:opacity-100 transition-opacity`} />
+        <div class={`absolute right-0 top-1/2 -translate-y-1/2 w-1 h-10 rounded-full bg-gradient-to-b ${card.stripe} opacity-70 group-hover:opacity-100 transition-opacity`}></div>
 
         <!-- Pending linear progress across bottom edge -->
         {#if card.key === 'pendingActions' && derivedStats.pendingActions > 0}
@@ -178,34 +184,7 @@
       </div>
     {/each}
   </div>
-  <!-- Separator -->
-  <div class="my-4 border-t border-gray-100"></div>
-
-  <!-- Activity Summary (matches template structure) -->
-  <div class="rounded-lg border border-gray-100 p-3 bg-white">
-    <div class="flex items-center justify-between text-xs">
-      <span class="text-gray-500">Total Actions</span>
-      <span class="font-semibold text-gray-900">{derivedStats.totalComments}</span>
-    </div>
-    <div class="mt-2 flex items-center justify-between text-xs">
-      <span class="text-gray-500">Completed</span>
-      <span class="font-semibold text-emerald-600">{successTotal}</span>
-    </div>
-    <div class="mt-1 flex items-center justify-between text-xs">
-      <span class="text-gray-500">In Progress</span>
-      <span class="font-semibold text-amber-600">{derivedStats.pendingActions}</span>
-    </div>
-    <div class="mt-1 flex items-center justify-between text-xs">
-      <span class="text-gray-500">Failed</span>
-      <span class="font-semibold text-red-600">{derivedStats.totalErrors}</span>
-    </div>
-    <div class="mt-3">
-      <div class="h-1.5 w-full rounded-full bg-gray-100 overflow-hidden">
-        <div class="h-full bg-gradient-to-r from-emerald-500 to-teal-500" style="width: {Math.min(successRatio, 100)}%"></div>
-      </div>
-      <div class="mt-1 text-[10px] text-gray-500">{Math.round(successRatio)}% complete</div>
-    </div>
-  </div>
+  
 </div>
 
 <style>

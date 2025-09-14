@@ -93,7 +93,7 @@
 
   .tooltip {
     position: absolute;
-    left: calc(100% + 8px);
+    right: calc(100% + 8px);
     top: 50%;
     transform: translateY(-50%);
     background: rgba(17, 24, 39, 0.9);
@@ -113,6 +113,6 @@
   .nav-item:hover .tooltip,
   .nav-item.active .tooltip {
     opacity: 1;
-    transform: translateY(-50%) translateX(-2px);
+    transform: translateY(-50%) translateX(2px);
   }
 </style>

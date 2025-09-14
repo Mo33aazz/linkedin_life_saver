@@ -1,12 +1,12 @@
 <script lang="ts">
+  import { CheckCircle2, XCircle, Loader2, Clock, Heart, Send, MessageCircle, ChevronRight, ChevronDown } from 'lucide-svelte';
   import { comments, uiState } from '../store';
   import type { Comment } from '../../shared/types';
-  import { CheckCircle2, XCircle, Loader2, Clock, Heart, MessageCircle, Send } from 'lucide-svelte';
 
   type StepStatus = 'complete' | 'active' | 'pending' | 'failed';
 
   // Skeleton component for loading state
-  function renderSkeleton() {
+  function renderSkeleton(): Array<{ id: string; isSkeleton: boolean }> {
     return Array.from({ length: 3 }).map((_, i) => ({
       id: `skeleton-${i}`,
       isSkeleton: true
@@ -14,7 +14,7 @@
   }
 
   // Get stepper statuses for a comment using precise TSX logic
-  function getStepperStatuses(comment: Comment) {
+  function getStepperStatuses(comment: Comment): StepStatus[] {
     // Rule for Step 1: 'Queued'
     // A comment in the list is by definition queued and this step is complete.
     const queuedStatus: StepStatus = 'complete';
@@ -77,117 +77,159 @@
   // Summary for compact footer stats (computed from store)
   $: summary = (() => {
     const totals = { total: $comments.length, complete: 0, processing: 0 };
-    $comments.forEach((c) => {
+    $comments.forEach((c: Comment) => {
       const s = getStepperStatuses(c);
-      if (s.every((x) => x === 'complete')) totals.complete += 1;
+      if (s.every((x: StepStatus) => x === 'complete')) totals.complete += 1;
       else totals.processing += 1;
     });
     return totals;
   })();
 
   $: isInitializing = $uiState.isInitializing;
+
+  let collapsed = false;
 </script>
 
 <div class="pipeline-container bg-white rounded-xl shadow-sm border border-gray-100 p-4 mb-4" data-testid="pipeline-progress">
-  <h2 class="font-semibold text-gray-900 mb-3">Pipeline</h2>
-  {#if isInitializing && $comments.length === 0}
-    <!-- Skeleton Loading State -->
-    <div class="pipeline-list">
-       {#each renderSkeleton() as skeleton (skeleton.id)}
-         <div class="comment-row">
-           <div class="comment-info">
-             <div class="skeleton-author"></div>
-             <div class="skeleton-text"></div>
-           </div>
-           <div class="skeleton-stepper mt-4"></div>
-         </div>
-       {/each}
-     </div>
-  {:else}
-    <div class="pipeline-list">
-      {#if $comments.length === 0}
-        <p class="idle-message">No active items.</p>
+  <div class="pipeline-header flex items-center justify-between mb-3">
+    <h2 class="font-semibold text-gray-900">Pipeline</h2>
+    <button
+      class="inline-flex items-center gap-1 text-sm text-gray-700 hover:text-gray-900 px-2 py-1 rounded-md hover:bg-gray-100"
+      aria-expanded={!collapsed}
+      aria-controls="pipeline-content"
+      on:click={() => (collapsed = !collapsed)}
+      data-testid="pipeline-toggle"
+    >
+      {#if collapsed}
+        <ChevronRight size={18} /> Expand
       {:else}
-        {#each $comments as comment (comment.commentId)}
-          {@const author = getAuthor(comment.ownerProfileUrl)}
-          {@const shortText = truncateText(comment.text)}
-          {@const stepStatuses = getStepperStatuses(comment)}
-          {@const steps = ['Queued', 'Liked', 'DM Sent', 'Replied']}
-          
-          
-          <div 
-            class="comment-row"
-            data-testid="pipeline-row-{comment.commentId}"
-            data-comment-id={comment.commentId}
-          >
-            <div class="comment-info">
-              <div class="flex items-center gap-2 mb-1.5">
-                <p class="comment-author">{author}</p>
-                <span class="inline-flex items-center gap-1 rounded-full border border-gray-200 px-2 py-0.5 text-xs font-medium text-gray-700 bg-white/70">
-                  {#if stepStatuses.every((s) => s === 'complete')}
-                    <CheckCircle2 size={14} class="text-emerald-600" /> Completed
-                  {:else}
-                    <Loader2 size={14} class="animate-spin text-blue-600" /> In&nbsp;progress
-                  {/if}
-                </span>
+        <ChevronDown size={18} /> Collapse
+      {/if}
+    </button>
+  </div>
+
+  {#if collapsed}
+    <!-- Collapsed: Show only summary -->
+    <div id="pipeline-content">
+      <div class="mt-1 bg-gray-50 border border-gray-200 rounded-xl p-3">
+        <div class="grid grid-cols-3 gap-2 text-center">
+          <div>
+            <p class="text-lg font-bold text-gray-900">{summary.complete}</p>
+            <p class="text-xs text-gray-600">Completed</p>
+          </div>
+          <div>
+            <p class="text-lg font-bold text-gray-900">{summary.processing}</p>
+            <p class="text-xs text-gray-600">Processing</p>
+          </div>
+          <div>
+            <p class="text-lg font-bold text-gray-900">{summary.total}</p>
+            <p class="text-xs text-gray-600">Total</p>
+          </div>
+        </div>
+      </div>
+    </div>
+  {:else}
+    <div id="pipeline-content">
+      {#if isInitializing && $comments.length === 0}
+        <!-- Skeleton Loading State -->
+        <div class="pipeline-list">
+          {#each renderSkeleton() as skeleton (skeleton.id)}
+            <div class="comment-row">
+              <div class="comment-info">
+                <div class="skeleton-author"></div>
+                <div class="skeleton-text"></div>
               </div>
-              <p class="comment-text" title={comment.text}>{shortText}</p>
-              <!-- Pipeline timeline moved here (replacing progress bar) -->
-              <div class="stepper-horizontal mt-4 mb-1">
-                {#each steps as step, index}
-                  {@const s = stepStatuses[index]}
-                  <div class="step-wrapper">
-                    <div 
-                      class="step-circle step-{s}"
-                      data-testid="step-indicator-{step.replace(' ', '-')}"
-                      aria-label={`${step}: ${s}`}
-                      title={`${step}: ${s}`}
-                    >
-                      {#if s === 'complete'}
-                        <CheckCircle2 size={18} />
-                      {:else if s === 'failed'}
-                        <XCircle size={18} />
-                      {:else if s === 'active'}
-                        <Loader2 size={18} class="animate-spin" />
+              <div class="skeleton-stepper mt-4"></div>
+            </div>
+          {/each}
+        </div>
+      {:else}
+        <div class="pipeline-list">
+          {#if $comments.length === 0}
+            <p class="idle-message">No active items.</p>
+          {:else}
+            {#each $comments as comment (comment.commentId)}
+              {@const author = getAuthor(comment.ownerProfileUrl)}
+              {@const shortText = truncateText(comment.text)}
+              {@const stepStatuses = getStepperStatuses(comment)}
+              {@const steps = ['Queued', 'Liked', 'DM Sent', 'Replied']}
+              
+              
+              <div 
+                class="comment-row"
+                data-testid="pipeline-row-{comment.commentId}"
+                data-comment-id={comment.commentId}
+              >
+                <div class="comment-info">
+                  <div class="flex items-center gap-2 mb-1.5">
+                    <p class="comment-author">{author}</p>
+                    <span class="inline-flex items-center gap-1 rounded-full border border-gray-200 px-2 py-0.5 text-xs font-medium text-gray-700 bg-white/70">
+                      {#if stepStatuses.every((s) => s === 'complete')}
+                        <CheckCircle2 size={14} class="text-emerald-600" /> Completed
                       {:else}
-                        {#if index === 0}
-                          <Clock size={16} />
-                        {:else if index === 1}
-                          <Heart size={16} />
-                        {:else if index === 2}
-                          <Send size={16} />
-                        {:else}
-                          <MessageCircle size={16} />
-                        {/if}
+                        <Loader2 size={14} class="animate-spin text-blue-600" /> In&nbsp;progress
                       {/if}
-                    </div>
-                    <span class="step-name">{step}</span>
-                    {#if index < steps.length - 1}
-                      <div class="step-connector {s === 'complete' ? 'step-connector-complete' : 'step-connector-incomplete'}"></div>
-                    {/if}
+                    </span>
                   </div>
-                {/each}
+                  <p class="comment-text" title={comment.text}>{shortText}</p>
+                  <!-- Pipeline timeline moved here (replacing progress bar) -->
+                  <div class="stepper-horizontal mt-4 mb-1">
+                    {#each steps as step, index}
+                      {@const s = stepStatuses[index]}
+                      <div class="step-wrapper">
+                        <div 
+                          class="step-circle step-{s}"
+                          data-testid="step-indicator-{step.replace(' ', '-')}"
+                          aria-label={`${step}: ${s}`}
+                          title={`${step}: ${s}`}
+                        >
+                          {#if s === 'complete'}
+                            <CheckCircle2 size={18} />
+                          {:else if s === 'failed'}
+                            <XCircle size={18} />
+                          {:else if s === 'active'}
+                            <Loader2 size={18} class="animate-spin" />
+                          {:else}
+                            {#if index === 0}
+                              <Clock size={16} />
+                            {:else if index === 1}
+                              <Heart size={16} />
+                            {:else if index === 2}
+                              <Send size={16} />
+                            {:else}
+                              <MessageCircle size={16} />
+                            {/if}
+                          {/if}
+                        </div>
+                        <span class="step-name">{step}</span>
+                        {#if index < steps.length - 1}
+                          <div class="step-connector {s === 'complete' ? 'step-connector-complete' : 'step-connector-incomplete'}"></div>
+                        {/if}
+                      </div>
+                    {/each}
+                  </div>
+                </div>
+                <!-- removed right-side stepper; timeline is now inside comment-info -->
+              </div>
+            {/each}
+            <!-- Compact summary aligned to sidebar visuals -->
+            <div class="mt-3 bg-gray-50 border border-gray-200 rounded-xl p-3">
+              <div class="grid grid-cols-3 gap-2 text-center">
+                <div>
+                  <p class="text-lg font-bold text-gray-900">{summary.complete}</p>
+                  <p class="text-xs text-gray-600">Completed</p>
+                </div>
+                <div>
+                  <p class="text-lg font-bold text-gray-900">{summary.processing}</p>
+                  <p class="text-xs text-gray-600">Processing</p>
+                </div>
+                <div>
+                  <p class="text-lg font-bold text-gray-900">{summary.total}</p>
+                  <p class="text-xs text-gray-600">Total</p>
+                </div>
               </div>
             </div>
-            <!-- removed right-side stepper; timeline is now inside comment-info -->
-          </div>
-        {/each}
-        <!-- Compact summary aligned to sidebar visuals -->
-        <div class="mt-3 bg-gray-50 border border-gray-200 rounded-xl p-3">
-          <div class="grid grid-cols-3 gap-2 text-center">
-            <div>
-              <p class="text-lg font-bold text-gray-900">{summary.complete}</p>
-              <p class="text-xs text-gray-600">Completed</p>
-            </div>
-            <div>
-              <p class="text-lg font-bold text-gray-900">{summary.processing}</p>
-              <p class="text-xs text-gray-600">Processing</p>
-            </div>
-            <div>
-              <p class="text-lg font-bold text-gray-900">{summary.total}</p>
-              <p class="text-xs text-gray-600">Total</p>
-            </div>
-          </div>
+          {/if}
         </div>
       {/if}
     </div>
