@@ -53,22 +53,22 @@
   });
 </script>
 
-<div bind:this={appContainer} id="sidebar-app" class="sidebar p-6 animate-fade-in">
+<div bind:this={appContainer} id="sidebar-app" class="sidebar animate-fade-in">
   <div class="ui-scale">
   <!-- Header with animated title -->
-  <div class="mb-6">
-    <h1 class="text-3xl font-bold text-white mb-1 animate-slide-up flex items-center gap-3" style="font-family: 'Saira', 'Inter', 'Segoe UI', 'Roboto', 'Helvetica Neue', Arial, sans-serif;">
-      <img src={chrome?.runtime?.getURL('logo.svg') || '/logo.svg'} alt="LinkedIn Life Saver Logo" class="w-8 h-8" />
+  <div class="header-section">
+    <h1 class="app-title" style="font-family: 'Saira', 'Inter', 'Segoe UI', 'Roboto', 'Helvetica Neue', Arial, sans-serif;">
+      <img src={chrome?.runtime?.getURL('logo.svg') || '/logo.svg'} alt="LinkedIn Life Saver Logo" class="logo" />
       LinkedIn Life Saver
     </h1>
-    <p class="text-sm text-gray-500 mb-2 font-medium">
+    <p class="version-text">
       v.1.0
     </p>
-    <div class="h-1 bg-gradient-to-r from-primary-500 to-secondary-500 rounded-full w-full animate-bounce-gentle"></div>
+    <div class="progress-bar"></div>
   </div>
 
   <!-- Main content sections -->
-  <div class="space-y-4">
+  <div class="content-sections">
     <Header />
     <Counters />
     <PipelineProgress />
@@ -80,6 +80,76 @@
 </div>
 
 <style>
+  #sidebar-app {
+    width: 100%;
+    max-width: 420px;
+    min-width: 320px;
+    padding: 1.5rem;
+    box-sizing: border-box;
+    overflow-x: hidden;
+  }
+
+  .header-section {
+    margin-bottom: 1.5rem;
+  }
+
+  .app-title {
+    font-size: 1.875rem;
+    font-weight: 700;
+    color: white;
+    margin-bottom: 0.25rem;
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    animation: slideUp 0.6s ease-out;
+  }
+
+  .logo {
+    width: 2rem;
+    height: 2rem;
+  }
+
+  .version-text {
+    font-size: 0.875rem;
+    color: #9ca3af;
+    margin-bottom: 0.5rem;
+    font-weight: 500;
+  }
+
+  .progress-bar {
+    height: 0.25rem;
+    background: linear-gradient(to right, var(--primary-500), var(--secondary-500));
+    border-radius: 9999px;
+    width: 100%;
+    animation: bounceGentle 2s ease-in-out infinite;
+  }
+
+  .content-sections {
+    display: flex;
+    flex-direction: column;
+    gap: 1rem;
+  }
+
+  @keyframes slideUp {
+    from {
+      opacity: 0;
+      transform: translateY(20px);
+    }
+    to {
+      opacity: 1;
+      transform: translateY(0);
+    }
+  }
+
+  @keyframes bounceGentle {
+    0%, 100% {
+      transform: scaleX(1);
+    }
+    50% {
+      transform: scaleX(1.05);
+    }
+  }
+
   /* Accessibility improvements */
   @media (prefers-reduced-motion: reduce) {
     :global(*) {
@@ -92,5 +162,21 @@
   /* Disable zoom-based scaling; rely on base font-size scaling */
   .ui-scale {
     display: contents;
+  }
+
+  /* Responsive adjustments */
+  @media (max-width: 480px) {
+    #sidebar-app {
+      padding: 1rem;
+      min-width: 280px;
+    }
+
+    .app-title {
+      font-size: 1.5rem;
+    }
+
+    .content-sections {
+      gap: 0.75rem;
+    }
   }
 </style>

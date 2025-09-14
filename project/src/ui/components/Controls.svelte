@@ -209,7 +209,7 @@
   }
 </script>
 
-<div bind:this={controlsContainer} class="controls-container bg-white rounded-xl shadow-sm border border-gray-100 p-4 mb-4">
+<div bind:this={controlsContainer} class="controls-container bg-white rounded-xl shadow-sm border border-gray-100 p-3 mb-4 max-w-full overflow-hidden">
   <h2 class="font-semibold text-gray-900 mb-4 flex items-center">
     <span class="text-2xl mr-2">🎮</span>
     Pipeline Controls
@@ -240,7 +240,7 @@
       <button
         bind:this={buttons[1]}
         id="stop"
-        class="control-button relative overflow-hidden bg-gradient-to-r from-red-500 to-pink-500 hover:from-red-600 hover:to-pink-600 text-white font-semibold py-3 px-4 rounded-lg shadow-md transition-all duration-300 transform hover:scale-105 hover:shadow-lg focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500"
+        class="control-button stop-button font-semibold py-3 px-4 rounded-lg transition-all duration-300 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500 flex-1"
         on:click={stopPipeline}
         aria-label="Stop Pipeline"
       >
@@ -310,7 +310,7 @@
       <!-- Export JSON Button -->
       <button
         bind:this={buttons[2]}
-        class="control-button secondary-button bg-gradient-to-r from-green-100 to-emerald-100 hover:from-green-200 hover:to-emerald-200 text-green-700 font-medium py-2.5 px-4 rounded-lg border border-green-300 transition-all duration-300 transform hover:scale-105 hover:shadow-md focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-green-500"
+        class="secondary-button export-json"
         on:click={handleExportJSON}
         data-testid="export-json-button"
         aria-label="Export JSON data"
@@ -324,7 +324,7 @@
       <!-- Export Logs Button -->
       <button
         bind:this={buttons[3]}
-        class="control-button secondary-button bg-gradient-to-r from-blue-100 to-indigo-100 hover:from-blue-200 hover:to-indigo-200 text-blue-700 font-medium py-2.5 px-4 rounded-lg border border-blue-300 transition-all duration-300 transform hover:scale-105 hover:shadow-md focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
+        class="secondary-button export-logs"
         on:click={handleExportLogs}
         data-testid="export-logs-button"
         aria-label="Export logs"
@@ -338,7 +338,7 @@
       <!-- Reset Session Button -->
       <button
         bind:this={buttons[4]}
-        class="control-button secondary-button bg-gradient-to-r from-red-100 to-pink-100 hover:from-red-200 hover:to-pink-200 text-red-700 font-medium py-2.5 px-4 rounded-lg border border-red-300 transition-all duration-300 transform hover:scale-105 hover:shadow-md focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500"
+        class="secondary-button reset-session"
         on:click={handleResetSession}
         data-testid="reset-session-button"
         aria-label="Reset session"
@@ -364,25 +364,123 @@
 
 <style>
   .controls-container {
-    backdrop-filter: blur(10px);
-    background: rgba(255, 255, 255, 0.95);
+    backdrop-filter: blur(16px);
+    background: linear-gradient(135deg, rgba(255, 255, 255, 0.95) 0%, rgba(248, 250, 252, 0.98) 100%);
+    border: 1px solid rgba(226, 232, 240, 0.6);
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08), 0 1px 3px rgba(0, 0, 0, 0.1);
   }
 
   .control-button {
     position: relative;
     overflow: hidden;
+    backdrop-filter: blur(8px);
+    border: 1px solid rgba(255, 255, 255, 0.2);
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1), 0 1px 3px rgba(0, 0, 0, 0.06);
+  }
+
+  .control-button:hover {
+    transform: translateY(-2px) scale(1.02);
+    box-shadow: 0 8px 25px rgba(0, 0, 0, 0.15), 0 3px 10px rgba(0, 0, 0, 0.1);
   }
 
   .control-button:active {
-    transform: scale(0.98);
+    transform: translateY(-1px) scale(0.99);
+    transition-duration: 0.1s;
   }
 
   .control-button:disabled {
     transform: none !important;
+    opacity: 0.6;
+    cursor: not-allowed;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
+  }
+
+  .stop-button {
+    background: linear-gradient(135deg, #ef4444 0%, #dc2626 100%);
+    color: white;
+    border: 1px solid rgba(239, 68, 68, 0.3);
+  }
+
+  .stop-button:hover {
+    background: linear-gradient(135deg, #dc2626 0%, #b91c1c 100%);
   }
 
   .secondary-button {
-    backdrop-filter: blur(5px);
+    backdrop-filter: blur(8px);
+    background: linear-gradient(135deg, #f8fafc 0%, #f1f5f9 100%) !important;
+    border: 1px solid rgba(203, 213, 225, 0.8) !important;
+    color: #475569 !important;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05), 0 1px 2px rgba(0, 0, 0, 0.1);
+  }
+
+  .secondary-button:hover {
+    background: linear-gradient(135deg, #f1f5f9 0%, #e2e8f0 100%) !important;
+    transform: translateY(-1px) scale(1.02);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1), 0 2px 4px rgba(0, 0, 0, 0.06);
+  }
+
+  .export-json {
+    background: linear-gradient(135deg, #ecfdf5 0%, #d1fae5 100%);
+    border: 1px solid rgba(34, 197, 94, 0.3);
+    color: #166534;
+  }
+
+  .export-json:hover {
+    background: linear-gradient(135deg, #d1fae5 0%, #bbf7d0 100%);
+  }
+
+  .export-logs {
+    background: linear-gradient(135deg, #eff6ff 0%, #dbeafe 100%);
+    border: 1px solid rgba(59, 130, 246, 0.3);
+    color: #1e40af;
+  }
+
+  .export-logs:hover {
+    background: linear-gradient(135deg, #dbeafe 0%, #bfdbfe 100%);
+  }
+
+  .reset-session {
+    background: linear-gradient(135deg, #fef2f2 0%, #fecaca 100%);
+    border: 1px solid rgba(239, 68, 68, 0.3);
+    color: #991b1b;
+  }
+
+  .reset-session:hover {
+    background: linear-gradient(135deg, #fecaca 0%, #fca5a5 100%);
+  }
+
+  /* Enhanced Input Styling */
+  .control-group {
+    @apply mb-4;
+  }
+
+  .control-group label {
+    @apply block text-sm font-semibold text-gray-800 mb-2;
+    background: linear-gradient(135deg, #374151 0%, #4b5563 100%);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+  }
+
+  .control-group input {
+    @apply w-full px-4 py-2.5 rounded-lg border transition-all duration-300 focus:outline-none focus:ring-2 focus:ring-offset-1;
+    background: linear-gradient(135deg, #ffffff 0%, #f8fafc 100%);
+    border: 1px solid rgba(203, 213, 225, 0.8);
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05), inset 0 1px 2px rgba(0, 0, 0, 0.05);
+  }
+
+  .control-group input:focus {
+    border-color: #3b82f6;
+    box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1), 0 1px 3px rgba(0, 0, 0, 0.1);
+    background: #ffffff;
+  }
+
+  .range-inputs {
+    @apply flex items-center space-x-3;
+  }
+
+  .range-inputs span {
+    @apply text-gray-500 font-medium;
   }
 
   /* Ripple effect */
@@ -401,15 +499,33 @@
     }
   }
 
+  /* Enhanced Status Indicator */
+  .status-indicator {
+    @apply flex items-center space-x-3 p-4 rounded-xl;
+    background: linear-gradient(135deg, #f8fafc 0%, #f1f5f9 100%);
+    border: 1px solid rgba(203, 213, 225, 0.6);
+    backdrop-filter: blur(8px);
+  }
+
+  .status-dot {
+    @apply w-3 h-3 rounded-full transition-all duration-300;
+    box-shadow: 0 0 10px currentColor;
+  }
+
   /* Accessibility */
   @media (prefers-reduced-motion: reduce) {
-    .control-button:hover {
+    .control-button:hover,
+    .secondary-button:hover {
       transform: none;
     }
     
     .animate-spin,
     .animate-pulse {
       animation: none;
+    }
+
+    .status-dot {
+      box-shadow: none;
     }
   }
 
@@ -419,8 +535,28 @@
     outline: 2px solid #3b82f6;
     outline-offset: 2px;
   }
+
+  .control-group input:focus-visible {
+    outline: 2px solid #3b82f6;
+    outline-offset: 2px;
+  }
   
-  /* Responsive adjustments */
+  .controls-container {
+    width: 100%;
+    max-width: 100%;
+    box-sizing: border-box;
+    overflow-x: hidden;
+  }
+
+  .control-button {
+    min-width: 0;
+    flex: 1;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+
+  /* Enhanced Responsive Design */
   @media (max-width: 640px) {
     .grid {
       grid-template-columns: 1fr;
@@ -428,27 +564,43 @@
     }
     
     .control-button {
-      padding: 0.75rem 1rem;
+      padding: 0.875rem 0.75rem;
+      font-size: 0.9rem;
+      min-width: 0;
     }
     
     .secondary-button {
-      padding: 0.5rem 0.75rem;
+      padding: 0.75rem 0.5rem;
+      font-size: 0.85rem;
+    }
+
+    .range-inputs {
+      @apply flex-col space-y-2 space-x-0;
+    }
+
+    .controls-container {
+      padding: 0.75rem;
     }
   }
   
   @media (max-width: 480px) {
     .controls-container {
-      padding: 0.75rem;
+      padding: 1rem;
     }
     
     .control-button {
-      padding: 0.5rem 0.75rem;
+      padding: 0.75rem;
       font-size: 0.875rem;
     }
     
     .secondary-button {
-      padding: 0.5rem;
-      font-size: 0.75rem;
+      padding: 0.625rem;
+      font-size: 0.8rem;
+    }
+
+    .control-group input {
+      padding: 0.625rem 0.75rem;
+      font-size: 0.875rem;
     }
   }
   
@@ -457,6 +609,10 @@
     .control-button,
     .secondary-button {
       min-height: 44px; /* Minimum touch target size */
+    }
+
+    .control-group input {
+      min-height: 44px;
     }
   }
 </style>

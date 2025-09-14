@@ -30,7 +30,7 @@ const loadCSS = async (): Promise<string> => {
 console.log('Content script starting...');
 
 // UI layout and scale settings
-const SIDEBAR_WIDTH = 500; // slightly wider for better fit and no cropping
+const SIDEBAR_WIDTH = 400; // optimized width to match new layout constraints
 const UI_FONT_SCALE = 1.5; // scale base font-size (affects Tailwind rem units)
 
 const isOnLinkedInPost = (): boolean => {
