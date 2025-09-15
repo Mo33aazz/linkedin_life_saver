@@ -3,7 +3,11 @@ import { resolve } from 'path';
 
 async function globalTeardown() {
   try {
-    const pidFile = resolve(process.cwd(), 'test-results', 'shared-browser.pid');
+    const pidFile = resolve(
+      process.cwd(),
+      'test-results',
+      'shared-browser.pid'
+    );
     const pidStr = readFileSync(pidFile, 'utf-8').trim();
     const pid = Number(pidStr);
     if (Number.isFinite(pid) && pid > 0) {
@@ -20,4 +24,3 @@ async function globalTeardown() {
 }
 
 export default globalTeardown;
-

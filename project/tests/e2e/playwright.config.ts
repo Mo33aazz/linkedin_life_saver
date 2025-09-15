@@ -14,4 +14,3 @@ export default defineConfig({
   globalSetup: './tests/e2e/setup/globalSetup.ts',
   globalTeardown: './tests/e2e/setup/globalTeardown.ts',
 });
-

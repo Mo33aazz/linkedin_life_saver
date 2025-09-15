@@ -11,16 +11,22 @@ if (!commandsFile) {
   process.exit(1);
 }
 
-const [,, cmdName, ...rest] = process.argv;
+const [, , cmdName, ...rest] = process.argv;
 if (!cmdName) {
-  console.error('Usage: node tools/manual-send-command.mjs <cmd> [jsonPayload]');
+  console.error(
+    'Usage: node tools/manual-send-command.mjs <cmd> [jsonPayload]'
+  );
   process.exit(1);
 }
 let payload = {};
 if (rest[0]) {
-  try { payload = JSON.parse(rest[0]); } catch { console.error('Invalid JSON payload'); process.exit(1); }
+  try {
+    payload = JSON.parse(rest[0]);
+  } catch {
+    console.error('Invalid JSON payload');
+    process.exit(1);
+  }
 }
 const line = JSON.stringify({ cmd: cmdName, ...payload });
 fs.appendFileSync(commandsFile, line + '\n');
 console.log('Sent:', line);
-

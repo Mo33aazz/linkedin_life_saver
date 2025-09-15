@@ -16,9 +16,6 @@ src/ui/
 │   ├── Header.svelte          # Status header with indicators
 │   ├── LogsPanel.svelte       # Logs display panel
 │   └── PipelineProgress.svelte # Comment processing progress tracker
-├── hooks/                      # Custom Svelte hooks
-│   └── useAnimatedCounter.ts  # Counter animation utilities
-├── legacy/                     # Legacy React components (deprecated)
 ├── store/                      # State management
 │   └── index.ts               # Svelte stores and state logic
 └── utils/                      # Utility functions
@@ -31,25 +28,29 @@ src/ui/
 **File**: `src/ui/App.svelte`
 
 **Key Selectors**:
+
 - `#sidebar-app` - Main application container
 - `.sidebar` - Sidebar styling class
 - `.ui-scale` - Scaling container for responsive design
 
 **Structure**:
+
 ```html
 <div id="sidebar-app" class="sidebar p-6 animate-fade-in">
   <div class="ui-scale">
     <!-- Header with logo and title -->
     <div class="mb-6">
-      <h1 class="text-3xl font-bold text-white mb-1 animate-slide-up flex items-center gap-3">
+      <h1
+        class="text-3xl font-bold text-white mb-1 animate-slide-up flex items-center gap-3"
+      >
         <img src="logo.svg" alt="LinkedIn Life Saver Logo" class="w-8 h-8" />
         LinkedIn Life Saver
       </h1>
     </div>
-    
+
     <!-- Component sections -->
     <div class="space-y-4">
-      <Header />
+      <header />
       <Counters />
       <PipelineProgress />
       <Controls />
@@ -61,6 +62,7 @@ src/ui/
 ```
 
 **Logic**:
+
 - Initializes GSAP animations on mount
 - Sets up Chrome extension message listeners
 - Handles state updates and log entries from background script
@@ -73,36 +75,43 @@ src/ui/
 **File**: `src/ui/components/Header.svelte`
 
 **Key Selectors**:
+
 - `.header-container` - Main header wrapper
 - `.status-indicator` - Pipeline status indicator circle
 - `.status-text` - Status text display
 
 **Status States**:
+
 - `idle`: Gray indicator, "Ready" text
 - `running`: Green pulsing indicator, "Running" text with animated bars
 - `paused`: Amber indicator, "Paused" text with pause icon
 - `error`: Red pulsing indicator, "Error" text with warning icon
 
 **Visual Elements**:
+
 ```html
-<div class="header-container bg-white rounded-xl shadow-sm border border-gray-100 p-4 mb-4">
+<div
+  class="header-container bg-white rounded-xl shadow-sm border border-gray-100 p-4 mb-4"
+>
   <div class="flex items-center justify-between">
     <!-- Status indicator with dynamic colors -->
     <div class="status-indicator w-4 h-4 rounded-full {currentStatus.bgColor}">
       <div class="w-2 h-2 rounded-full bg-current {currentStatus.color}"></div>
     </div>
-    
+
     <!-- Action indicators (animated bars, icons) -->
     <div class="flex items-center space-x-2">
       <!-- Dynamic content based on pipeline status -->
     </div>
   </div>
-  
+
   <!-- Progress bar for running state -->
   {#if $pipelineStatus === 'running'}
-    <div class="mt-3 bg-gray-100 rounded-full h-1.5">
-      <div class="h-full bg-gradient-to-r from-primary-500 to-secondary-500 animate-progress-bar"></div>
-    </div>
+  <div class="mt-3 bg-gray-100 rounded-full h-1.5">
+    <div
+      class="h-full bg-gradient-to-r from-primary-500 to-secondary-500 animate-progress-bar"
+    ></div>
+  </div>
   {/if}
 </div>
 ```
@@ -114,6 +123,7 @@ src/ui/
 **File**: `src/ui/components/Controls.svelte`
 
 **Key Selectors**:
+
 - `.controls-container` - Main controls wrapper
 - `.control-button` - Primary action buttons
 - `.secondary-button` - Secondary action buttons
@@ -146,13 +156,32 @@ src/ui/
    - **Visible**: When pipeline status is `running` or `paused`
 
 **Settings Controls**:
+
 ```html
 <!-- Comments to Fetch -->
-<input id="max-comments" type="number" min="1" max="1000" bind:value={maxComments} />
+<input
+  id="max-comments"
+  type="number"
+  min="1"
+  max="1000"
+  bind:value="{maxComments}"
+/>
 
 <!-- Delay Range -->
-<input type="number" min="1000" max="60000" step="1000" bind:value={delayMin} />
-<input type="number" min="1000" max="60000" step="1000" bind:value={delayMax} />
+<input
+  type="number"
+  min="1000"
+  max="60000"
+  step="1000"
+  bind:value="{delayMin}"
+/>
+<input
+  type="number"
+  min="1000"
+  max="60000"
+  step="1000"
+  bind:value="{delayMax}"
+/>
 ```
 
 **Secondary Action Buttons**:
@@ -173,6 +202,7 @@ src/ui/
    - **Action**: `handleResetSession()`
 
 **Message Types Sent**:
+
 - `START_PIPELINE` - Starts the comment processing pipeline
 - `STOP_PIPELINE` - Pauses the pipeline
 - `RESUME_PIPELINE` - Resumes a paused pipeline
@@ -189,53 +219,63 @@ src/ui/
 **File**: `src/ui/components/PipelineProgress.svelte`
 
 **Key Selectors**:
+
 - `[data-testid="pipeline-progress"]` - Main progress container
 - `[data-testid="pipeline-row-{commentId}"]` - Individual comment rows
 - `[data-comment-id="{commentId}"]` - Comment identification attribute
 - `[data-testid="step-indicator-{step}"]` - Step indicator elements
 
 **Step Indicators**:
+
 1. **Queued** - Always complete for comments in the list
 2. **Liked** - Shows like action status
-3. **Replied** - Shows reply action status  
+3. **Replied** - Shows reply action status
 4. **DM Sent** - Shows direct message status
 
 **Step Status Classes**:
+
 - `.step-complete` - Green circle with checkmark (✓)
 - `.step-active` - Blue pulsing circle with step number
 - `.step-pending` - Gray circle with step number
 - `.step-failed` - Red circle with X mark (✗)
 
 **Structure**:
+
 ```html
 <div data-testid="pipeline-progress">
   {#each $comments as comment}
-    <div data-testid="pipeline-row-{comment.commentId}" data-comment-id={comment.commentId}>
-      <!-- Comment info -->
-      <div class="comment-info">
-        <p class="comment-author">{author}</p>
-        <p class="comment-text">{shortText}</p>
-      </div>
-      
-      <!-- Horizontal stepper -->
-      <div class="stepper-horizontal">
-        {#each steps as step, index}
-          <div class="step-wrapper">
-            <div class="step-circle step-{stepStatuses[index]}" 
-                 data-testid="step-indicator-{step.replace(' ', '-')}">
-              <!-- Step content (✓, ✗, or number) -->
-            </div>
-            <span class="step-name">{step}</span>
-            <!-- Connector line -->
-          </div>
-        {/each}
-      </div>
+  <div
+    data-testid="pipeline-row-{comment.commentId}"
+    data-comment-id="{comment.commentId}"
+  >
+    <!-- Comment info -->
+    <div class="comment-info">
+      <p class="comment-author">{author}</p>
+      <p class="comment-text">{shortText}</p>
     </div>
+
+    <!-- Horizontal stepper -->
+    <div class="stepper-horizontal">
+      {#each steps as step, index}
+      <div class="step-wrapper">
+        <div
+          class="step-circle step-{stepStatuses[index]}"
+          data-testid="step-indicator-{step.replace(' ', '-')}"
+        >
+          <!-- Step content (✓, ✗, or number) -->
+        </div>
+        <span class="step-name">{step}</span>
+        <!-- Connector line -->
+      </div>
+      {/each}
+    </div>
+  </div>
   {/each}
 </div>
 ```
 
 **Logic**:
+
 - Calculates step statuses based on comment action states
 - Renders skeleton loading state during initialization
 - Displays idle message when no comments are present
@@ -249,11 +289,13 @@ src/ui/
 **File**: `src/ui/components/Counters.svelte`
 
 **Key Selectors**:
+
 - `.counters-container` - Main counters wrapper
 - `.counter-card` - Individual counter cards
 - `.counter-number` - Counter value display
 
 **Counter Types**:
+
 1. **Likes** - 👍 Pink gradient, tracks completed likes
 2. **Replies** - 💬 Blue gradient, tracks completed replies
 3. **DMs** - 📩 Purple gradient, tracks completed direct messages
@@ -262,31 +304,35 @@ src/ui/
 6. **Errors** - ⚠️ Red gradient, tracks failed actions
 
 **Structure**:
+
 ```html
-<div class="counters-container bg-white rounded-xl shadow-sm border border-gray-100 p-4 mb-4">
+<div
+  class="counters-container bg-white rounded-xl shadow-sm border border-gray-100 p-4 mb-4"
+>
   <div class="grid grid-cols-2 gap-3">
     {#each counterConfig as config, index}
-      <div class="counter-card {config.bgColor} rounded-lg p-3">
-        <div class="flex items-center justify-between">
-          <div class="flex items-center space-x-2">
-            <span class="text-lg">{config.icon}</span>
-            <div>
-              <div class="counter-number text-2xl font-bold {config.textColor}">
-                {derivedStats[config.key]}
-              </div>
-              <div class="text-sm {config.textColor}">{config.label}</div>
+    <div class="counter-card {config.bgColor} rounded-lg p-3">
+      <div class="flex items-center justify-between">
+        <div class="flex items-center space-x-2">
+          <span class="text-lg">{config.icon}</span>
+          <div>
+            <div class="counter-number text-2xl font-bold {config.textColor}">
+              {derivedStats[config.key]}
             </div>
+            <div class="text-sm {config.textColor}">{config.label}</div>
           </div>
-          <!-- Gradient accent bar -->
         </div>
-        <!-- Progress indicator for pending actions -->
+        <!-- Gradient accent bar -->
       </div>
+      <!-- Progress indicator for pending actions -->
+    </div>
     {/each}
   </div>
 </div>
 ```
 
 **Logic**:
+
 - Derives statistics from comment states in real-time
 - Animates counter changes with GSAP
 - Shows progress bar for pending actions
@@ -299,6 +345,7 @@ src/ui/
 **File**: `src/ui/store/index.ts`
 
 **Key Stores**:
+
 - `uiState` - Main application state
 - `logs` - Application logs
 - `pipelineStatus` - Derived pipeline status
@@ -307,6 +354,7 @@ src/ui/
 - `postUrn` - Derived post URN
 
 **Store Methods**:
+
 - `updateState(newState)` - Updates partial UI state
 - `setPipelineStatus(status)` - Sets pipeline run state
 - `updateStats(stats)` - Updates statistics
@@ -324,6 +372,7 @@ src/ui/
 **Key Interfaces**:
 
 ### Comment
+
 ```typescript
 interface Comment {
   commentId: string;
@@ -350,6 +399,7 @@ interface Comment {
 ```
 
 ### UIState
+
 ```typescript
 interface UIState {
   isInitializing: boolean;
@@ -368,18 +418,27 @@ interface UIState {
 ```
 
 ### Extension Messages
+
 ```typescript
 type ExtensionMessage =
   | { type: 'STATE_UPDATE'; payload: Partial<UIState> }
   | { type: 'LOG_ENTRY'; payload: LogEntry }
-  | { type: 'START_PIPELINE'; payload: { postUrn?: string; maxComments?: number; delayMin?: number; delayMax?: number } }
+  | {
+      type: 'START_PIPELINE';
+      payload: {
+        postUrn?: string;
+        maxComments?: number;
+        delayMin?: number;
+        delayMax?: number;
+      };
+    }
   | { type: 'STOP_PIPELINE' }
   | { type: 'RESUME_PIPELINE' }
   | { type: 'RESET_PIPELINE' }
   | { type: 'UPDATE_SETTINGS'; payload: any }
   | { type: 'EXPORT_JSON'; postUrn: string }
   | { type: 'EXPORT_LOGS' }
-  | { type: 'RESET_SESSION'; postUrn: string }
+  | { type: 'RESET_SESSION'; postUrn: string };
 ```
 
 ## Animation System
@@ -387,6 +446,7 @@ type ExtensionMessage =
 **Library**: GSAP (GreenSock Animation Platform)
 
 **Common Animations**:
+
 - **Fade In**: `opacity: 0 → 1` with `y: 20 → 0`
 - **Scale Bounce**: `scale: 0.8 → 1` with `back.out(1.7)` easing
 - **Button Click**: `scale: 1 → 0.95 → 1` on interaction
@@ -401,6 +461,7 @@ type ExtensionMessage =
 **Framework**: Tailwind CSS
 
 **Key Design Tokens**:
+
 - **Colors**: Gradient-based with semantic color mapping
 - **Spacing**: Consistent 4px grid system
 - **Typography**: Font weight and size hierarchy
@@ -409,6 +470,7 @@ type ExtensionMessage =
 - **Backdrop**: Blur effects for modern glass morphism
 
 **Responsive Breakpoints**:
+
 - `640px` - Small tablets
 - `480px` - Large phones
 - `320px` - Small phones
@@ -416,6 +478,7 @@ type ExtensionMessage =
 ## Testing Selectors
 
 **Data Test IDs**:
+
 - `data-testid="pipeline-progress"` - Pipeline progress container
 - `data-testid="pipeline-row-{commentId}"` - Comment progress rows
 - `data-testid="step-indicator-{step}"` - Step indicator elements
@@ -424,18 +487,21 @@ type ExtensionMessage =
 - `data-testid="reset-session-button"` - Reset session button
 
 **Data Attributes**:
+
 - `data-comment-id="{commentId}"` - Comment identification
 - `id="{buttonAction}"` - Button identification (start, pause, resume, stop)
 
 ## Browser Extension Integration
 
 **Chrome APIs Used**:
+
 - `chrome.runtime.sendMessage()` - Send messages to background script
 - `chrome.runtime.onMessage` - Listen for background messages
 - `chrome.runtime.getURL()` - Get extension resource URLs
 - `chrome.runtime.lastError` - Handle runtime errors
 
 **Message Flow**:
+
 1. UI sends action messages to background script
 2. Background script processes actions and updates state
 3. Background script sends state updates back to UI
@@ -443,4 +509,4 @@ type ExtensionMessage =
 
 ---
 
-*This documentation reflects the current implementation as of the latest codebase analysis. Components use modern Svelte 3+ syntax with TypeScript integration and follow accessibility best practices.*
+_This documentation reflects the current implementation as of the latest codebase analysis. Components use modern Svelte 3+ syntax with TypeScript integration and follow accessibility best practices._

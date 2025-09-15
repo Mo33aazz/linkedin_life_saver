@@ -42,7 +42,8 @@ const sampleComments: Comment[] = [
       likedAt: new Date(Date.now() - 6600000).toISOString(),
       repliedAt: new Date(Date.now() - 6000000).toISOString(),
       dmAt: '',
-      generatedReply: 'I appreciate your interest! Let me know if you have any questions.',
+      generatedReply:
+        'I appreciate your interest! Let me know if you have any questions.',
     },
   },
   {
@@ -108,7 +109,10 @@ export const uiState = writable<UIState>(initialState);
 export const logs = writable<LogEntry[]>([]);
 
 // Derived stores for specific parts of the state
-export const pipelineStatus = derived(uiState, ($state) => $state.pipelineStatus);
+export const pipelineStatus = derived(
+  uiState,
+  ($state) => $state.pipelineStatus
+);
 export const stats = derived(uiState, ($state) => $state.stats);
 export const comments = derived(uiState, ($state) => $state.comments);
 export const postUrn = derived(uiState, ($state) => $state.postUrn);
@@ -117,30 +121,30 @@ export const postUrn = derived(uiState, ($state) => $state.postUrn);
 export const uiStore = {
   // Update the entire state or parts of it
   updateState: (newState: Partial<UIState>) => {
-    uiState.update(state => ({ ...state, ...newState }));
+    uiState.update((state) => ({ ...state, ...newState }));
   },
 
   // Update pipeline status
   setPipelineStatus: (status: RunState) => {
-    uiState.update(state => ({ ...state, pipelineStatus: status }));
+    uiState.update((state) => ({ ...state, pipelineStatus: status }));
   },
 
   // Update stats
   updateStats: (stats: Partial<UIState['stats']>) => {
-    uiState.update(state => ({
+    uiState.update((state) => ({
       ...state,
-      stats: { ...state.stats, ...stats }
+      stats: { ...state.stats, ...stats },
     }));
   },
 
   // Update comments
   updateComments: (comments: UIState['comments']) => {
-    uiState.update(state => ({ ...state, comments }));
+    uiState.update((state) => ({ ...state, comments }));
   },
 
   // Add a log entry
   addLog: (logEntry: LogEntry) => {
-    logs.update(currentLogs => [...currentLogs, logEntry].slice(-100));
+    logs.update((currentLogs) => [...currentLogs, logEntry].slice(-100));
   },
 
   // Clear logs
@@ -150,7 +154,7 @@ export const uiStore = {
 
   // Set post URN
   setPostUrn: (urn: string | undefined) => {
-    uiState.update(state => ({ ...state, postUrn: urn }));
+    uiState.update((state) => ({ ...state, postUrn: urn }));
   },
 
   // Reset state to initial
@@ -162,9 +166,9 @@ export const uiStore = {
   // Get current state (for compatibility with existing code)
   getState: () => {
     let currentState: UIState;
-    uiState.subscribe(state => currentState = state)();
+    uiState.subscribe((state) => (currentState = state))();
     return currentState!;
-  }
+  },
 };
 
 // Export individual stores for component use

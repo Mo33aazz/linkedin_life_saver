@@ -7,7 +7,12 @@ import {
   UIState,
   CapturedPostState,
 } from '../../shared/types';
-import { getPostState, savePostState, loadPostState, calculateCommentStats } from './stateManager';
+import {
+  getPostState,
+  savePostState,
+  loadPostState,
+  calculateCommentStats,
+} from './stateManager';
 import { getConfig } from './configManager';
 import { OpenRouterClient } from './openRouterClient';
 
@@ -106,24 +111,24 @@ const generateReply = async (
     commentId: comment.commentId,
     step: 'GENERATE_REPLY',
   };
-  
+
   const aiConfig = getConfig();
-  
+
   // Check if AI is disabled, use static text
   if (aiConfig.aiEnabled === false) {
     logger.info('Using static reply text (AI disabled)', context);
-    const staticText = comment.connected 
-      ? aiConfig.staticTexts?.replyText 
+    const staticText = comment.connected
+      ? aiConfig.staticTexts?.replyText
       : aiConfig.staticTexts?.nonConnectedText;
-    
+
     if (!staticText) {
       logger.warn('No static text configured for reply', context);
       return null;
     }
-    
+
     return staticText;
   }
-  
+
   // AI is enabled, proceed with AI generation
   logger.info('Generating AI reply', context);
   try {
@@ -135,10 +140,10 @@ const generateReply = async (
     const client = new OpenRouterClient(aiConfig.apiKey, aiConfig.attribution);
 
     // Use different prompts based on connection status
-    const systemPrompt = comment.connected 
+    const systemPrompt = comment.connected
       ? aiConfig.reply?.customPrompt
       : aiConfig.reply?.nonConnectedPrompt;
-    
+
     const userMessageContent = `
        Post URL: ${postState._meta.postUrl}
        My persona: ${systemPrompt}
@@ -188,22 +193,22 @@ const generateDm = async (
     commentId: comment.commentId,
     step: 'GENERATE_DM',
   };
-  
+
   const aiConfig = getConfig();
-  
+
   // Check if AI is disabled, use static text
   if (aiConfig.aiEnabled === false) {
     logger.info('Using static DM text (AI disabled)', context);
     const staticDmText = aiConfig.staticTexts?.dmText;
-    
+
     if (!staticDmText) {
       logger.warn('No static DM text configured', context);
       return null;
     }
-    
+
     return staticDmText;
   }
-  
+
   // AI is enabled, proceed with AI generation
   logger.info('Generating AI DM', context);
   try {
@@ -259,7 +264,8 @@ const processComment = async (
   };
   logger.debug('Entering processComment with current statuses', {
     ...context,
-    connected: typeof comment.connected === 'undefined' ? 'UNSET' : comment.connected,
+    connected:
+      typeof comment.connected === 'undefined' ? 'UNSET' : comment.connected,
     likeStatus: comment.likeStatus,
     replyStatus: comment.replyStatus,
     dmStatus: comment.dmStatus,
@@ -268,13 +274,19 @@ const processComment = async (
     // STEP 1: Check connection status and send DM if connected
     if (typeof comment.connected === 'undefined') {
       const stepContext = { ...context, step: 'CONNECTION_AND_DM_CHECK' };
-      logger.info('Attempting to check connection status and potentially send DM', {
-        ...stepContext,
-        profileUrl: comment.ownerProfileUrl,
-      });
+      logger.info(
+        'Attempting to check connection status and potentially send DM',
+        {
+          ...stepContext,
+          profileUrl: comment.ownerProfileUrl,
+        }
+      );
       let connectionTabId: number | undefined;
       try {
-        logger.debug('Creating new active tab for profile visit...', stepContext);
+        logger.debug(
+          'Creating new active tab for profile visit...',
+          stepContext
+        );
         const tab = await chrome.tabs.create({
           url: comment.ownerProfileUrl,
           active: true, // Make the tab active to ensure scripts can run reliably
@@ -283,7 +295,10 @@ const processComment = async (
         if (!connectionTabId) {
           throw new Error('Failed to create a new tab for connection check.');
         }
-        logger.debug('Created tab for connection check', { ...stepContext, connectionTabId });
+        logger.debug('Created tab for connection check', {
+          ...stepContext,
+          connectionTabId,
+        });
 
         await new Promise<void>((resolve, reject) => {
           const timeout = setTimeout(() => {
@@ -296,8 +311,16 @@ const processComment = async (
             changeInfo: chrome.tabs.TabChangeInfo,
             _tab: chrome.tabs.Tab
           ) => {
-            if (tabId === connectionTabId && (changeInfo.status === 'complete' || (changeInfo.status === 'interactive' && !_tab.url?.startsWith('chrome://')))) {
-              logger.debug('Tab reported ready state', { ...stepContext, status: changeInfo.status });
+            if (
+              tabId === connectionTabId &&
+              (changeInfo.status === 'complete' ||
+                (changeInfo.status === 'interactive' &&
+                  !_tab.url?.startsWith('chrome://')))
+            ) {
+              logger.debug('Tab reported ready state', {
+                ...stepContext,
+                status: changeInfo.status,
+              });
               clearTimeout(timeout);
               chrome.tabs.onUpdated.removeListener(listener);
               resolve();
@@ -305,262 +328,429 @@ const processComment = async (
           };
           chrome.tabs.onUpdated.addListener(listener);
         });
-        
-        logger.debug('Injecting script to check connection status...', stepContext);
+
+        logger.debug(
+          'Injecting script to check connection status...',
+          stepContext
+        );
         const injectionResults = await chrome.scripting.executeScript({
           target: { tabId: connectionTabId },
           func: () => {
-            const distanceBadge = document.querySelector('span.distance-badge .dist-value');
-            return !!(distanceBadge && distanceBadge.textContent?.trim() === '1st');
+            const distanceBadge = document.querySelector(
+              'span.distance-badge .dist-value'
+            );
+            return !!(
+              distanceBadge && distanceBadge.textContent?.trim() === '1st'
+            );
           },
         });
-        
+
         if (injectionResults && injectionResults.length > 0) {
           comment.connected = injectionResults[0].result as boolean;
-          logger.info('Connection status determined successfully', { ...stepContext, connected: comment.connected });
+          logger.info('Connection status determined successfully', {
+            ...stepContext,
+            connected: comment.connected,
+          });
 
           if (comment.connected) {
-            logger.info('User is a 1st-degree connection. Attempting to send DM.', { ...stepContext });
+            logger.info(
+              'User is a 1st-degree connection. Attempting to send DM.',
+              { ...stepContext }
+            );
             try {
               logger.debug('Generating DM text...', stepContext);
               const dmText = await generateDm(comment, postState);
               if (!dmText) throw new Error('AI DM generation failed.');
               comment.pipeline.generatedDm = dmText;
-              logger.debug('DM text generated successfully', { ...stepContext, dmLength: dmText.length });
+              logger.debug('DM text generated successfully', {
+                ...stepContext,
+                dmLength: dmText.length,
+              });
 
               const sendDmInTab = async () => {
                 // Wait for page to be fully loaded before attempting to close chat windows
-                logger.debug('Waiting for page to load before closing chat windows...', stepContext);
-                await new Promise(resolve => {
+                logger.debug(
+                  'Waiting for page to load before closing chat windows...',
+                  stepContext
+                );
+                await new Promise((resolve) => {
                   const checkPageReady = () => {
-                    chrome.scripting.executeScript({
-                      target: { tabId: connectionTabId! },
-                      func: () => document.readyState === 'complete' && document.body && document.querySelector('main')
-                    }).then(results => {
-                      if (results && results[0]?.result) {
-                        resolve(void 0);
-                      } else {
-                        setTimeout(checkPageReady, 500);
-                      }
-                    }).catch(() => setTimeout(checkPageReady, 500));
+                    chrome.scripting
+                      .executeScript({
+                        target: { tabId: connectionTabId! },
+                        func: () =>
+                          document.readyState === 'complete' &&
+                          document.body &&
+                          document.querySelector('main'),
+                      })
+                      .then((results) => {
+                        if (results && results[0]?.result) {
+                          resolve(void 0);
+                        } else {
+                          setTimeout(checkPageReady, 500);
+                        }
+                      })
+                      .catch(() => setTimeout(checkPageReady, 500));
                   };
                   checkPageReady();
                 });
-                
-                logger.debug('Injecting script to close any open chat windows...', stepContext);
+
+                logger.debug(
+                  'Injecting script to close any open chat windows...',
+                  stepContext
+                );
                 const preCloseResults = await chrome.scripting.executeScript({
-                    target: { tabId: connectionTabId! },
-                    func: () => {
-                        // Wait for elements to be fully rendered
-                        const waitForElements = () => {
-                            return new Promise<void>((resolve) => {
-                                const checkElements = () => {
-                                    const buttons = document.querySelectorAll('button');
-                                    if (buttons.length > 0) {
-                                        resolve();
-                                    } else {
-                                        setTimeout(checkElements, 100);
-                                    }
-                                };
-                                checkElements();
-                            });
+                  target: { tabId: connectionTabId! },
+                  func: () => {
+                    // Wait for elements to be fully rendered
+                    const waitForElements = () => {
+                      return new Promise<void>((resolve) => {
+                        const checkElements = () => {
+                          const buttons = document.querySelectorAll('button');
+                          if (buttons.length > 0) {
+                            resolve();
+                          } else {
+                            setTimeout(checkElements, 100);
+                          }
                         };
-                        
-                        return waitForElements().then(() => {
-                             // Multiple selector strategies for close buttons
-                             // Target specific conversation close buttons with multiple criteria
-                             let closeButtons: NodeListOf<Element> | Element[] = document.querySelectorAll('button.msg-overlay-bubble-header__control.artdeco-button--circle');
-                             closeButtons = Array.from(closeButtons).filter(btn => {
-                                 const textContent = btn.textContent || (btn as HTMLElement).innerText || '';
-                                 const hasCloseIcon = btn.querySelector('svg[data-test-icon="close-small"]') !== null;
-                                 const hasConversationText = textContent.includes('Close your conversation with');
-                                 
-                                 // Only click if it has both the close icon and conversation text
-                                 return hasCloseIcon && hasConversationText;
-                             });
-                            
-                            let closedCount = 0;
-                            closeButtons.forEach(btn => {
-                                try {
-                                    // Ensure button is visible and clickable
-                                    const element = btn as HTMLElement;
-                                    if (element.offsetParent !== null && !element.hasAttribute('disabled')) {
-                                        element.click();
-                                        closedCount++;
-                                    }
-                                } catch (e) {
-                                    console.warn('Failed to click close button:', e);
-                                }
-                            });
-                            
-                            return { closedCount };
-                        });
-                    },
+                        checkElements();
+                      });
+                    };
+
+                    return waitForElements().then(() => {
+                      // Multiple selector strategies for close buttons
+                      // Target specific conversation close buttons with multiple criteria
+                      let closeButtons: NodeListOf<Element> | Element[] =
+                        document.querySelectorAll(
+                          'button.msg-overlay-bubble-header__control.artdeco-button--circle'
+                        );
+                      closeButtons = Array.from(closeButtons).filter((btn) => {
+                        const textContent =
+                          btn.textContent ||
+                          (btn as HTMLElement).innerText ||
+                          '';
+                        const hasCloseIcon =
+                          btn.querySelector(
+                            'svg[data-test-icon="close-small"]'
+                          ) !== null;
+                        const hasConversationText = textContent.includes(
+                          'Close your conversation with'
+                        );
+
+                        // Only click if it has both the close icon and conversation text
+                        return hasCloseIcon && hasConversationText;
+                      });
+
+                      let closedCount = 0;
+                      closeButtons.forEach((btn) => {
+                        try {
+                          // Ensure button is visible and clickable
+                          const element = btn as HTMLElement;
+                          if (
+                            element.offsetParent !== null &&
+                            !element.hasAttribute('disabled')
+                          ) {
+                            element.click();
+                            closedCount++;
+                          }
+                        } catch (e) {
+                          console.warn('Failed to click close button:', e);
+                        }
+                      });
+
+                      return { closedCount };
+                    });
+                  },
                 });
-                logger.debug(`Closed ${preCloseResults[0]?.result?.closedCount || 0} pre-existing chat windows.`, stepContext);
-                await new Promise(r => setTimeout(r, 500));
-                
-                logger.debug('Injecting script to click "Message" button...', stepContext);
+                logger.debug(
+                  `Closed ${preCloseResults[0]?.result?.closedCount || 0} pre-existing chat windows.`,
+                  stepContext
+                );
+                await new Promise((r) => setTimeout(r, 500));
+
+                logger.debug(
+                  'Injecting script to click "Message" button...',
+                  stepContext
+                );
                 const clickResults = await chrome.scripting.executeScript({
                   target: { tabId: connectionTabId! },
                   func: () => {
-                    const buttons = Array.from(document.querySelectorAll('button'));
-                    const messageButton = buttons.find(btn => {
-                      const text = (btn.textContent || btn.innerText || '').trim();
+                    const buttons = Array.from(
+                      document.querySelectorAll('button')
+                    );
+                    const messageButton = buttons.find((btn) => {
+                      const text = (
+                        btn.textContent ||
+                        btn.innerText ||
+                        ''
+                      ).trim();
                       const ariaLabel = btn.getAttribute('aria-label') || '';
-                      return text === 'Message' || /^Message[ ]+[a-zA-Z]+/i.test(ariaLabel);
+                      return (
+                        text === 'Message' ||
+                        /^Message[ ]+[a-zA-Z]+/i.test(ariaLabel)
+                      );
                     });
                     if (messageButton) {
                       (messageButton as HTMLElement).click();
                       return { success: true };
                     }
-                    return { success: false, error: 'Message button not found' };
+                    return {
+                      success: false,
+                      error: 'Message button not found',
+                    };
                   },
                 });
-                if (!clickResults || !clickResults[0]?.result?.success) throw new Error(`Failed to click Message button: ${clickResults[0]?.result?.error || 'Unknown error'}`);
-                logger.debug('"Message" button clicked. Waiting for chat popup...', stepContext);
-                await new Promise(r => setTimeout(r, 2000));
+                if (!clickResults || !clickResults[0]?.result?.success)
+                  throw new Error(
+                    `Failed to click Message button: ${clickResults[0]?.result?.error || 'Unknown error'}`
+                  );
+                logger.debug(
+                  '"Message" button clicked. Waiting for chat popup...',
+                  stepContext
+                );
+                await new Promise((r) => setTimeout(r, 2000));
 
-                logger.debug('Injecting script to fill DM textbox...', stepContext);
+                logger.debug(
+                  'Injecting script to fill DM textbox...',
+                  stepContext
+                );
                 const fillResults = await chrome.scripting.executeScript({
                   target: { tabId: connectionTabId! },
                   args: [dmText],
                   func: (textToFill: string) => {
-                    const textbox = document.querySelector('div[role="textbox"][aria-label*="Write a message"]');
+                    const textbox = document.querySelector(
+                      'div[role="textbox"][aria-label*="Write a message"]'
+                    );
                     if (textbox) {
                       textbox.innerHTML = `<p>${textToFill}</p>`;
-                      textbox.dispatchEvent(new Event('input', { bubbles: true }));
+                      textbox.dispatchEvent(
+                        new Event('input', { bubbles: true })
+                      );
                       return { success: true };
                     }
-                    return { success: false, error: 'Message textbox not found' };
+                    return {
+                      success: false,
+                      error: 'Message textbox not found',
+                    };
                   },
                 });
-                if (!fillResults || !fillResults[0]?.result?.success) throw new Error(`Failed to fill DM textbox: ${fillResults[0]?.result?.error || 'Unknown error'}`);
-                logger.debug('DM textbox filled. Waiting before sending...', stepContext);
-                await new Promise(r => setTimeout(r, 500));
+                if (!fillResults || !fillResults[0]?.result?.success)
+                  throw new Error(
+                    `Failed to fill DM textbox: ${fillResults[0]?.result?.error || 'Unknown error'}`
+                  );
+                logger.debug(
+                  'DM textbox filled. Waiting before sending...',
+                  stepContext
+                );
+                await new Promise((r) => setTimeout(r, 500));
 
-                logger.debug('Injecting script to click "Send" button...', stepContext);
-                const sendResults = await chrome.scripting.executeScript<any[], { success: boolean; error?: string; availableButtons?: unknown[] }>({
+                logger.debug(
+                  'Injecting script to click "Send" button...',
+                  stepContext
+                );
+                const sendResults = await chrome.scripting.executeScript<
+                  any[],
+                  {
+                    success: boolean;
+                    error?: string;
+                    availableButtons?: unknown[];
+                  }
+                >({
                   target: { tabId: connectionTabId! },
                   func: () => {
-                    const sendButton = 
-                      Array.from(document.querySelectorAll('button')).find(btn => (btn.textContent || btn.innerText || '').trim() === 'Send') ||
-                      Array.from(document.querySelectorAll('button')).find(btn => (btn.getAttribute('aria-label') || '').toLowerCase().includes('send')) ||
-                      document.querySelector('button[data-control-name*="send"]') ||
-                      Array.from(document.querySelectorAll('button')).find(btn => btn.className.toLowerCase().includes('send'));
-                    
+                    const sendButton =
+                      Array.from(document.querySelectorAll('button')).find(
+                        (btn) =>
+                          (btn.textContent || btn.innerText || '').trim() ===
+                          'Send'
+                      ) ||
+                      Array.from(document.querySelectorAll('button')).find(
+                        (btn) =>
+                          (btn.getAttribute('aria-label') || '')
+                            .toLowerCase()
+                            .includes('send')
+                      ) ||
+                      document.querySelector(
+                        'button[data-control-name*="send"]'
+                      ) ||
+                      Array.from(document.querySelectorAll('button')).find(
+                        (btn) => btn.className.toLowerCase().includes('send')
+                      );
+
                     if (sendButton) {
-                      if ((sendButton as HTMLElement).offsetParent === null) return { success: false, error: 'Send button is not visible' };
-                      if ((sendButton as HTMLButtonElement).disabled) return { success: false, error: 'Send button is disabled' };
+                      if ((sendButton as HTMLElement).offsetParent === null)
+                        return {
+                          success: false,
+                          error: 'Send button is not visible',
+                        };
+                      if ((sendButton as HTMLButtonElement).disabled)
+                        return {
+                          success: false,
+                          error: 'Send button is disabled',
+                        };
                       (sendButton as HTMLElement).click();
                       return { success: true };
                     }
-                    
-                    const allButtons = Array.from(document.querySelectorAll('button')).map(btn => ({
+
+                    const allButtons = Array.from(
+                      document.querySelectorAll('button')
+                    ).map((btn) => ({
                       text: (btn.textContent || btn.innerText || '').trim(),
                       ariaLabel: btn.getAttribute('aria-label'),
                       className: btn.className,
                       disabled: (btn as HTMLButtonElement).disabled,
-                      visible: (btn as HTMLElement).offsetParent !== null
+                      visible: (btn as HTMLElement).offsetParent !== null,
                     }));
-                    return { success: false, error: 'Send button not found', availableButtons: allButtons.slice(0, 10) };
+                    return {
+                      success: false,
+                      error: 'Send button not found',
+                      availableButtons: allButtons.slice(0, 10),
+                    };
                   },
                 });
 
-                const sendResult = sendResults?.[0]?.result as { success: boolean; error?: string; availableButtons?: unknown[] } | undefined;
+                const sendResult = sendResults?.[0]?.result as
+                  | {
+                      success: boolean;
+                      error?: string;
+                      availableButtons?: unknown[];
+                    }
+                  | undefined;
                 if (!sendResult || !sendResult.success) {
-                    logger.error('Send button script failed.', { ...stepContext, result: sendResult });
-                    throw new Error(`Failed to click Send button: ${sendResult?.error || 'Unknown error'}`);
+                  logger.error('Send button script failed.', {
+                    ...stepContext,
+                    result: sendResult,
+                  });
+                  throw new Error(
+                    `Failed to click Send button: ${sendResult?.error || 'Unknown error'}`
+                  );
                 }
 
-                await new Promise(r => setTimeout(r, 1000));
-                
+                await new Promise((r) => setTimeout(r, 1000));
+
                 // Wait for page to be ready before closing chat windows after sending
-                logger.debug('Waiting for page to be ready before closing chat windows after sending...', stepContext);
-                await new Promise(resolve => {
+                logger.debug(
+                  'Waiting for page to be ready before closing chat windows after sending...',
+                  stepContext
+                );
+                await new Promise((resolve) => {
                   const checkPageReady = () => {
-                    chrome.scripting.executeScript({
-                      target: { tabId: connectionTabId! },
-                      func: () => document.readyState === 'complete' && document.body
-                    }).then(results => {
-                      if (results && results[0]?.result) {
-                        resolve(void 0);
-                      } else {
-                        setTimeout(checkPageReady, 300);
-                      }
-                    }).catch(() => setTimeout(checkPageReady, 300));
+                    chrome.scripting
+                      .executeScript({
+                        target: { tabId: connectionTabId! },
+                        func: () =>
+                          document.readyState === 'complete' && document.body,
+                      })
+                      .then((results) => {
+                        if (results && results[0]?.result) {
+                          resolve(void 0);
+                        } else {
+                          setTimeout(checkPageReady, 300);
+                        }
+                      })
+                      .catch(() => setTimeout(checkPageReady, 300));
                   };
                   checkPageReady();
                 });
-                
-                logger.debug('Injecting script to close chat window after sending...', stepContext);
+
+                logger.debug(
+                  'Injecting script to close chat window after sending...',
+                  stepContext
+                );
                 const postCloseResults = await chrome.scripting.executeScript({
-                    target: { tabId: connectionTabId! },
-                    func: () => {
-                        // Wait for elements to be fully rendered after sending
-                        const waitForElements = () => {
-                            return new Promise<void>((resolve) => {
-                                const checkElements = () => {
-                                    const buttons = document.querySelectorAll('button');
-                                    if (buttons.length > 0) {
-                                        resolve();
-                                    } else {
-                                        setTimeout(checkElements, 100);
-                                    }
-                                };
-                                checkElements();
-                            });
+                  target: { tabId: connectionTabId! },
+                  func: () => {
+                    // Wait for elements to be fully rendered after sending
+                    const waitForElements = () => {
+                      return new Promise<void>((resolve) => {
+                        const checkElements = () => {
+                          const buttons = document.querySelectorAll('button');
+                          if (buttons.length > 0) {
+                            resolve();
+                          } else {
+                            setTimeout(checkElements, 100);
+                          }
                         };
-                        
-                        return waitForElements().then(() => {
-                            // Target specific conversation close buttons with multiple criteria
-                             let closeButtons: NodeListOf<Element> | Element[] = document.querySelectorAll('button.msg-overlay-bubble-header__control.artdeco-button--circle');
-                             closeButtons = Array.from(closeButtons).filter(btn => {
-                                 const textContent = btn.textContent || (btn as HTMLElement).innerText || '';
-                                 const hasCloseIcon = btn.querySelector('svg[data-test-icon="close-small"]') !== null;
-                                 const hasConversationText = textContent.includes('Close your conversation with');
-                                 
-                                 // Only click if it has both the close icon and conversation text
-                                 return hasCloseIcon && hasConversationText;
-                             });
-                            
-                            let closedCount = 0;
-                            closeButtons.forEach(btn => {
-                                try {
-                                    // Ensure button is visible and clickable
-                                    const element = btn as HTMLElement;
-                                    if (element.offsetParent !== null && !element.hasAttribute('disabled')) {
-                                        element.click();
-                                        closedCount++;
-                                    }
-                                } catch (e) {
-                                    console.warn('Failed to click close button:', e);
-                                }
-                            });
-                            
-                            return { closedCount };
-                        });
-                    },
+                        checkElements();
+                      });
+                    };
+
+                    return waitForElements().then(() => {
+                      // Target specific conversation close buttons with multiple criteria
+                      let closeButtons: NodeListOf<Element> | Element[] =
+                        document.querySelectorAll(
+                          'button.msg-overlay-bubble-header__control.artdeco-button--circle'
+                        );
+                      closeButtons = Array.from(closeButtons).filter((btn) => {
+                        const textContent =
+                          btn.textContent ||
+                          (btn as HTMLElement).innerText ||
+                          '';
+                        const hasCloseIcon =
+                          btn.querySelector(
+                            'svg[data-test-icon="close-small"]'
+                          ) !== null;
+                        const hasConversationText = textContent.includes(
+                          'Close your conversation with'
+                        );
+
+                        // Only click if it has both the close icon and conversation text
+                        return hasCloseIcon && hasConversationText;
+                      });
+
+                      let closedCount = 0;
+                      closeButtons.forEach((btn) => {
+                        try {
+                          // Ensure button is visible and clickable
+                          const element = btn as HTMLElement;
+                          if (
+                            element.offsetParent !== null &&
+                            !element.hasAttribute('disabled')
+                          ) {
+                            element.click();
+                            closedCount++;
+                          }
+                        } catch (e) {
+                          console.warn('Failed to click close button:', e);
+                        }
+                      });
+
+                      return { closedCount };
+                    });
+                  },
                 });
-                logger.debug(`Closed ${postCloseResults[0]?.result?.closedCount || 0} chat windows post-send.`, stepContext);
+                logger.debug(
+                  `Closed ${postCloseResults[0]?.result?.closedCount || 0} chat windows post-send.`,
+                  stepContext
+                );
               };
 
               await retryAsyncFunction(sendDmInTab, {
                 maxRetries: MAX_RETRIES,
                 initialDelay: INITIAL_DELAY,
-                onRetry: (error, attempt) => logger.warn(`Send DM sequence attempt ${attempt}/${MAX_RETRIES} failed`, { ...stepContext, error: error.message }),
+                onRetry: (error, attempt) =>
+                  logger.warn(
+                    `Send DM sequence attempt ${attempt}/${MAX_RETRIES} failed`,
+                    { ...stepContext, error: error.message }
+                  ),
               });
 
               comment.dmStatus = 'DONE';
               comment.pipeline.dmAt = new Date().toISOString();
-              logger.info('DM sent successfully from profile page', { ...stepContext });
+              logger.info('DM sent successfully from profile page', {
+                ...stepContext,
+              });
             } catch (dmError) {
-              logger.error('Failed to send DM from profile page', dmError, { ...stepContext });
+              logger.error('Failed to send DM from profile page', dmError, {
+                ...stepContext,
+              });
               comment.dmStatus = 'FAILED';
               comment.lastError = (dmError as Error).message;
             }
           } else {
-            logger.info('User is not a 1st-degree connection. Skipping DM.', { ...stepContext });
+            logger.info('User is not a 1st-degree connection. Skipping DM.', {
+              ...stepContext,
+            });
             comment.dmStatus = 'DONE';
             comment.lastError = 'DM skipped: Not a 1st-degree connection.';
           }
@@ -568,35 +758,50 @@ const processComment = async (
           throw new Error('Script injection failed for connection check.');
         }
       } catch (error) {
-        logger.error('Failed during connection check/DM step', error, { ...stepContext });
+        logger.error('Failed during connection check/DM step', error, {
+          ...stepContext,
+        });
         comment.connected = false;
         comment.dmStatus = 'FAILED';
         comment.lastError = (error as Error).message;
       } finally {
         if (connectionTabId) {
-          logger.debug('Closing profile tab.', { ...stepContext, tabId: connectionTabId });
+          logger.debug('Closing profile tab.', {
+            ...stepContext,
+            tabId: connectionTabId,
+          });
           await chrome.tabs.remove(connectionTabId);
         }
         // Switch focus back to the original tab for a better user experience
         if (activeTabId) {
           try {
             await chrome.tabs.update(activeTabId, { active: true });
-            logger.debug('Focus returned to original pipeline tab.', { tabId: activeTabId });
+            logger.debug('Focus returned to original pipeline tab.', {
+              tabId: activeTabId,
+            });
           } catch (e) {
-            logger.warn('Failed to return focus to original tab, it may have been closed.', { tabId: activeTabId, error: (e as Error).message });
+            logger.warn(
+              'Failed to return focus to original tab, it may have been closed.',
+              { tabId: activeTabId, error: (e as Error).message }
+            );
           }
         }
       }
 
       await savePostState(activePostUrn!, postState);
-      broadcastState({ pipelineStatus, postUrn: activePostUrn ?? undefined, comments: postState.comments });
+      broadcastState({
+        pipelineStatus,
+        postUrn: activePostUrn ?? undefined,
+        comments: postState.comments,
+      });
     }
 
     // STATE: QUEUED -> LIKED
     if (comment.likeStatus === '') {
       const stepContext = { ...context, step: 'LIKE_ATTEMPT' };
       logger.info('Attempting to like comment', stepContext);
-      if (!activeTabId) throw new Error('Cannot like comment, active tab ID is not set.');
+      if (!activeTabId)
+        throw new Error('Cannot like comment, active tab ID is not set.');
       comment.attempts.like = 0;
 
       try {
@@ -607,19 +812,32 @@ const processComment = async (
               type: 'LIKE_COMMENT',
               payload: { commentId: comment.commentId },
             });
-            if (!likeSuccess) throw new Error(`Content script failed to like comment ${comment.commentId}`);
+            if (!likeSuccess)
+              throw new Error(
+                `Content script failed to like comment ${comment.commentId}`
+              );
           },
           {
             maxRetries: MAX_RETRIES,
             initialDelay: INITIAL_DELAY,
-            onRetry: (error, attempt) => logger.warn(`Like attempt ${attempt}/${MAX_RETRIES} failed`, { ...stepContext, error: error.message }),
+            onRetry: (error, attempt) =>
+              logger.warn(`Like attempt ${attempt}/${MAX_RETRIES} failed`, {
+                ...stepContext,
+                error: error.message,
+              }),
           }
         );
         comment.likeStatus = 'DONE';
         comment.pipeline.likedAt = new Date().toISOString();
-        logger.info('Comment liked successfully', { ...context, step: 'LIKE_SUCCESS' });
+        logger.info('Comment liked successfully', {
+          ...context,
+          step: 'LIKE_SUCCESS',
+        });
       } catch (error) {
-        logger.error('Failed to like comment after all retries', error, { ...context, step: 'LIKE_FAILED_FINAL' });
+        logger.error('Failed to like comment after all retries', error, {
+          ...context,
+          step: 'LIKE_FAILED_FINAL',
+        });
         comment.likeStatus = 'FAILED';
         comment.lastError = (error as Error).message;
       }
@@ -638,7 +856,9 @@ const processComment = async (
         let replyText: string | null;
 
         if (comment.connected === false) {
-          replyText = aiConfig.reply?.nonConnectedPrompt || "Thanks for your comment! I'd love to connect first.";
+          replyText =
+            aiConfig.reply?.nonConnectedPrompt ||
+            "Thanks for your comment! I'd love to connect first.";
           logger.info('Using non-connected reply template', { ...stepContext });
         } else {
           replyText = await generateReply(comment, postState);
@@ -647,36 +867,59 @@ const processComment = async (
         if (replyText === null) throw new Error('AI reply generation failed.');
 
         if (replyText === '__SKIP__') {
-          logger.info('AI requested to skip comment, skipping reply', { ...context });
+          logger.info('AI requested to skip comment, skipping reply', {
+            ...context,
+          });
           comment.replyStatus = 'DONE';
           comment.lastError = 'Skipped by AI';
         } else {
           comment.pipeline.generatedReply = replyText;
-          if (!activeTabId) throw new Error('Cannot reply, active tab ID is not set.');
+          if (!activeTabId)
+            throw new Error('Cannot reply, active tab ID is not set.');
 
           await retryAsyncFunction(
             async () => {
               comment.attempts.reply++;
-              const replySuccess = await sendMessageToTab<boolean>(activeTabId!, {
-                type: 'REPLY_TO_COMMENT',
-                payload: { commentId: comment.commentId, replyText },
-              });
-              if (!replySuccess) throw new Error(`Content script failed to reply to comment ${comment.commentId}`);
+              const replySuccess = await sendMessageToTab<boolean>(
+                activeTabId!,
+                {
+                  type: 'REPLY_TO_COMMENT',
+                  payload: { commentId: comment.commentId, replyText },
+                }
+              );
+              if (!replySuccess)
+                throw new Error(
+                  `Content script failed to reply to comment ${comment.commentId}`
+                );
             },
             {
               maxRetries: MAX_RETRIES,
               initialDelay: INITIAL_DELAY,
-              onRetry: (error, attempt) => logger.warn(`Reply attempt ${attempt}/${MAX_RETRIES} failed`, { ...stepContext, error: error.message }),
+              onRetry: (error, attempt) =>
+                logger.warn(`Reply attempt ${attempt}/${MAX_RETRIES} failed`, {
+                  ...stepContext,
+                  error: error.message,
+                }),
             }
           );
           comment.replyStatus = 'DONE';
           logger.info('Comment replied to successfully', { ...context });
         }
         comment.pipeline.repliedAt = new Date().toISOString();
-        const updatedStats = calculateCommentStats((postState.comments || []).map(c => ({ type: c.type, threadId: c.threadId, ownerProfileUrl: c.ownerProfileUrl })), postState._meta.userProfileUrl || '');
+        const updatedStats = calculateCommentStats(
+          (postState.comments || []).map((c) => ({
+            type: c.type,
+            threadId: c.threadId,
+            ownerProfileUrl: c.ownerProfileUrl,
+          })),
+          postState._meta.userProfileUrl || ''
+        );
         broadcastState({ stats: updatedStats });
       } catch (error) {
-        logger.error('Failed to reply to comment', error, { ...context, step: 'REPLY_FAILED_FINAL' });
+        logger.error('Failed to reply to comment', error, {
+          ...context,
+          step: 'REPLY_FAILED_FINAL',
+        });
         comment.replyStatus = 'FAILED';
         comment.lastError = (error as Error).message;
       }
@@ -684,7 +927,11 @@ const processComment = async (
       broadcastState({ pipelineStatus, comments: postState.comments });
     }
   } catch (error) {
-    logger.error('An unexpected error occurred while processing comment', error, context);
+    logger.error(
+      'An unexpected error occurred while processing comment',
+      error,
+      context
+    );
     if (comment.likeStatus === '') comment.likeStatus = 'FAILED';
     else if (comment.replyStatus === '') comment.replyStatus = 'FAILED';
     comment.lastError = `Unexpected error: ${(error as Error).message}`;
@@ -710,12 +957,17 @@ const processQueue = async (): Promise<void> => {
       break;
     }
 
-    const completedReplies = postState.comments.filter(c => c.replyStatus === 'DONE').length;
+    const completedReplies = postState.comments.filter(
+      (c) => c.replyStatus === 'DONE'
+    ).length;
     const totalComments = postState.comments.length;
-    
+
     // Stop when all available comments have been processed
     if (completedReplies >= totalComments) {
-      logger.info('All available comments have been processed. Stopping pipeline.', { completedReplies, totalComments });
+      logger.info(
+        'All available comments have been processed. Stopping pipeline.',
+        { completedReplies, totalComments }
+      );
       pipelineStatus = 'idle';
       break;
     }
@@ -723,7 +975,9 @@ const processQueue = async (): Promise<void> => {
     const nextComment = findNextComment(postState);
 
     if (!nextComment) {
-      logger.info('All comments have been processed.', { postUrn: activePostUrn });
+      logger.info('All comments have been processed.', {
+        postUrn: activePostUrn,
+      });
       pipelineStatus = 'idle';
       break;
     }
@@ -736,7 +990,7 @@ const processQueue = async (): Promise<void> => {
   logger.info('Processing loop ended.', { finalStatus: pipelineStatus });
   if (activePostUrn) {
     const finalPostState = getPostState(activePostUrn);
-    if(finalPostState) finalPostState._meta.runState = pipelineStatus;
+    if (finalPostState) finalPostState._meta.runState = pipelineStatus;
     broadcastState({ pipelineStatus, comments: finalPostState?.comments });
   }
 };
@@ -747,12 +1001,15 @@ export const startPipeline = async (
   maxComments?: number
 ): Promise<void> => {
   if (pipelineStatus !== 'idle') {
-    logger.warn('Pipeline cannot be started', { currentState: pipelineStatus, postUrn });
+    logger.warn('Pipeline cannot be started', {
+      currentState: pipelineStatus,
+      postUrn,
+    });
     return;
   }
-  
+
   let postState = await loadPostState(postUrn);
-  
+
   if (!postState) {
     try {
       const response = await sendMessageToTab<CapturedPostState>(tabId, {
@@ -760,16 +1017,23 @@ export const startPipeline = async (
         payload: { maxComments },
       });
       if (response && response.postUrn) {
-        const normalizedComments: Comment[] = (response.comments || []).map(c => ({
-          ...c,
-          connected: undefined,
-          likeStatus: '',
-          replyStatus: c.hasUserReply ? 'DONE' : '',
-          dmStatus: '',
-          attempts: { like: 0, reply: 0, dm: 0 },
-          lastError: c.hasUserReply ? 'Already replied by user' : '',
-          pipeline: { queuedAt: new Date().toISOString(), likedAt: '', repliedAt: c.hasUserReply ? new Date().toISOString() : '', dmAt: '' },
-        }));
+        const normalizedComments: Comment[] = (response.comments || []).map(
+          (c) => ({
+            ...c,
+            connected: undefined,
+            likeStatus: '',
+            replyStatus: c.hasUserReply ? 'DONE' : '',
+            dmStatus: '',
+            attempts: { like: 0, reply: 0, dm: 0 },
+            lastError: c.hasUserReply ? 'Already replied by user' : '',
+            pipeline: {
+              queuedAt: new Date().toISOString(),
+              likedAt: '',
+              repliedAt: c.hasUserReply ? new Date().toISOString() : '',
+              dmAt: '',
+            },
+          })
+        );
 
         const newPostState: PostState = {
           _meta: {
@@ -783,7 +1047,14 @@ export const startPipeline = async (
         };
         await savePostState(postUrn, newPostState);
         postState = newPostState;
-        const stats = calculateCommentStats((postState.comments || []).map(c => ({ type: c.type, threadId: c.threadId, ownerProfileUrl: c.ownerProfileUrl })), postState._meta.userProfileUrl || '');
+        const stats = calculateCommentStats(
+          (postState.comments || []).map((c) => ({
+            type: c.type,
+            threadId: c.threadId,
+            ownerProfileUrl: c.ownerProfileUrl,
+          })),
+          postState._meta.userProfileUrl || ''
+        );
         broadcastState({ stats });
       }
     } catch (error) {
@@ -793,17 +1064,23 @@ export const startPipeline = async (
   }
 
   if (!postState) {
-    logger.error('Cannot start pipeline, failed to obtain post state.', { postUrn });
+    logger.error('Cannot start pipeline, failed to obtain post state.', {
+      postUrn,
+    });
     return;
   }
-  
+
   pipelineStatus = 'running';
   activePostUrn = postUrn;
   activeTabId = tabId;
   postState._meta.runState = 'running';
   await savePostState(postUrn, postState);
 
-  broadcastState({ pipelineStatus: 'running', comments: postState.comments, postUrn: activePostUrn });
+  broadcastState({
+    pipelineStatus: 'running',
+    comments: postState.comments,
+    postUrn: activePostUrn,
+  });
   processQueue();
 };
 
@@ -825,9 +1102,12 @@ export const stopPipeline = async (): Promise<void> => {
   broadcastState({ pipelineStatus: 'paused' });
 };
 
-export const resumePipeline = async (postUrn?: string, tabId?: number): Promise<void> => {
+export const resumePipeline = async (
+  postUrn?: string,
+  tabId?: number
+): Promise<void> => {
   if (pipelineStatus === 'running') return;
-  
+
   const targetUrn = postUrn || activePostUrn;
   if (!targetUrn) {
     logger.error('Cannot resume: no post URN provided or active.');
@@ -836,7 +1116,9 @@ export const resumePipeline = async (postUrn?: string, tabId?: number): Promise<
 
   const postState = await loadPostState(targetUrn);
   if (!postState) {
-    logger.error('Cannot resume: no saved state found for post', undefined, { postUrn: targetUrn });
+    logger.error('Cannot resume: no saved state found for post', undefined, {
+      postUrn: targetUrn,
+    });
     return;
   }
 
@@ -846,7 +1128,11 @@ export const resumePipeline = async (postUrn?: string, tabId?: number): Promise<
   postState._meta.runState = 'running';
   await savePostState(activePostUrn, postState);
 
-  broadcastState({ pipelineStatus: 'running', postUrn: activePostUrn, comments: postState.comments });
+  broadcastState({
+    pipelineStatus: 'running',
+    postUrn: activePostUrn,
+    comments: postState.comments,
+  });
   processQueue();
 };
 

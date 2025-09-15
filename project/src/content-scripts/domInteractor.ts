@@ -5,7 +5,7 @@ import type { ParsedComment, CapturedPostState } from '../shared/types';
  * @param ms - The number of milliseconds to wait.
  */
 const delay = (ms: number): Promise<void> => {
-  return new Promise(resolve => setTimeout(resolve, ms));
+  return new Promise((resolve) => setTimeout(resolve, ms));
 };
 
 /**
@@ -14,18 +14,23 @@ const delay = (ms: number): Promise<void> => {
  * or until enough comments are loaded to meet the target.
  * @param targetComments The target number of comments to fetch (determines scroll behavior)
  */
-export const autoScrollPage = async (targetComments: number = 10): Promise<void> => {
+export const autoScrollPage = async (
+  targetComments: number = 10
+): Promise<void> => {
   const SCROLL_DELAY_MS = 2000;
-  
+
   // Calculate scroll attempts based on target comments
   // For 1 comment: no scrolling needed
   // For more comments: scale scrolls based on target (roughly 2-3 comments per scroll)
-  const MAX_SCROLLS = targetComments <= 1 ? 0 : Math.min(Math.ceil(targetComments / 2.5), 50);
+  const MAX_SCROLLS =
+    targetComments <= 1 ? 0 : Math.min(Math.ceil(targetComments / 2.5), 50);
   let scrolls = 0;
 
   let lastHeight = document.body.scrollHeight;
 
-  console.log(`Starting auto-scroll to load ${targetComments} comments (max ${MAX_SCROLLS} scrolls)...`);
+  console.log(
+    `Starting auto-scroll to load ${targetComments} comments (max ${MAX_SCROLLS} scrolls)...`
+  );
 
   // If only 1 comment needed, skip scrolling entirely
   if (targetComments <= 1) {
@@ -47,11 +52,15 @@ export const autoScrollPage = async (targetComments: number = 10): Promise<void>
     lastHeight = newHeight;
     scrolls++;
     console.log(`Scrolled... Attempt ${scrolls}/${MAX_SCROLLS}`);
-    
+
     // Check if we have enough comments loaded
-    const currentComments = document.querySelectorAll('article.comments-comment-entity:not(.comments-comment-entity--reply)').length;
+    const currentComments = document.querySelectorAll(
+      'article.comments-comment-entity:not(.comments-comment-entity--reply)'
+    ).length;
     if (currentComments >= targetComments) {
-      console.log(`Found ${currentComments} comments, target reached. Stopping scroll.`);
+      console.log(
+        `Found ${currentComments} comments, target reached. Stopping scroll.`
+      );
       break;
     }
   }
@@ -74,7 +83,8 @@ const SELECTORS = {
     profileCard: '.profile-card',
   },
   comment: {
-    container: 'article.comments-comment-entity:not(.comments-comment-entity--reply)',
+    container:
+      'article.comments-comment-entity:not(.comments-comment-entity--reply)',
     replyContainer: 'article.comments-comment-entity--reply',
     allComments: 'article.comments-comment-entity',
     ownerProfileLink: 'a.comments-comment-meta__image-link',
@@ -83,8 +93,10 @@ const SELECTORS = {
     timestamp: 'time',
     repliesContainer: 'div.comments-comment-item__replies-container',
     likeButton: 'button.reactions-react-button[aria-label*="React Like"]',
-    replyButton: 'button.comments-comment-social-bar__reply-action-button--cr[aria-label*="Reply to"]',
-    replyEditor: 'div.comments-comment-texteditor .ql-editor[contenteditable="true"]',
+    replyButton:
+      'button.comments-comment-social-bar__reply-action-button--cr[aria-label*="Reply to"]',
+    replyEditor:
+      'div.comments-comment-texteditor .ql-editor[contenteditable="true"]',
     replySubmitButton: 'button.comments-comment-box__submit-button--cr',
   },
   dm: {
@@ -100,22 +112,29 @@ const SELECTORS = {
  */
 export const extractUsernameFromSidebar = (): string | null => {
   // Step 1: Locate the sidebar container
-  const sidebarContainer = document.querySelector(SELECTORS.signedInUser.sidebarContainer);
+  const sidebarContainer = document.querySelector(
+    SELECTORS.signedInUser.sidebarContainer
+  );
   if (!sidebarContainer) {
-    console.warn('Could not find sidebar container with class scaffold-layout__sticky.');
+    console.warn(
+      'Could not find sidebar container with class scaffold-layout__sticky.'
+    );
     return null;
   }
 
   // Step 2: Find the profile card within the sidebar
-  const profileCard = sidebarContainer.querySelector(SELECTORS.signedInUser.profileCard);
+  const profileCard = sidebarContainer.querySelector(
+    SELECTORS.signedInUser.profileCard
+  );
   if (!profileCard) {
     console.warn('Could not find profile card within sidebar container.');
     return null;
   }
 
   // Step 3: Find anchor tags with href pattern "/in/{{username}}/"
-  const profileLinks = profileCard.querySelectorAll<HTMLAnchorElement>('a[href*="/in/"]');
-  
+  const profileLinks =
+    profileCard.querySelectorAll<HTMLAnchorElement>('a[href*="/in/"]');
+
   for (const link of profileLinks) {
     const href = link.getAttribute('href');
     if (href) {
@@ -173,7 +192,10 @@ export const getSignedInUserProfileUrl = (): string | null => {
  * @param currentUserUrl The profile URL of the current user
  * @returns True if the comment was authored by the current user
  */
-export const isCommentByCurrentUser = (commentOwnerUrl: string, currentUserUrl: string): boolean => {
+export const isCommentByCurrentUser = (
+  commentOwnerUrl: string,
+  currentUserUrl: string
+): boolean => {
   if (!commentOwnerUrl || !currentUserUrl) {
     return false;
   }
@@ -187,12 +209,12 @@ export const isCommentByCurrentUser = (commentOwnerUrl: string, currentUserUrl: 
   const commentUsername = extractUsername(commentOwnerUrl);
   const currentUsername = extractUsername(currentUserUrl);
 
-  return commentUsername !== null && currentUsername !== null && commentUsername === currentUsername;
+  return (
+    commentUsername !== null &&
+    currentUsername !== null &&
+    commentUsername === currentUsername
+  );
 };
-
-
-
-
 
 /**
  * Extracts comments from the page and parses them into a structured format.
@@ -209,55 +231,74 @@ export const extractComments = (maxComments: number = 10): ParsedComment[] => {
   const comments: ParsedComment[] = [];
   let totalTopLevelCount = 0;
   let processedCount = 0;
-  
+
   // Get the target user's profile URL for filtering
   const targetUserProfileUrl = getSignedInUserProfileUrl();
 
-  console.log(`Found ${topLevelCommentElements.length} top-level comment elements. Limiting to ${maxComments} comments.`);
+  console.log(
+    `Found ${topLevelCommentElements.length} top-level comment elements. Limiting to ${maxComments} comments.`
+  );
 
-  for (let index = 0; index < topLevelCommentElements.length && processedCount < maxComments; index++) {
+  for (
+    let index = 0;
+    index < topLevelCommentElements.length && processedCount < maxComments;
+    index++
+  ) {
     const commentElement = topLevelCommentElements[index];
-    
+
     // This comment is included in the Total Top-Level Comments count, even if it's skipped.
     totalTopLevelCount++;
-    
+
     // ✅ CHECK A: Have the user processed this comment before in this session? (CRITICAL CHECK)
     // Look for replies within this top-level comment thread
-    const replyElements = commentElement.querySelectorAll<HTMLElement>('article.comments-comment-entity--reply');
+    const replyElements = commentElement.querySelectorAll<HTMLElement>(
+      'article.comments-comment-entity--reply'
+    );
     let userAlreadyReplied = false;
-    
+
     if (targetUserProfileUrl) {
       for (const replyElement of replyElements) {
-        const metaActor = replyElement.querySelector(SELECTORS.comment.replyAuthorMeta);
-        const replyAuthorLink = metaActor?.querySelector<HTMLAnchorElement>('a[href*="/in/"]');
-        
+        const metaActor = replyElement.querySelector(
+          SELECTORS.comment.replyAuthorMeta
+        );
+        const replyAuthorLink =
+          metaActor?.querySelector<HTMLAnchorElement>('a[href*="/in/"]');
+
         if (replyAuthorLink) {
           let replyAuthorUrl = replyAuthorLink.getAttribute('href') || '';
           // Ensure the URL is absolute
-          if (replyAuthorUrl && !replyAuthorUrl.startsWith('https://www.linkedin.com')) {
+          if (
+            replyAuthorUrl &&
+            !replyAuthorUrl.startsWith('https://www.linkedin.com')
+          ) {
             replyAuthorUrl = `https://www.linkedin.com${replyAuthorUrl}`;
           }
-          
+
           if (isCommentByCurrentUser(replyAuthorUrl, targetUserProfileUrl)) {
-            console.log(`CHECK A: Skipping comment #${totalTopLevelCount} - user has already replied in this thread`);
+            console.log(
+              `CHECK A: Skipping comment #${totalTopLevelCount} - user has already replied in this thread`
+            );
             userAlreadyReplied = true;
             break;
           }
         }
       }
     }
-    
+
     if (userAlreadyReplied) {
       continue; // Skip this entire top-level comment
     }
-    
+
     // ✅ CHECK B: Have we already processed this comment?
-    const isAlreadyProcessed = commentElement.getAttribute('data-processed') === 'true';
+    const isAlreadyProcessed =
+      commentElement.getAttribute('data-processed') === 'true';
     if (isAlreadyProcessed) {
-      console.log(`CHECK B: Skipping comment #${totalTopLevelCount} - already processed (data-processed="true")`);
+      console.log(
+        `CHECK B: Skipping comment #${totalTopLevelCount} - already processed (data-processed="true")`
+      );
       continue; // Skip this comment
     }
-    
+
     const type = 'top-level'; // We only process top-level comments now
 
     // Find the owner profile link for top-level comments
@@ -302,19 +343,24 @@ export const extractComments = (maxComments: number = 10): ParsedComment[] => {
       });
       processedCount++; // Only increment when we actually process a comment
     } else {
-      console.warn(`Skipping comment #${totalTopLevelCount} due to missing data.`, {
-        hasCommentId: !!commentId,
-        hasOwnerUrl: !!ownerProfileUrl,
-        hasText: !!text,
-        hasTimestamp: !!timestamp,
-        hasThreadId: !!threadId,
-        type,
-        element: commentElement,
-      });
+      console.warn(
+        `Skipping comment #${totalTopLevelCount} due to missing data.`,
+        {
+          hasCommentId: !!commentId,
+          hasOwnerUrl: !!ownerProfileUrl,
+          hasText: !!text,
+          hasTimestamp: !!timestamp,
+          hasThreadId: !!threadId,
+          type,
+          element: commentElement,
+        }
+      );
     }
   }
 
-  console.log(`Successfully extracted ${comments.length} comments (processed ${processedCount}) from ${totalTopLevelCount} total top-level comments encountered.`);
+  console.log(
+    `Successfully extracted ${comments.length} comments (processed ${processedCount}) from ${totalTopLevelCount} total top-level comments encountered.`
+  );
   return comments;
 };
 
@@ -328,28 +374,44 @@ export const likeComment = async (commentId: string): Promise<boolean> => {
 
   // Try to locate the comment element robustly.
   // Some pages expose different ID formats; derive common variants.
-  const numericMatch = commentId.match(/urn:li:comment:(?:\(activity:\d+,)?(\d+)\)?/);
+  const numericMatch = commentId.match(
+    /urn:li:comment:(?:\(activity:\d+,)?(\d+)\)?/
+  );
   const numericId = numericMatch && numericMatch[1] ? numericMatch[1] : '';
   const plainUrnVariant = numericId ? `urn:li:comment:${numericId}` : '';
 
   const exactIdSelector = `${SELECTORS.comment.container}[data-id='${commentId}']`;
   const exactUrnSelector = `${SELECTORS.comment.container}[data-urn='${commentId}']`;
-  const altIdSelector = plainUrnVariant ? `${SELECTORS.comment.container}[data-id='${plainUrnVariant}']` : '';
-  const altUrnSelector = plainUrnVariant ? `${SELECTORS.comment.container}[data-urn='${plainUrnVariant}']` : '';
+  const altIdSelector = plainUrnVariant
+    ? `${SELECTORS.comment.container}[data-id='${plainUrnVariant}']`
+    : '';
+  const altUrnSelector = plainUrnVariant
+    ? `${SELECTORS.comment.container}[data-urn='${plainUrnVariant}']`
+    : '';
   // Sometimes nested nodes (not the article) carry the data-urn/id; grab closest article.
   const looseSelector = `[data-id='${commentId}'], [data-urn='${commentId}']`;
-  const looseAltSelector = plainUrnVariant ? `[data-id='${plainUrnVariant}'], [data-urn='${plainUrnVariant}']` : '';
+  const looseAltSelector = plainUrnVariant
+    ? `[data-id='${plainUrnVariant}'], [data-urn='${plainUrnVariant}']`
+    : '';
 
-  let commentElement = document.querySelector<HTMLElement>(exactIdSelector)
-    || document.querySelector<HTMLElement>(exactUrnSelector)
-    || (altIdSelector ? document.querySelector<HTMLElement>(altIdSelector) : null)
-    || (altUrnSelector ? document.querySelector<HTMLElement>(altUrnSelector) : null)
-    || (document.querySelector<HTMLElement>(looseSelector)?.closest(
-      SELECTORS.comment.container
-    ) as HTMLElement | null);
+  let commentElement =
+    document.querySelector<HTMLElement>(exactIdSelector) ||
+    document.querySelector<HTMLElement>(exactUrnSelector) ||
+    (altIdSelector
+      ? document.querySelector<HTMLElement>(altIdSelector)
+      : null) ||
+    (altUrnSelector
+      ? document.querySelector<HTMLElement>(altUrnSelector)
+      : null) ||
+    (document
+      .querySelector<HTMLElement>(looseSelector)
+      ?.closest(SELECTORS.comment.container) as HTMLElement | null);
   if (!commentElement && looseAltSelector) {
     const el = document.querySelector<HTMLElement>(looseAltSelector);
-    if (el) commentElement = el.closest(SELECTORS.comment.container) as HTMLElement | null;
+    if (el)
+      commentElement = el.closest(
+        SELECTORS.comment.container
+      ) as HTMLElement | null;
   }
 
   // If not found, try a short scroll-and-search loop to trigger lazy loading
@@ -357,16 +419,24 @@ export const likeComment = async (commentId: string): Promise<boolean> => {
     for (let i = 0; i < 6 && !commentElement; i++) {
       window.scrollBy(0, 600);
       await delay(300);
-      commentElement = document.querySelector<HTMLElement>(exactIdSelector)
-        || document.querySelector<HTMLElement>(exactUrnSelector)
-        || (altIdSelector ? document.querySelector<HTMLElement>(altIdSelector) : null)
-        || (altUrnSelector ? document.querySelector<HTMLElement>(altUrnSelector) : null)
-        || (document.querySelector<HTMLElement>(looseSelector)?.closest(
-          SELECTORS.comment.container
-        ) as HTMLElement | null);
+      commentElement =
+        document.querySelector<HTMLElement>(exactIdSelector) ||
+        document.querySelector<HTMLElement>(exactUrnSelector) ||
+        (altIdSelector
+          ? document.querySelector<HTMLElement>(altIdSelector)
+          : null) ||
+        (altUrnSelector
+          ? document.querySelector<HTMLElement>(altUrnSelector)
+          : null) ||
+        (document
+          .querySelector<HTMLElement>(looseSelector)
+          ?.closest(SELECTORS.comment.container) as HTMLElement | null);
       if (!commentElement && looseAltSelector) {
         const el2 = document.querySelector<HTMLElement>(looseAltSelector);
-        if (el2) commentElement = el2.closest(SELECTORS.comment.container) as HTMLElement | null;
+        if (el2)
+          commentElement = el2.closest(
+            SELECTORS.comment.container
+          ) as HTMLElement | null;
       }
     }
   }
@@ -384,10 +454,18 @@ export const likeComment = async (commentId: string): Promise<boolean> => {
 
   // Broaden the like button selector to account for UI variations
   const likeButton =
-    commentElement.querySelector<HTMLButtonElement>(SELECTORS.comment.likeButton) ||
-    commentElement.querySelector<HTMLButtonElement>('button.comments-comment-social-bar__reaction-button') ||
-    commentElement.querySelector<HTMLButtonElement>('button[aria-label*="Like" i]') ||
-    commentElement.querySelector<HTMLButtonElement>('button[aria-label*="React" i]');
+    commentElement.querySelector<HTMLButtonElement>(
+      SELECTORS.comment.likeButton
+    ) ||
+    commentElement.querySelector<HTMLButtonElement>(
+      'button.comments-comment-social-bar__reaction-button'
+    ) ||
+    commentElement.querySelector<HTMLButtonElement>(
+      'button[aria-label*="Like" i]'
+    ) ||
+    commentElement.querySelector<HTMLButtonElement>(
+      'button[aria-label*="React" i]'
+    );
 
   if (!likeButton) {
     console.warn(`Could not find 'Like' button for comment: ${commentId}`);
@@ -402,8 +480,16 @@ export const likeComment = async (commentId: string): Promise<boolean> => {
 
   // Perform a more realistic click sequence and wait for state change
   likeButton.focus();
-  likeButton.dispatchEvent(new MouseEvent('mousedown', { bubbles: true, cancelable: true, view: window }));
-  likeButton.dispatchEvent(new MouseEvent('mouseup', { bubbles: true, cancelable: true, view: window }));
+  likeButton.dispatchEvent(
+    new MouseEvent('mousedown', {
+      bubbles: true,
+      cancelable: true,
+      view: window,
+    })
+  );
+  likeButton.dispatchEvent(
+    new MouseEvent('mouseup', { bubbles: true, cancelable: true, view: window })
+  );
   likeButton.click();
 
   // Wait up to ~1.5s for aria-pressed to flip to true
@@ -475,7 +561,7 @@ export const replyToComment = async (
 
   // Set the text content directly to avoid character-by-character formatting issues
   editor.textContent = replyText;
-  
+
   // Simulate typing delay for more natural behavior
   await delay(replyText.length * 30 + Math.random() * 200);
 
@@ -505,7 +591,9 @@ export const replyToComment = async (
 export const sendDm = async (dmText: string): Promise<boolean> => {
   console.log('Attempting to send a DM...');
 
-  const editor = document.querySelector<HTMLDivElement>(SELECTORS.dm.messageInput);
+  const editor = document.querySelector<HTMLDivElement>(
+    SELECTORS.dm.messageInput
+  );
   const submitButton = document.querySelector<HTMLButtonElement>(
     SELECTORS.dm.sendButton
   );
@@ -520,7 +608,7 @@ export const sendDm = async (dmText: string): Promise<boolean> => {
 
   // Set the text content directly to avoid character-by-character formatting issues
   editor.textContent = dmText;
-  
+
   // Simulate typing delay for more natural behavior
   await delay(dmText.length * 25 + Math.random() * 150);
 
@@ -554,7 +642,7 @@ export const sendDmViaProfile = async (dmText: string): Promise<boolean> => {
 
     // Find Message button using the same logic as the test
     const buttons = Array.from(document.querySelectorAll('button'));
-    const messageButton = buttons.find(btn => {
+    const messageButton = buttons.find((btn) => {
       const text = (btn.textContent || btn.innerText || '').trim();
       const ariaLabel = btn.getAttribute('aria-label') || '';
       // Match exact "Message" text or "Message [Name]" in aria-label
@@ -573,7 +661,9 @@ export const sendDmViaProfile = async (dmText: string): Promise<boolean> => {
     await delay(2000);
 
     // Fill in the message using the same approach as the test
-    const textbox = document.querySelector('div[role="textbox"][aria-label*="Write a message"]') as HTMLDivElement;
+    const textbox = document.querySelector(
+      'div[role="textbox"][aria-label*="Write a message"]'
+    ) as HTMLDivElement;
     if (!textbox) {
       console.warn('Message textbox not found after clicking Message button');
       return false;
@@ -588,19 +678,19 @@ export const sendDmViaProfile = async (dmText: string): Promise<boolean> => {
     await delay(500);
 
     // Click the Send button with improved detection from the test
-    const sendButton = 
+    const sendButton =
       // Try exact text match first
-      Array.from(document.querySelectorAll('button')).find(btn => 
-        (btn.textContent || btn.innerText || '').trim() === 'Send'
+      Array.from(document.querySelectorAll('button')).find(
+        (btn) => (btn.textContent || btn.innerText || '').trim() === 'Send'
       ) ||
       // Try aria-label containing 'Send'
-      Array.from(document.querySelectorAll('button')).find(btn => 
+      Array.from(document.querySelectorAll('button')).find((btn) =>
         (btn.getAttribute('aria-label') || '').toLowerCase().includes('send')
       ) ||
       // Try data-control-name or other LinkedIn-specific attributes
       document.querySelector('button[data-control-name*="send"]') ||
       // Try class names that might contain 'send'
-      Array.from(document.querySelectorAll('button')).find(btn => 
+      Array.from(document.querySelectorAll('button')).find((btn) =>
         btn.className.toLowerCase().includes('send')
       );
 
@@ -639,7 +729,9 @@ export const sendDmViaProfile = async (dmText: string): Promise<boolean> => {
  * ensure the captured state is up-to-date.
  * @returns An object containing the latest comments, post URN, and post URL.
  */
-export const capturePostStateFromDOM = (maxComments?: number): CapturedPostState => {
+export const capturePostStateFromDOM = (
+  maxComments?: number
+): CapturedPostState => {
   console.log('Capturing post-state from the DOM...');
   const comments = extractComments(maxComments);
   const userProfileUrl = getSignedInUserProfileUrl() || '';

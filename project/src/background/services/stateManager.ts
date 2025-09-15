@@ -36,7 +36,10 @@ const stateCache = new Map<string, PostState>();
  * @param currentUserUrl The profile URL of the current user
  * @returns True if the comment was authored by the current user
  */
-const isCommentByCurrentUser = (commentOwnerUrl: string, currentUserUrl: string): boolean => {
+const isCommentByCurrentUser = (
+  commentOwnerUrl: string,
+  currentUserUrl: string
+): boolean => {
   if (!commentOwnerUrl || !currentUserUrl) {
     return false;
   }
@@ -50,7 +53,11 @@ const isCommentByCurrentUser = (commentOwnerUrl: string, currentUserUrl: string)
   const commentUsername = extractUsername(commentOwnerUrl);
   const currentUsername = extractUsername(currentUserUrl);
 
-  return commentUsername !== null && currentUsername !== null && commentUsername === currentUsername;
+  return (
+    commentUsername !== null &&
+    currentUsername !== null &&
+    commentUsername === currentUsername
+  );
 };
 
 /**
@@ -74,7 +81,10 @@ export const calculateCommentStats = (
   // Identify all threads that contain at least one reply authored by me
   const threadsWithMyReply = new Set<string>();
   comments.forEach((c) => {
-    if (c.type === 'reply' && isCommentByCurrentUser(c.ownerProfileUrl, userProfileUrl)) {
+    if (
+      c.type === 'reply' &&
+      isCommentByCurrentUser(c.ownerProfileUrl, userProfileUrl)
+    ) {
       threadsWithMyReply.add(c.threadId);
     }
   });
@@ -85,7 +95,10 @@ export const calculateCommentStats = (
   comments.forEach((c) => {
     if (c.type === 'top-level') {
       totalTopLevel++;
-      const authoredByMe = isCommentByCurrentUser(c.ownerProfileUrl, userProfileUrl);
+      const authoredByMe = isCommentByCurrentUser(
+        c.ownerProfileUrl,
+        userProfileUrl
+      );
       if (!authoredByMe && !threadsWithMyReply.has(c.threadId)) {
         topLevelWithoutMyReply++;
       }
@@ -164,7 +177,7 @@ export const loadPostState = async (
 export const loadAllStates = async (): Promise<void> => {
   try {
     const allData = await chrome.storage.local.get(null);
-    const postUrns = Object.keys(allData).filter(key =>
+    const postUrns = Object.keys(allData).filter((key) =>
       key.startsWith('urn:li:activity:')
     );
 
@@ -220,12 +233,12 @@ export const mergeCapturedState = (
   }
 
   const existingCommentsMap = new Map<string, Comment>(
-    existingState.comments.map(c => [c.commentId, c])
+    existingState.comments.map((c) => [c.commentId, c])
   );
 
   let newCommentsFound = 0;
 
-  capturedData.comments.forEach(parsedComment => {
+  capturedData.comments.forEach((parsedComment) => {
     if (!existingCommentsMap.has(parsedComment.commentId)) {
       // This is a new comment, likely a reply we just posted.
       const newComment: Comment = {
@@ -249,7 +262,9 @@ export const mergeCapturedState = (
   });
 
   if (newCommentsFound > 0) {
-    console.log(`Merged state for ${postUrn}: Added ${newCommentsFound} new comments.`);
+    console.log(
+      `Merged state for ${postUrn}: Added ${newCommentsFound} new comments.`
+    );
     // The savePostState function will automatically update the timestamp.
     savePostState(postUrn, existingState);
   } else {

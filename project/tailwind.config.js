@@ -1,13 +1,10 @@
 /** @type {import('tailwindcss').Config} */
 export default {
-  content: [
-    './index.html',
-    './src/**/*.{js,ts,jsx,tsx,svelte}',
-  ],
+  content: ['./index.html', './src/**/*.{js,ts,jsx,tsx,svelte}'],
   theme: {
     extend: {
       fontFamily: {
-        'saira': ['Saira', 'sans-serif'],
+        saira: ['Saira', 'sans-serif'],
       },
       colors: {
         primary: {
@@ -69,7 +66,5 @@ export default {
       },
     },
   },
-  plugins: [
-    require('@tailwindcss/typography'),
-  ],
+  plugins: [require('@tailwindcss/typography')],
 };

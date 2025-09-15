@@ -10,7 +10,7 @@ const __dirname = fileURLToPath(new URL('.', import.meta.url));
 
 export default defineConfig(({ command, mode }): UserConfig => {
   const isContentBuild = process.env.VITE_BUILD_TARGET === 'content';
-  
+
   const baseConfig: UserConfig = {
     plugins: [
       svelte(),
@@ -40,11 +40,14 @@ export default defineConfig(({ command, mode }): UserConfig => {
                 console.warn(`[copy-fonts] Skipping missing font: ${from}`);
               }
             } catch (err) {
-              console.warn(`[copy-fonts] Failed to copy font: ${from} -> ${to}`, err);
+              console.warn(
+                `[copy-fonts] Failed to copy font: ${from} -> ${to}`,
+                err
+              );
             }
           }
-        }
-      }
+        },
+      },
     ],
     css: {
       postcss: './postcss.config.js', // Enable PostCSS processing for Tailwind

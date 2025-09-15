@@ -41,18 +41,25 @@ import { logger } from './logger';
 const broadcastLog = (logEntry: LogEntry) => {
   // Fire-and-forget broadcast for logs.
   (async () => {
-    const [tab] = await chrome.tabs.query({ active: true, lastFocusedWindow: true });
+    const [tab] = await chrome.tabs.query({
+      active: true,
+      lastFocusedWindow: true,
+    });
     if (!tab || !tab.id) {
       logger.warn('No active tab found to send state update.');
       return;
     }
-    chrome.tabs.sendMessage(tab.id, { type: 'LOG_ENTRY', payload: logEntry })
-      .catch(error => {
+    chrome.tabs
+      .sendMessage(tab.id, { type: 'LOG_ENTRY', payload: logEntry })
+      .catch((error) => {
         if (error.message.includes('Receiving end does not exist')) {
           // Expected error when no UI is listening. Safe to ignore.
         } else {
           // Use console.warn directly to avoid recursive logging loop if logger is broken.
-          console.warn('An unexpected error occurred during log broadcast', error);
+          console.warn(
+            'An unexpected error occurred during log broadcast',
+            error
+          );
         }
       });
   })();
@@ -64,7 +71,6 @@ logger.initialize(broadcastLog);
 logger.setSettings({ minLevel: 'INFO' });
 
 logger.info('LinkedIn Engagement Assistant Service Worker loaded.');
-
 
 // Initialize the configuration on startup. This returns a promise that resolves
 // when the configuration is loaded. We await this promise in message handlers
@@ -81,21 +87,29 @@ const broadcastStateUpdate = (state: Partial<UIState>) => {
   // rejected if no UI component is open to receive it. We can safely
   // ignore this rejection as it's an expected condition.
   (async () => {
-    const [tab] = await chrome.tabs.query({ active: true, lastFocusedWindow: true });
+    const [tab] = await chrome.tabs.query({
+      active: true,
+      lastFocusedWindow: true,
+    });
     if (!tab || !tab.id) {
       logger.warn('No active tab found to send state update.');
       return;
     }
-    chrome.tabs.sendMessage(tab.id, {
-      type: 'STATE_UPDATE',
-      payload: state,
-    }).catch(error => {
-      if (error.message.includes('Receiving end does not exist')) {
-        // Expected error when no UI is listening. Safe to ignore.
-      } else {
-        logger.warn('An unexpected error occurred during state broadcast', error);
-      }
-    });
+    chrome.tabs
+      .sendMessage(tab.id, {
+        type: 'STATE_UPDATE',
+        payload: state,
+      })
+      .catch((error) => {
+        if (error.message.includes('Receiving end does not exist')) {
+          // Expected error when no UI is listening. Safe to ignore.
+        } else {
+          logger.warn(
+            'An unexpected error occurred during state broadcast',
+            error
+          );
+        }
+      });
     // do something with response here, not outside the function
   })();
 
@@ -118,7 +132,10 @@ const sendMessageToTab = <T>(
         return reject(error);
       }
       if (response && response.status === 'success') {
-        logger.debug('Received success response from tab message', { tabId, messageType: message.type });
+        logger.debug('Received success response from tab message', {
+          tabId,
+          messageType: message.type,
+        });
         resolve(response.payload as T);
       } else {
         const errorMsg =
@@ -136,12 +153,14 @@ const sendMessageToTab = <T>(
 };
 
 // Load all persisted states into memory on startup
-loadAllStates().then(() => {
-  // broadcastStateUpdate can be called here if needed to inform UI of loaded states
-  logger.info('All post states loaded into memory.');
-}).catch(error => {
-  logger.error('Failed to load post states on startup', error);
-});
+loadAllStates()
+  .then(() => {
+    // broadcastStateUpdate can be called here if needed to inform UI of loaded states
+    logger.info('All post states loaded into memory.');
+  })
+  .catch((error) => {
+    logger.error('Failed to load post states on startup', error);
+  });
 // Initialize the pipeline manager with a broadcaster function.
 initPipelineManager(broadcastStateUpdate, sendMessageToTab);
 
@@ -149,11 +168,15 @@ initPipelineManager(broadcastStateUpdate, sendMessageToTab);
 chrome.tabs.onRemoved.addListener((tabId) => {
   const currentStatus = getPipelineStatus();
   const activeTab = getActiveTabId();
-  
+
   if (tabId === activeTab && currentStatus === 'running') {
-    logger.info('Active pipeline tab was closed, auto-stopping pipeline', { tabId });
-    stopPipeline().catch(error => {
-      logger.error('Failed to auto-stop pipeline after tab closure', error, { tabId });
+    logger.info('Active pipeline tab was closed, auto-stopping pipeline', {
+      tabId,
+    });
+    stopPipeline().catch((error) => {
+      logger.error('Failed to auto-stop pipeline after tab closure', error, {
+        tabId,
+      });
     });
   }
 });
@@ -168,17 +191,26 @@ chrome.tabs.onUpdated.addListener((tabId, changeInfo) => {
       status === 'running' &&
       (changeInfo.status === 'loading' || typeof changeInfo.url === 'string')
     ) {
-      logger.info('Active pipeline tab reloaded/navigated. Auto-resetting pipeline to idle.', {
-        tabId,
-        changeInfo,
-      });
+      logger.info(
+        'Active pipeline tab reloaded/navigated. Auto-resetting pipeline to idle.',
+        {
+          tabId,
+          changeInfo,
+        }
+      );
       // Use reset to move to idle state and clear active references
       resetPipeline().catch((error) => {
-        logger.error('Failed to auto-reset pipeline on tab update', error, { tabId });
+        logger.error('Failed to auto-reset pipeline on tab update', error, {
+          tabId,
+        });
       });
     }
   } catch (error) {
-    logger.error('tabs.onUpdated handler encountered an error', error as Error, { tabId, changeInfo });
+    logger.error(
+      'tabs.onUpdated handler encountered an error',
+      error as Error,
+      { tabId, changeInfo }
+    );
   }
 });
 
@@ -249,9 +281,12 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
         }
 
         if (state) {
-          logger.info('Found existing state for this post, broadcasting to UI.', {
-            postUrn,
-          });
+          logger.info(
+            'Found existing state for this post, broadcasting to UI.',
+            {
+              postUrn,
+            }
+          );
           broadcastStateUpdate({
             comments: state.comments,
             pipelineStatus: state._meta.runState,
@@ -307,21 +342,23 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
       runState: 'idle',
     };
 
-    const normalizedComments: Comment[] = (comments as ParsedComment[]).map((c): Comment => ({
-      ...c,
-      connected: undefined,
-      likeStatus: '',
-      replyStatus: '',
-      dmStatus: '',
-      attempts: { like: 0, reply: 0, dm: 0 },
-      lastError: '',
-      pipeline: {
-        queuedAt: new Date().toISOString(),
-        likedAt: '',
-        repliedAt: '',
-        dmAt: '',
-      },
-    }));
+    const normalizedComments: Comment[] = (comments as ParsedComment[]).map(
+      (c): Comment => ({
+        ...c,
+        connected: undefined,
+        likeStatus: '',
+        replyStatus: '',
+        dmStatus: '',
+        attempts: { like: 0, reply: 0, dm: 0 },
+        lastError: '',
+        pipeline: {
+          queuedAt: new Date().toISOString(),
+          likedAt: '',
+          repliedAt: '',
+          dmAt: '',
+        },
+      })
+    );
 
     const postState: PostState = {
       _meta: postMeta,
@@ -377,7 +414,10 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
         }
 
         if (!postUrn) {
-          sendResponse({ status: 'error', message: 'No post URN available for export.' });
+          sendResponse({
+            status: 'error',
+            message: 'No post URN available for export.',
+          });
           return;
         }
 
@@ -386,7 +426,10 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
           state = await loadPostState(postUrn);
         }
         if (!state) {
-          sendResponse({ status: 'error', message: `No state found for post ${postUrn}` });
+          sendResponse({
+            status: 'error',
+            message: `No state found for post ${postUrn}`,
+          });
           return;
         }
         // Expose for E2E verification without relying on downloads
@@ -501,12 +544,19 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
     (async () => {
       try {
         await configInitializationPromise;
-        const { postUrn, maxComments } = message.payload as { postUrn: string; maxComments?: number };
+        const { postUrn, maxComments } = message.payload as {
+          postUrn: string;
+          maxComments?: number;
+        };
         const tabId = sender.tab?.id;
         if (!tabId) {
           throw new Error('Could not get tab ID to start pipeline.');
         }
-        logger.info('Received START_PIPELINE message', { postUrn, tabId, maxComments });
+        logger.info('Received START_PIPELINE message', {
+          postUrn,
+          tabId,
+          maxComments,
+        });
         await startPipeline(postUrn, tabId, maxComments);
         sendResponse({ status: 'success' });
       } catch (error) {
@@ -538,7 +588,10 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
     (async () => {
       try {
         await configInitializationPromise;
-        const postUrn = (message.postUrn as string) || (message.payload?.postUrn as string) || undefined;
+        const postUrn =
+          (message.postUrn as string) ||
+          (message.payload?.postUrn as string) ||
+          undefined;
         const tabId = sender.tab?.id;
         logger.info('Received RESUME_PIPELINE message', { postUrn, tabId });
         await resumePipeline(postUrn, tabId);
@@ -556,10 +609,13 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
     (async () => {
       try {
         await configInitializationPromise;
-        const postUrn = (message.postUrn as string) || (message.payload?.postUrn as string) || (() => {
-          const m = sender.tab?.url?.match(/(urn:li:activity:\d+)/);
-          return m && m[1] ? m[1] : undefined;
-        })();
+        const postUrn =
+          (message.postUrn as string) ||
+          (message.payload?.postUrn as string) ||
+          (() => {
+            const m = sender.tab?.url?.match(/(urn:li:activity:\d+)/);
+            return m && m[1] ? m[1] : undefined;
+          })();
         logger.info('Received RESET_PIPELINE request', { postUrn });
         await resetPipeline(postUrn);
         sendResponse({ status: 'success' });
@@ -575,13 +631,19 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
     (async () => {
       try {
         await configInitializationPromise;
-        const postUrn = (message.postUrn as string) || (message.payload?.postUrn as string) || (() => {
-          const m = sender.tab?.url?.match(/(urn:li:activity:\d+)/);
-          return m && m[1] ? m[1] : undefined;
-        })();
+        const postUrn =
+          (message.postUrn as string) ||
+          (message.payload?.postUrn as string) ||
+          (() => {
+            const m = sender.tab?.url?.match(/(urn:li:activity:\d+)/);
+            return m && m[1] ? m[1] : undefined;
+          })();
         logger.info('Received RESET_SESSION request', { postUrn });
         if (!postUrn) {
-          sendResponse({ status: 'error', message: 'No post URN available to reset.' });
+          sendResponse({
+            status: 'error',
+            message: 'No post URN available to reset.',
+          });
           return;
         }
         await resetPipeline(postUrn);
@@ -603,13 +665,20 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
 
   if (message.type === 'PROCESS_CAPTURED_STATE') {
     const { postUrn, comments } = message.payload;
-    logger.info('Received captured state from content script', { postUrn, commentCount: comments.length });
+    logger.info('Received captured state from content script', {
+      postUrn,
+      commentCount: comments.length,
+    });
     mergeCapturedState(postUrn, { comments });
     // Recompute and broadcast stats if we have user context
     const state = getPostState(postUrn);
     if (state) {
       const stats = calculateCommentStats(
-        state.comments.map(c => ({ type: c.type, threadId: c.threadId, ownerProfileUrl: c.ownerProfileUrl })),
+        state.comments.map((c) => ({
+          type: c.type,
+          threadId: c.threadId,
+          ownerProfileUrl: c.ownerProfileUrl,
+        })),
         state._meta.userProfileUrl || ''
       );
       broadcastStateUpdate({ stats });
@@ -627,13 +696,19 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
 // In a real-world scenario, a dedicated 'test' build mode would be preferable.
 // if (import.meta.env.MODE !== 'production') {
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
-(self as any).__E2E_TEST_SAVE_POST_STATE = (postUrn: string, state: PostState) => savePostState(postUrn, state);
+(self as any).__E2E_TEST_SAVE_POST_STATE = (
+  postUrn: string,
+  state: PostState
+) => savePostState(postUrn, state);
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
-(self as any).__E2E_TEST_GET_POST_STATE = (postUrn: string) => getPostState(postUrn);
+(self as any).__E2E_TEST_GET_POST_STATE = (postUrn: string) =>
+  getPostState(postUrn);
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
-(self as any).__E2E_TEST_UPDATE_CONFIG = (config: Partial<AIConfig>) => updateConfig(config);
+(self as any).__E2E_TEST_UPDATE_CONFIG = (config: Partial<AIConfig>) =>
+  updateConfig(config);
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
-(self as any).__E2E_TEST_SET_LOGS = (logs: LogEntry[]) => logger.setBufferedLogsForTesting(logs);
+(self as any).__E2E_TEST_SET_LOGS = (logs: LogEntry[]) =>
+  logger.setBufferedLogsForTesting(logs);
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 (self as any).__E2E_TEST_HOOKS_INSTALLED = true;
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -652,16 +727,21 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
             target: { tabId: target.id! },
             world: 'MAIN',
             func: async () => {
-              const delay = (ms: number) => new Promise(r => setTimeout(r, ms));
+              const delay = (ms: number) =>
+                new Promise((r) => setTimeout(r, ms));
               await delay(500);
               for (let i = 0; i < 15; i++) {
                 window.scrollTo(0, document.body.scrollHeight);
                 // Try to click any visible 'more comments' buttons between scrolls
-                const buttons = Array.from(document.querySelectorAll('button, a')) as (HTMLButtonElement | HTMLAnchorElement)[];
+                const buttons = Array.from(
+                  document.querySelectorAll('button, a')
+                ) as (HTMLButtonElement | HTMLAnchorElement)[];
                 for (const b of buttons) {
                   const t = (b.textContent || '').toLowerCase();
                   if (/more/.test(t) && /comment/.test(t)) {
-                    try { (b as HTMLElement).click(); } catch {}
+                    try {
+                      (b as HTMLElement).click();
+                    } catch {}
                   }
                 }
                 await delay(800);
@@ -669,28 +749,88 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
               window.scrollTo(0, 0);
               await delay(300);
 
-              const pick = (el: Element | null, sel: string): Element | null => (el ? (el as Element).querySelector(sel) : null);
-              let nodes: HTMLElement[] = Array.from(document.querySelectorAll<HTMLElement>('article.comments-comment-entity:not(.comments-comment-entity--reply)'));
+              const pick = (el: Element | null, sel: string): Element | null =>
+                el ? (el as Element).querySelector(sel) : null;
+              let nodes: HTMLElement[] = Array.from(
+                document.querySelectorAll<HTMLElement>(
+                  'article.comments-comment-entity:not(.comments-comment-entity--reply)'
+                )
+              );
               if (nodes.length === 0) {
-                nodes = Array.from(document.querySelectorAll<HTMLElement>('[data-id^="urn:li:comment:"]'));
+                nodes = Array.from(
+                  document.querySelectorAll<HTMLElement>(
+                    '[data-id^="urn:li:comment:"]'
+                  )
+                );
               }
               if (nodes.length === 0) {
-                nodes = Array.from(document.querySelectorAll<HTMLElement>('[data-urn*="urn:li:comment:"]'));
+                nodes = Array.from(
+                  document.querySelectorAll<HTMLElement>(
+                    '[data-urn*="urn:li:comment:"]'
+                  )
+                );
               }
-              const comments: { commentId: string; ownerProfileUrl: string; text: string; timestamp: string; type: string; threadId: string }[] = [];
+              const comments: {
+                commentId: string;
+                ownerProfileUrl: string;
+                text: string;
+                timestamp: string;
+                type: string;
+                threadId: string;
+              }[] = [];
               nodes.forEach((commentElement) => {
                 const dataId = commentElement.getAttribute('data-id') || '';
-                const ownerRel = (pick(commentElement, 'a.comments-comment-meta__image-link, a.app-aware-link') as HTMLAnchorElement | null)?.getAttribute('href') || '';
-                const owner = ownerRel ? (ownerRel.startsWith('https://') ? ownerRel : `https://www.linkedin.com${ownerRel}`) : '';
-                const text = ((pick(commentElement, 'span.comments-comment-item__main-content') as HTMLElement | null)?.innerText
-                              || (pick(commentElement, 'span[dir="ltr"], p[dir="ltr"], span, p') as HTMLElement | null)?.innerText
-                              || ''
-                             ).trim();
-                const timestamp = (commentElement.querySelector('time, span[datetime], time[datetime]') as HTMLElement | null)?.innerText?.trim() || '';
-                const isReply = !!commentElement.parentElement?.closest('div.comments-comment-item__replies-container');
-                const threadId = isReply ? (commentElement.parentElement?.closest('div.comments-comment-item__replies-container')?.closest('article.comments-comment-entity')?.getAttribute('data-id') || '') : dataId;
+                const ownerRel =
+                  (
+                    pick(
+                      commentElement,
+                      'a.comments-comment-meta__image-link, a.app-aware-link'
+                    ) as HTMLAnchorElement | null
+                  )?.getAttribute('href') || '';
+                const owner = ownerRel
+                  ? ownerRel.startsWith('https://')
+                    ? ownerRel
+                    : `https://www.linkedin.com${ownerRel}`
+                  : '';
+                const text = (
+                  (
+                    pick(
+                      commentElement,
+                      'span.comments-comment-item__main-content'
+                    ) as HTMLElement | null
+                  )?.innerText ||
+                  (
+                    pick(
+                      commentElement,
+                      'span[dir="ltr"], p[dir="ltr"], span, p'
+                    ) as HTMLElement | null
+                  )?.innerText ||
+                  ''
+                ).trim();
+                const timestamp =
+                  (
+                    commentElement.querySelector(
+                      'time, span[datetime], time[datetime]'
+                    ) as HTMLElement | null
+                  )?.innerText?.trim() || '';
+                const isReply = !!commentElement.parentElement?.closest(
+                  'div.comments-comment-item__replies-container'
+                );
+                const threadId = isReply
+                  ? commentElement.parentElement
+                      ?.closest('div.comments-comment-item__replies-container')
+                      ?.closest('article.comments-comment-entity')
+                      ?.getAttribute('data-id') || ''
+                  : dataId;
                 if (dataId && owner && text && timestamp && threadId) {
-                  comments.push({ commentId: dataId, ownerProfileUrl: owner, text, timestamp, type: isReply ? 'reply' : 'top-level', threadId });
+                  comments.push({
+                    commentId: dataId,
+                    ownerProfileUrl: owner,
+                    text,
+                    timestamp,
+                    type: isReply ? 'reply' : 'top-level',
+                    threadId,
+                  });
                 }
               });
               const m = location.href.match(/(urn:li:activity:\d+)/);
@@ -699,7 +839,11 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
             },
           } as chrome.scripting.ScriptInjection<[], unknown>);
 
-          const response = (result || {}) as { postUrn?: string | null; comments?: unknown[]; postUrl?: string };
+          const response = (result || {}) as {
+            postUrn?: string | null;
+            comments?: unknown[];
+            postUrl?: string;
+          };
           let postUrn = response?.postUrn;
           if (!postUrn) {
             const urlToParse = response?.postUrl || target.url || '';
@@ -713,15 +857,16 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
           const state: PostState = {
             _meta: {
               postId: postUrn,
-              postUrl: target.url || `https://www.linkedin.com/feed/update/${postUrn}/`,
+              postUrl:
+                target.url ||
+                `https://www.linkedin.com/feed/update/${postUrn}/`,
               lastUpdated: new Date().toISOString(),
               runState: 'idle',
               userProfileUrl: '',
             },
-            comments: (
-              Array.isArray(response.comments)
-                ? (response.comments as ParsedComment[])
-                : []
+            comments: (Array.isArray(response.comments)
+              ? (response.comments as ParsedComment[])
+              : []
             ).map((c) => ({
               ...c,
               likeStatus: '',

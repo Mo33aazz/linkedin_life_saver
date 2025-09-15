@@ -1,9 +1,5 @@
 /* global RequestInit */
-import {
-  AIConfig,
-  OpenRouterModel,
-  ChatMessage,
-} from '../../shared/types';
+import { AIConfig, OpenRouterModel, ChatMessage } from '../../shared/types';
 import { logger } from '../logger';
 
 // Define the base URL for the OpenRouter API as a constant.
@@ -85,10 +81,7 @@ export class OpenRouterClient {
    * @param apiKey The user's OpenRouter API key.
    * @param attribution The attribution configuration for API requests.
    */
-  constructor(
-    apiKey: string,
-    attribution?: AIConfig['attribution']
-  ) {
+  constructor(apiKey: string, attribution?: AIConfig['attribution']) {
     this.#apiKey = apiKey;
     this.#headers = new Headers();
     this.#headers.append('Authorization', `Bearer ${this.#apiKey}`);
@@ -141,15 +134,19 @@ export class OpenRouterClient {
     this.#headers.append('Content-Type', 'application/json');
 
     try {
-      const response = await fetchWithRetry(`${API_BASE_URL}/chat/completions`, {
-        method: 'POST',
-        headers: this.#headers,
-        body: JSON.stringify(payload),
-      });
+      const response = await fetchWithRetry(
+        `${API_BASE_URL}/chat/completions`,
+        {
+          method: 'POST',
+          headers: this.#headers,
+          body: JSON.stringify(payload),
+        }
+      );
 
-      const jsonResponse = (await response.json()) as OpenRouterChatCompletionResponse & {
-        error?: { message: string };
-      };
+      const jsonResponse =
+        (await response.json()) as OpenRouterChatCompletionResponse & {
+          error?: { message: string };
+        };
 
       // Handle cases where the API returns a 200 OK with an error payload
       if (jsonResponse.error) {
@@ -179,13 +176,9 @@ export class OpenRouterClient {
       });
       return replyText;
     } catch (error) {
-      logger.error(
-        'Chat completion failed after all retries',
-        error as Error,
-        {
-          endpoint: '/chat/completions',
-        }
-      );
+      logger.error('Chat completion failed after all retries', error as Error, {
+        endpoint: '/chat/completions',
+      });
       throw error;
     } finally {
       this.#headers.delete('Content-Type');

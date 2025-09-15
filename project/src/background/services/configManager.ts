@@ -25,8 +25,7 @@ const defaultAIConfig: AIConfig = {
       'Thank them, reference comment, offer short helpful resource; soft opt-in; no pressure.',
   },
   attribution: {
-    httpReferer:
-      'https://github.com/your-repo/linkedin-engagement-assistant', // Replace with your actual repo/homepage
+    httpReferer: 'https://github.com/your-repo/linkedin-engagement-assistant', // Replace with your actual repo/homepage
     xTitle: 'LinkedIn Engagement Assistant',
   },
   modelFilters: {
@@ -111,7 +110,9 @@ export const initializeConfig = async (): Promise<void> => {
       currentConfig = result[AI_CONFIG_KEY];
       console.log('Loaded AI config from storage:', currentConfig);
     } else {
-      console.log('No AI config found in storage. Saving and loading defaults.');
+      console.log(
+        'No AI config found in storage. Saving and loading defaults.'
+      );
       currentConfig = defaultAIConfig;
       await chrome.storage.sync.set({ [AI_CONFIG_KEY]: defaultAIConfig });
     }

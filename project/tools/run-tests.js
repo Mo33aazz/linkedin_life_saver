@@ -4,7 +4,8 @@
 
 import { spawn } from 'child_process';
 
-const STATUS_URL = process.env.PWB_STATUS_URL || 'http://localhost:9333/api/status';
+const STATUS_URL =
+  process.env.PWB_STATUS_URL || 'http://localhost:9333/api/status';
 const PLAYWRIGHT_BIN = './node_modules/.bin/playwright';
 const CONFIG_PATH = 'tests/e2e/playwright.config.ts';
 
@@ -25,9 +26,10 @@ async function isServerUp(url) {
 async function killServerOnPort(url) {
   const u = new URL(url);
   const port = u.port || (u.protocol === 'https:' ? '443' : '80');
-  const cmd = process.platform === 'darwin'
-    ? `lsof -ti tcp:${port} | xargs -r kill`
-    : `bash -lc 'lsof -ti tcp:${port} -sTCP:LISTEN | xargs -r kill'`;
+  const cmd =
+    process.platform === 'darwin'
+      ? `lsof -ti tcp:${port} | xargs -r kill`
+      : `bash -lc 'lsof -ti tcp:${port} -sTCP:LISTEN | xargs -r kill'`;
   return new Promise((resolve) => {
     const proc = spawn(cmd, { shell: true, stdio: 'ignore' });
     proc.on('exit', () => resolve());
@@ -40,7 +42,9 @@ async function main() {
   const env = { ...process.env };
   if (serverUp) {
     env.PLAYWRIGHT_REUSE_SERVER = '1';
-    console.log(`[e2e] Detected server at ${STATUS_URL}; reusing existing instance.`);
+    console.log(
+      `[e2e] Detected server at ${STATUS_URL}; reusing existing instance.`
+    );
   } else {
     env.PLAYWRIGHT_REUSE_SERVER = env.PLAYWRIGHT_REUSE_SERVER || '0';
     console.log(`[e2e] No server at ${STATUS_URL}; Playwright will start it.`);

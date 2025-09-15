@@ -18,14 +18,22 @@ const mode = modeIdx !== -1 ? args[modeIdx + 1] : undefined;
 
 // 1) Try TypeScript type-check (no emit)
 try {
-  const tsc = run(process.execPath, ['node_modules/typescript/bin/tsc', '--noEmit']);
+  const tsc = run(process.execPath, [
+    'node_modules/typescript/bin/tsc',
+    '--noEmit',
+  ]);
   if (tsc.error || tsc.status !== 0) {
-    console.warn('[safe-build] Type-check failed or unavailable; proceeding without type-check.');
+    console.warn(
+      '[safe-build] Type-check failed or unavailable; proceeding without type-check.'
+    );
   } else {
     console.log('[safe-build] Type-check passed.');
   }
 } catch (err) {
-  console.warn('[safe-build] Unable to run TypeScript. Skipping type-check.', err?.message || err);
+  console.warn(
+    '[safe-build] Unable to run TypeScript. Skipping type-check.',
+    err?.message || err
+  );
 }
 
 // Detect Vite presence
@@ -45,7 +53,9 @@ if (existsSync(viteBin)) {
   {
     const viteArgsContent = ['build'];
     if (mode) viteArgsContent.push('--mode', mode);
-    const content = run(viteBin, viteArgsContent, { env: { ...process.env, VITE_BUILD_TARGET: 'content' } });
+    const content = run(viteBin, viteArgsContent, {
+      env: { ...process.env, VITE_BUILD_TARGET: 'content' },
+    });
     if (content.error || content.status !== 0) {
       process.exit(content.status || 1);
     }
@@ -77,8 +87,7 @@ if (existsSync(viteBin)) {
   );
   writeFileSync(
     resolve(dist, 'content.js'),
-    banner('content') +
-      "console.log('[safe-build] content stub loaded');\n"
+    banner('content') + "console.log('[safe-build] content stub loaded');\n"
   );
 
   console.log('[safe-build] Minimal dist prepared at', dist);

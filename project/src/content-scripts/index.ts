@@ -1,4 +1,9 @@
-import { likeComment, replyToComment, sendDm, sendDmViaProfile } from './domInteractor';
+import {
+  likeComment,
+  replyToComment,
+  sendDm,
+  sendDmViaProfile,
+} from './domInteractor';
 import { mountApp, unmountApp } from '../ui';
 
 import '../index.css';
@@ -12,7 +17,11 @@ const loadCSS = async (): Promise<string> => {
       return cssModule.default;
     }
     // In production, fetch the built CSS file
-    if (typeof chrome !== 'undefined' && chrome.runtime && chrome.runtime.getURL) {
+    if (
+      typeof chrome !== 'undefined' &&
+      chrome.runtime &&
+      chrome.runtime.getURL
+    ) {
       const response = await fetch(chrome.runtime.getURL('assets/style.css'));
       if (!response.ok) {
         throw new Error(`Failed to fetch CSS: ${response.status}`);
@@ -84,13 +93,17 @@ const loadCSS = async (): Promise<string> => {
 
 // Function to preload fonts for better performance
 const preloadFonts = () => {
-  if (typeof chrome !== 'undefined' && chrome.runtime && chrome.runtime.getURL) {
+  if (
+    typeof chrome !== 'undefined' &&
+    chrome.runtime &&
+    chrome.runtime.getURL
+  ) {
     const fontUrls = [
       chrome.runtime.getURL('fonts/inter.woff2'),
-      chrome.runtime.getURL('fonts/saira.woff2')
+      chrome.runtime.getURL('fonts/saira.woff2'),
     ];
-    
-    fontUrls.forEach(url => {
+
+    fontUrls.forEach((url) => {
       const link = document.createElement('link');
       link.rel = 'preload';
       link.href = url;
@@ -103,7 +116,7 @@ const preloadFonts = () => {
 };
 
 // Preload fonts early
-preloadFonts()
+preloadFonts();
 
 console.log('Content script starting...');
 
@@ -117,7 +130,9 @@ const isOnLinkedInPost = (): boolean => {
     const href = window.location.href;
     // Match: https://www.linkedin.com/feed/update/urn:li:activity:123456/
     // Allow optional trailing params or missing trailing slash
-    return /^https:\/\/www\.linkedin\.com\/feed\/update\/urn:li:activity:\d+\/?(\?.*)?$/.test(href);
+    return /^https:\/\/www\.linkedin\.com\/feed\/update\/urn:li:activity:\d+\/?(\?.*)?$/.test(
+      href
+    );
   } catch {
     return false;
   }
@@ -198,7 +213,11 @@ const removeContentShift = () => {
 };
 
 // Only set up message listener if Chrome extension APIs are available
-if (typeof chrome !== 'undefined' && chrome.runtime && chrome.runtime.onMessage) {
+if (
+  typeof chrome !== 'undefined' &&
+  chrome.runtime &&
+  chrome.runtime.onMessage
+) {
   chrome.runtime.onMessage.addListener((message, _sender, sendResponse) => {
     console.log('[Content Script] Message received:', message.type);
 
@@ -207,64 +226,87 @@ if (typeof chrome !== 'undefined' && chrome.runtime && chrome.runtime.onMessage)
     // to ensure they are tied to the UI lifecycle.
 
     if (message.type === 'LIKE_COMMENT') {
-    console.log('Content script received LIKE_COMMENT:', message.payload);
-    likeComment(message.payload.commentId)
-      .then(success => sendResponse({ status: 'success', payload: success }))
-      .catch(error => sendResponse({ status: 'error', message: error.message }));
-    return true; // Indicates async response
-  }
+      console.log('Content script received LIKE_COMMENT:', message.payload);
+      likeComment(message.payload.commentId)
+        .then((success) =>
+          sendResponse({ status: 'success', payload: success })
+        )
+        .catch((error) =>
+          sendResponse({ status: 'error', message: error.message })
+        );
+      return true; // Indicates async response
+    }
 
-  if (message.type === 'REPLY_TO_COMMENT') {
-    console.log('Content script received REPLY_TO_COMMENT:', message.payload);
-    replyToComment(message.payload.commentId, message.payload.replyText)
-      .then(success => sendResponse({ status: 'success', payload: success }))
-      .catch(error => sendResponse({ status: 'error', message: error.message }));
-    return true; // Indicates async response
-  }
+    if (message.type === 'REPLY_TO_COMMENT') {
+      console.log('Content script received REPLY_TO_COMMENT:', message.payload);
+      replyToComment(message.payload.commentId, message.payload.replyText)
+        .then((success) =>
+          sendResponse({ status: 'success', payload: success })
+        )
+        .catch((error) =>
+          sendResponse({ status: 'error', message: error.message })
+        );
+      return true; // Indicates async response
+    }
 
-  if (message.type === 'SEND_DM') {
-    console.log('Content script received SEND_DM:', message.payload);
-    sendDm(message.payload.dmText)
-      .then(success => sendResponse({ status: 'success', payload: success }))
-      .catch(error => sendResponse({ status: 'error', message: error.message }));
-    return true; // Indicates async response
-  }
+    if (message.type === 'SEND_DM') {
+      console.log('Content script received SEND_DM:', message.payload);
+      sendDm(message.payload.dmText)
+        .then((success) =>
+          sendResponse({ status: 'success', payload: success })
+        )
+        .catch((error) =>
+          sendResponse({ status: 'error', message: error.message })
+        );
+      return true; // Indicates async response
+    }
 
-  if (message.type === 'SEND_DM_VIA_PROFILE') {
-    console.log('Content script received SEND_DM_VIA_PROFILE:', message.payload);
-    sendDmViaProfile(message.payload.dmText)
-      .then(success => sendResponse({ status: 'success', payload: success }))
-      .catch(error => sendResponse({ status: 'error', message: error.message }));
-    return true; // Indicates async response
-  }
+    if (message.type === 'SEND_DM_VIA_PROFILE') {
+      console.log(
+        'Content script received SEND_DM_VIA_PROFILE:',
+        message.payload
+      );
+      sendDmViaProfile(message.payload.dmText)
+        .then((success) =>
+          sendResponse({ status: 'success', payload: success })
+        )
+        .catch((error) =>
+          sendResponse({ status: 'error', message: error.message })
+        );
+      return true; // Indicates async response
+    }
 
-  if (message.type === 'CAPTURE_POST_STATE') {
-    console.log('Content script received CAPTURE_POST_STATE');
-    (async () => {
-      try {
-        const mod = await import('./domInteractor');
-        const payload = message.payload as { noScroll?: boolean; maxComments?: number } || {};
-        const disableScroll = Boolean(payload.noScroll);
-        const maxComments = payload.maxComments || 10;
-        
-        if (!disableScroll) {
-          // Use the new autoScrollPage function that respects maxComments
-          await mod.autoScrollPage(maxComments);
+    if (message.type === 'CAPTURE_POST_STATE') {
+      console.log('Content script received CAPTURE_POST_STATE');
+      (async () => {
+        try {
+          const mod = await import('./domInteractor');
+          const payload =
+            (message.payload as { noScroll?: boolean; maxComments?: number }) ||
+            {};
+          const disableScroll = Boolean(payload.noScroll);
+          const maxComments = payload.maxComments || 10;
+
+          if (!disableScroll) {
+            // Use the new autoScrollPage function that respects maxComments
+            await mod.autoScrollPage(maxComments);
+          }
+
+          const postStateData = mod.capturePostStateFromDOM(maxComments);
+          sendResponse({ status: 'success', payload: postStateData });
+        } catch (error) {
+          sendResponse({ status: 'error', message: (error as Error).message });
         }
-        
-        const postStateData = mod.capturePostStateFromDOM(maxComments);
-        sendResponse({ status: 'success', payload: postStateData });
-      } catch (error) {
-        sendResponse({ status: 'error', message: (error as Error).message });
-      }
-    })();
-    return true; // Indicates async response
-  }
+      })();
+      return true; // Indicates async response
+    }
 
     // return true; // Keep listener open for other potential async messages
   });
 } else {
-  console.warn('Chrome extension APIs not available - running in non-extension context');
+  console.warn(
+    'Chrome extension APIs not available - running in non-extension context'
+  );
 }
 
 // Inject the UI on supported pages
@@ -279,7 +321,7 @@ const injectUI = async () => {
   try {
     // Pre-load CSS before creating any UI elements
     const css = await loadCSS();
-    
+
     const host = document.createElement('div');
     host.id = 'linkedin-engagement-assistant-root';
     host.className = 'sidebar';
@@ -295,9 +337,9 @@ const injectUI = async () => {
       boxShadow: '-2px 0 8px rgba(0,0,0,0.1)',
       backgroundColor: '#fff',
     } as Partial<CSSStyleDeclaration>);
-    
+
     const shadowRoot = host.attachShadow({ mode: 'open' });
-    
+
     // Enhanced Shadow DOM isolation and styling overrides
     const shadowDOMOverrides = `
       /* Reset and isolate all styles within shadow DOM */
@@ -353,7 +395,7 @@ const injectUI = async () => {
         font-family: 'Saira', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif !important;
       }
     `;
-    
+
     // Process CSS to use extension URLs for fonts (best-effort)
     const processedCSS = css.replace(
       /url\('?\.?\/assets\/fonts\//g,
@@ -364,7 +406,9 @@ const injectUI = async () => {
 
     // Prefer Constructable Stylesheets for Shadow DOM
     try {
-      const supportsAdopted = !!(shadowRoot as any).adoptedStyleSheets && typeof CSSStyleSheet !== 'undefined';
+      const supportsAdopted =
+        !!(shadowRoot as any).adoptedStyleSheets &&
+        typeof CSSStyleSheet !== 'undefined';
       if (supportsAdopted) {
         const sheet = new CSSStyleSheet();
         await sheet.replace(combinedCSS);
@@ -385,7 +429,7 @@ const injectUI = async () => {
 
     // Wait briefly to ensure initial paint with styles
     await new Promise((resolve) => setTimeout(resolve, 10));
-    
+
     const appRoot = document.createElement('div');
     appRoot.id = 'app-root';
     // Set font scaling for the shadow DOM content (affects rem-based sizes)
@@ -393,10 +437,10 @@ const injectUI = async () => {
     // Ensure inner sidebar width matches the host width
     appRoot.style.setProperty('--sidebar-width', `${SIDEBAR_WIDTH}px`);
     shadowRoot.appendChild(appRoot);
-    
+
     // Add host to DOM after shadow root is fully prepared
     document.body.appendChild(host);
-    
+
     // Mount app after everything is ready
     mountApp(appRoot);
     hostEl = host;
@@ -420,7 +464,9 @@ const removeUI = () => {
   } catch (e) {
     console.warn('Unmount warning:', e);
   }
-  const existing = document.getElementById('linkedin-engagement-assistant-root');
+  const existing = document.getElementById(
+    'linkedin-engagement-assistant-root'
+  );
   if (existing && existing.parentElement) {
     existing.parentElement.removeChild(existing);
   }
@@ -429,7 +475,8 @@ const removeUI = () => {
   console.log('Sidebar UI removed');
 
   // Also remove toggle and layout shift when not on a post page
-  if (toggleEl && toggleEl.parentElement) toggleEl.parentElement.removeChild(toggleEl);
+  if (toggleEl && toggleEl.parentElement)
+    toggleEl.parentElement.removeChild(toggleEl);
   toggleEl = null;
   removeContentShift();
 };
@@ -460,7 +507,9 @@ if (document.readyState === 'loading') {
     dispatch();
     return ret;
   } as typeof history.pushState;
-  history.replaceState = function (...args: Parameters<History['replaceState']>) {
+  history.replaceState = function (
+    ...args: Parameters<History['replaceState']>
+  ) {
     const ret = replace(...args);
     dispatch();
     return ret;
