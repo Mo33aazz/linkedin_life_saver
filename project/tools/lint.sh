@@ -49,7 +49,7 @@ main() {
     # Temporarily disable `set -e` to allow us to capture the exit code
     # without the script immediately terminating.
     set +e
-    lint_output=$(npx eslint . --ext .ts,.tsx --format json | \
+    lint_output=$(npx eslint . --ext .ts,.tsx,.svelte --format json | \
         jq '[.[] | .filePath as $path | .messages[] | {type: .ruleId, path: $path, obj: (.nodeType // "N/A"), message: .message, line: .line, column: .column}]')
     exit_code=$?
     set -e

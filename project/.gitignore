@@ -3,3 +3,4 @@ test-results
 dist
 tools/shared-browser/user-data/*
 logs/*
+.claude
