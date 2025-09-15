@@ -4,3 +4,4 @@ dist
 tools/shared-browser/user-data/*
 logs
 .claude
+playwright-report
