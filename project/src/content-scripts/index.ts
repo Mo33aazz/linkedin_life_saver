@@ -125,6 +125,7 @@ console.log('Content script starting...');
 // Sidebar width (px) for the injected UI
 const SIDEBAR_WIDTH = 420; // keep in sync with --sidebar-width
 const UI_FONT_SCALE = 1.5; // scale base font-size (affects Tailwind rem units)
+const TRANSITION_DURATION_MS = 260; // smooth slide/shift duration
 
 const isOnLinkedInPost = (): boolean => {
   try {
@@ -143,44 +144,141 @@ let hostEl: HTMLElement | null = null;
 let appRootEl: HTMLElement | null = null;
 let toggleEl: HTMLButtonElement | null = null;
 let layoutStyleEl: HTMLStyleElement | null = null;
+let toggleStyleEl: HTMLStyleElement | null = null;
+let fixedObserver: MutationObserver | null = null;
+let fixedScanScheduled = false;
 let sidebarOpen = true; // default open to preserve existing behavior/tests
 
 // ---- Sidebar toggle and page layout shift helpers ----
+const ensureToggleStyles = () => {
+  if (toggleStyleEl || document.getElementById('lea-toggle-style')) return;
+  const style = document.createElement('style');
+  style.id = 'lea-toggle-style';
+  style.textContent = `
+    #lea-toggle {
+      --accent: #0a66c2;
+      transform: translateY(-50%);
+      background: rgba(255,255,255,0.65);
+      -webkit-backdrop-filter: blur(8px) saturate(140%);
+      backdrop-filter: blur(8px) saturate(140%);
+      border: 1px solid rgba(17, 24, 39, 0.08);
+      color: rgba(31, 41, 55, 0.9);
+      box-shadow: 0 6px 18px rgba(17, 24, 39, 0.12);
+    }
+    #lea-toggle:hover {
+      background: rgba(255,255,255,0.85);
+      color: var(--accent);
+      box-shadow: 0 8px 24px rgba(17, 24, 39, 0.18);
+    }
+    #lea-toggle:active { transform: translateY(-50%) scale(0.96); }
+    #lea-toggle:focus-visible {
+      outline: none;
+      box-shadow: 0 0 0 4px rgba(10, 102, 194, 0.18), 0 6px 18px rgba(17, 24, 39, 0.12);
+    }
+    #lea-toggle svg {
+      transform: rotate(var(--icon-rotate, 0deg));
+      transition: transform ${TRANSITION_DURATION_MS}ms cubic-bezier(0.4, 0, 0.2, 1), color 120ms ease;
+      will-change: transform;
+    }
+    #lea-toggle:hover svg {
+      transform: translateX(var(--icon-nudge, 0)) rotate(var(--icon-rotate, 0deg));
+    }
+    @media (prefers-reduced-motion: reduce) {
+      #lea-toggle, #lea-toggle svg { transition: none !important; }
+    }
+  `;
+  document.head.appendChild(style);
+  toggleStyleEl = style;
+};
 const ensureToggleButton = () => {
   if (toggleEl) return;
+  ensureToggleStyles();
   const btn = document.createElement('button');
   btn.id = 'lea-toggle';
   Object.assign(btn.style, {
     position: 'fixed',
     top: '50%',
-    transform: 'translateY(-50%)',
     right: '8px',
-    width: '36px',
-    height: '36px',
-    borderRadius: '18px',
+    width: '40px',
+    height: '40px',
+    borderRadius: '9999px',
     border: 'none',
-    background: '#0a66c2',
-    color: '#fff',
     cursor: 'pointer',
-    boxShadow: '0 2px 8px rgba(0,0,0,0.2)',
+    boxShadow: '0 6px 18px rgba(17,24,39,0.12)',
     zIndex: '100000',
+    display: 'flex',
+    alignItems: 'center',
+    justifyContent: 'center',
+    transition: `right ${TRANSITION_DURATION_MS}ms cubic-bezier(0.4, 0, 0.2, 1), background 200ms ease, box-shadow 200ms ease`,
   } as Partial<CSSStyleDeclaration>);
   btn.title = 'Toggle Assistant Sidebar';
-  btn.textContent = sidebarOpen ? '‹' : '›';
+  btn.setAttribute('aria-label', 'Toggle Assistant Sidebar');
+  btn.setAttribute('aria-controls', 'linkedin-engagement-assistant-root');
+  btn.setAttribute('aria-expanded', String(Boolean(sidebarOpen)));
+
+  // Inline SVG chevron for a cleaner icon
+  const svgNS = 'http://www.w3.org/2000/svg';
+  const svg = document.createElementNS(svgNS, 'svg');
+  svg.setAttribute('viewBox', '0 0 24 24');
+  svg.setAttribute('width', '20');
+  svg.setAttribute('height', '20');
+  const path = document.createElementNS(svgNS, 'path');
+  // heroicons outline chevron-left
+  path.setAttribute('fill', 'none');
+  path.setAttribute('stroke', 'currentColor');
+  path.setAttribute('stroke-width', '1.8');
+  path.setAttribute('stroke-linecap', 'round');
+  path.setAttribute('stroke-linejoin', 'round');
+  path.setAttribute('d', 'M15.75 19.5L8.25 12l7.5-7.5');
+  svg.appendChild(path);
+  btn.appendChild(svg);
+
+  const setIconDirection = (open: boolean) => {
+    // Open => left chevron (0deg). Closed => right chevron (180deg)
+    btn.style.setProperty('--icon-rotate', open ? '0deg' : '180deg');
+    btn.style.setProperty('--icon-nudge', open ? '-1px' : '1px');
+    btn.setAttribute('aria-expanded', String(Boolean(open)));
+    btn.title = open ? 'Hide Assistant Sidebar' : 'Show Assistant Sidebar';
+  };
+  setIconDirection(sidebarOpen);
+
   btn.addEventListener('click', () => {
+    const reduceMotion = window.matchMedia?.('(prefers-reduced-motion: reduce)').matches;
+
     if (sidebarOpen) {
-      // hide the sidebar but keep it mounted
-      if (hostEl) hostEl.style.display = 'none';
+      // Slide the sidebar off-screen without unmounting
+      if (hostEl) {
+        hostEl.style.transform = 'translateX(100%)';
+        hostEl.style.pointerEvents = 'none';
+        hostEl.setAttribute('aria-hidden', 'true');
+      }
       removeContentShift();
+      stopFixedElementsAdjustment();
       sidebarOpen = false;
     } else {
-      if (hostEl) hostEl.style.display = 'block';
-      else injectUI();
+      if (!hostEl) {
+        // If not yet injected (e.g., after navigation), inject first
+        void injectUI();
+      } else {
+        hostEl.style.transform = 'translateX(0)';
+        hostEl.style.pointerEvents = 'auto';
+        hostEl.removeAttribute('aria-hidden');
+      }
       applyContentShift(true);
+      setSidebarOffsetVars(true);
+      startFixedElementsAdjustment();
       sidebarOpen = true;
     }
-    btn.textContent = sidebarOpen ? '‹' : '›';
+
+    setIconDirection(sidebarOpen);
     updateToggleButtonPosition();
+
+    // If reduced motion is requested, snap positions instantly
+    if (reduceMotion) {
+      if (toggleEl) toggleEl.style.transition = 'none';
+    } else if (toggleEl) {
+      toggleEl.style.transition = `right ${TRANSITION_DURATION_MS}ms cubic-bezier(0.4, 0, 0.2, 1), background-color 120ms ease`;
+    }
   });
   document.body.appendChild(btn);
   toggleEl = btn;
@@ -198,19 +296,131 @@ const applyContentShift = (open: boolean) => {
     removeContentShift();
     return;
   }
+  const css = `
+    body { transition: margin-right ${TRANSITION_DURATION_MS}ms cubic-bezier(0.4, 0, 0.2, 1) !important; }
+    body { margin-right: ${SIDEBAR_WIDTH}px !important; overflow-x: hidden !important; }
+    @media (prefers-reduced-motion: reduce) {
+      body { transition: none !important; }
+    }
+  `;
   if (!layoutStyleEl) {
     layoutStyleEl = document.createElement('style');
     layoutStyleEl.id = 'lea-layout-style';
-    layoutStyleEl.textContent = `body{margin-right:${SIDEBAR_WIDTH}px !important;}`;
+    layoutStyleEl.textContent = css;
     document.head.appendChild(layoutStyleEl);
+  } else {
+    // Update to ensure transitions are applied when re-opening
+    layoutStyleEl.textContent = css;
   }
+  setSidebarOffsetVars(true);
 };
 
 const removeContentShift = () => {
-  if (layoutStyleEl && layoutStyleEl.parentElement) {
-    layoutStyleEl.parentElement.removeChild(layoutStyleEl);
-  }
+  if (!layoutStyleEl) return;
+  // Animate back to 0 margin, then clean up the style tag after the transition
+  const css = `
+    body { transition: margin-right ${TRANSITION_DURATION_MS}ms cubic-bezier(0.4, 0, 0.2, 1) !important; }
+    body { margin-right: 0 !important; overflow-x: hidden !important; }
+    @media (prefers-reduced-motion: reduce) {
+      body { transition: none !important; }
+    }
+  `;
+  layoutStyleEl.textContent = css;
+  const el = layoutStyleEl;
   layoutStyleEl = null;
+  window.setTimeout(() => {
+    if (el && el.parentElement) {
+      try {
+        el.parentElement.removeChild(el);
+      } catch {
+        // ignore
+      }
+    }
+  }, TRANSITION_DURATION_MS + 50);
+  setSidebarOffsetVars(false);
+};
+
+// Expose a CSS variable and class on :root so site-wide rules and our logic can key off the sidebar width
+const setSidebarOffsetVars = (open: boolean) => {
+  const root = document.documentElement;
+  if (open) {
+    root.classList.add('lea-sidebar-open');
+    root.style.setProperty('--lea-sidebar-offset', `${SIDEBAR_WIDTH}px`);
+  } else {
+    root.classList.remove('lea-sidebar-open');
+    root.style.removeProperty('--lea-sidebar-offset');
+  }
+};
+
+const RIGHT_ORIG_ATTR = 'data-lea-right-orig';
+const ADJUSTED_ATTR = 'data-lea-adjusted';
+
+const adjustFixedRightElement = (el: HTMLElement) => {
+  if (el === hostEl || el === toggleEl) return;
+  if (el.closest('#linkedin-engagement-assistant-root')) return;
+  const cs = getComputedStyle(el);
+  if (cs.position !== 'fixed') return;
+  if (cs.right === 'auto') return;
+  // Ignore elements that already have a large right offset
+  const rightPx = parseFloat(cs.right);
+  if (!isFinite(rightPx)) return;
+  // Skip if already adjusted
+  if (el.hasAttribute(ADJUSTED_ATTR)) return;
+  // Heuristic: only adjust items that are close to the right edge (<= 48px)
+  if (rightPx > 48) return;
+  el.setAttribute(RIGHT_ORIG_ATTR, cs.right);
+  el.setAttribute(ADJUSTED_ATTR, '1');
+  const newRight = rightPx + SIDEBAR_WIDTH;
+  el.style.right = `${newRight}px`;
+};
+
+const scanAndAdjustFixedElements = () => {
+  fixedScanScheduled = false;
+  try {
+    // Broad but safe: iterate over current subtree once per scan
+    const all = document.body.querySelectorAll<HTMLElement>('*');
+    for (const el of all) {
+      adjustFixedRightElement(el);
+    }
+  } catch {
+    // no-op
+  }
+};
+
+const scheduleScan = () => {
+  if (fixedScanScheduled) return;
+  fixedScanScheduled = true;
+  requestAnimationFrame(scanAndAdjustFixedElements);
+};
+
+const startFixedElementsAdjustment = () => {
+  // Initial full scan when opening
+  scheduleScan();
+  if (fixedObserver) fixedObserver.disconnect();
+  fixedObserver = new MutationObserver(() => scheduleScan());
+  fixedObserver.observe(document.body, { childList: true, subtree: true });
+  window.addEventListener('resize', scheduleScan, { passive: true });
+};
+
+const stopFixedElementsAdjustment = () => {
+  try {
+    if (fixedObserver) fixedObserver.disconnect();
+  } catch {}
+  fixedObserver = null;
+  fixedScanScheduled = false;
+  window.removeEventListener('resize', scheduleScan);
+  // Restore all right offsets we modified
+  const adjusted = document.querySelectorAll<HTMLElement>(`[${ADJUSTED_ATTR}]`);
+  adjusted.forEach((el) => {
+    const orig = el.getAttribute(RIGHT_ORIG_ATTR);
+    if (orig !== null) {
+      el.style.right = orig;
+    } else {
+      el.style.removeProperty('right');
+    }
+    el.removeAttribute(RIGHT_ORIG_ATTR);
+    el.removeAttribute(ADJUSTED_ATTR);
+  });
 };
 
 // Only set up message listener if Chrome extension APIs are available
@@ -317,6 +527,10 @@ const injectUI = async () => {
     ensureToggleButton();
     applyContentShift(sidebarOpen);
     updateToggleButtonPosition();
+    if (sidebarOpen) {
+      setSidebarOffsetVars(true);
+      startFixedElementsAdjustment();
+    }
     return;
   }
   try {
@@ -337,6 +551,9 @@ const injectUI = async () => {
       borderLeft: '1px solid #e0e0e0',
       boxShadow: '-2px 0 8px rgba(0,0,0,0.1)',
       backgroundColor: '#fff',
+      transform: 'translateX(0)',
+      transition: `transform ${TRANSITION_DURATION_MS}ms cubic-bezier(0.4, 0, 0.2, 1)`,
+      willChange: 'transform',
     } as Partial<CSSStyleDeclaration>);
 
     const shadowRoot = host.attachShadow({ mode: 'open' });
@@ -392,11 +609,24 @@ const injectUI = async () => {
     mountApp(appRoot);
     hostEl = host;
     appRootEl = appRoot;
+    // Reflect current open/closed state visually
+    if (!sidebarOpen) {
+      hostEl.style.transform = 'translateX(100%)';
+      hostEl.style.pointerEvents = 'none';
+      hostEl.setAttribute('aria-hidden', 'true');
+    }
     console.log('Mounted sidebar UI with proper CSS timing');
 
     ensureToggleButton();
     applyContentShift(sidebarOpen);
     updateToggleButtonPosition();
+    if (sidebarOpen) {
+      setSidebarOffsetVars(true);
+      startFixedElementsAdjustment();
+    } else {
+      setSidebarOffsetVars(false);
+      stopFixedElementsAdjustment();
+    }
   } catch (error) {
     console.error('Failed to inject UI:', error);
   }
@@ -426,6 +656,8 @@ const removeUI = () => {
     toggleEl.parentElement.removeChild(toggleEl);
   toggleEl = null;
   removeContentShift();
+  setSidebarOffsetVars(false);
+  stopFixedElementsAdjustment();
 };
 
 // Decide whether to show or hide the UI based on URL

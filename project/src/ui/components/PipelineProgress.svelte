@@ -258,6 +258,11 @@
 
 <style>
   /* Pipeline Container */
+  /* Hide textual labels under step icons */
+  .step-name {
+    display: none;
+  }
+
   .pipeline-list {
     @apply space-y-3;
   }
@@ -297,13 +302,13 @@
   /* Horizontal Stepper - Enhanced Right Side */
   .stepper-horizontal {
     @apply flex items-center flex-1 relative;
-    padding: 0.25rem 0;
+    /* Add horizontal padding so edge icons aren't clipped */
+    padding: 0.25rem 0.5rem;
     width: 100%;
     max-width: 100%;
-    /* Space steps across available width and disable horizontal scrolling */
+    /* Space steps across available width; allow overflow for icon glows */
     justify-content: space-between;
-    overflow-x: hidden;
-    overflow-y: hidden;
+    overflow: visible;
     box-sizing: border-box;
   }
 
@@ -320,6 +325,12 @@
   .step-circle {
     @apply w-9 h-9 rounded-full flex items-center justify-center text-sm font-bold border-2 transition-all duration-300 relative z-10 shadow-sm;
     backdrop-filter: blur(8px);
+  }
+
+  /* Ensure SVG icons don't get clipped inside circles */
+  .step-circle svg {
+    display: block;
+    overflow: visible;
   }
 
   .step-circle.step-complete {
@@ -417,10 +428,11 @@
     
     .stepper-horizontal {
       @apply w-full justify-between;
-      padding: 0.5rem 0;
+      /* Maintain horizontal padding on mobile */
+      padding: 0.5rem 0.5rem;
       gap: 0.25rem;
       flex-wrap: nowrap;
-      overflow-x: hidden;
+      overflow: visible;
     }
 
     .step-circle {
@@ -473,10 +485,10 @@
     }
 
     .stepper-horizontal {
-      padding: 0.5rem 0;
+      padding: 0.5rem 0.5rem;
       gap: 0.125rem;
       min-height: 50px;
-      overflow-x: hidden;
+      overflow: visible;
     }
 
     .step-circle {

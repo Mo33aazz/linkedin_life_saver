@@ -189,12 +189,12 @@
       <span class="text-xs text-gray-500">{isAiEnabled ? 'AI' : 'Manual'}</span>
       <button
         type="button"
-        class="relative inline-flex h-5 w-9 items-center rounded-full transition-colors focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 {isAiEnabled ? 'bg-blue-600' : 'bg-gray-300'}"
+        class="relative inline-flex h-5 w-9 items-center rounded-full transition-colors duration-300 ease-out focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 {isAiEnabled ? 'bg-blue-600' : 'bg-gray-300'}"
         on:click={() => isAiEnabled = !isAiEnabled}
         aria-pressed={isAiEnabled}
         aria-label="Toggle AI mode"
       >
-        <span class="inline-block h-3 w-3 transform rounded-full bg-white transition-transform {isAiEnabled ? 'translate-x-5' : 'translate-x-1'}"></span>
+        <span class="inline-block h-3 w-3 transform rounded-full bg-white transition-transform duration-300 ease-out {isAiEnabled ? 'translate-x-5' : 'translate-x-1'}"></span>
       </button>
     </div>
   </div>

@@ -9,7 +9,6 @@
     Mail, 
     Clock, 
     AlertCircle, 
-    TrendingUp, 
     BarChart3, 
     CheckCircle2 
   } from 'lucide-svelte';
@@ -162,14 +161,7 @@
         </div>
         <div class="px-6 pb-5">
           <div class="counter-number text-2xl font-bold text-gray-900">{card.value}</div>
-          {#if card.trend !== undefined}
-            <div class="flex items-center text-xs text-gray-500 mt-1">
-              <TrendingUp class="h-3 w-3 mr-1" aria-hidden="true" />
-              <span class={card.trend >= 0 ? 'text-emerald-600' : 'text-red-600'}>
-                {card.trend >= 0 ? '+' : ''}{card.trend}%
-              </span>
-            </div>
-          {/if}
+          
         </div>
 
         <!-- Decorative gradient stripe to echo template style -->

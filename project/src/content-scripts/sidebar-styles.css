@@ -92,6 +92,8 @@
   justify-content: flex-start !important;
   box-sizing: border-box !important;
   overflow: hidden !important;
+  /* Smooth background/visual transitions to match logs expand feel */
+  transition: background-color 0.3s cubic-bezier(0.4, 0, 0.2, 1), box-shadow 0.3s cubic-bezier(0.4, 0, 0.2, 1) !important;
 }
 
 .sidebar .ai-settings-container button[class*="h-5 w-9"] span {
@@ -101,6 +103,9 @@
   border-radius: 9999px !important;
   line-height: 0 !important;
   display: block !important;
+  /* Smooth knob travel to mirror logs' smoothness */
+  transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1), background-color 0.3s cubic-bezier(0.4, 0, 0.2, 1) !important;
+  will-change: transform;
 }
 
 /* Fix the translation positioning for the toggle */
@@ -112,6 +117,14 @@
 .sidebar .ai-settings-container button[class*="h-5 w-9"] span[class*="translate-x-1"] {
   /* Start aligned to left padding */
   transform: translateX(0px) !important;
+}
+
+/* Respect reduced motion for accessibility */
+@media (prefers-reduced-motion: reduce) {
+  .sidebar .ai-settings-container button[class*="h-5 w-9"],
+  .sidebar .ai-settings-container button[class*="h-5 w-9"] span {
+    transition: none !important;
+  }
 }
 
 /* Add margin between AI Model section and AI Prompts section */
@@ -135,7 +148,7 @@
 /* Controls.svelte - Pipeline Settings section spacing */
 .sidebar .bg-white.rounded-xl .mb-3:has(.text-sm.font-medium.text-gray-800) {
   margin-bottom: 4px !important;
-  margin-top: 16px !important;
+  margin-top: 8px !important;
 }
 
 /* Controls.svelte - Main control buttons styling */
@@ -211,20 +224,45 @@
 
 /* LogsPanel.svelte - Filter buttons (ALL, DEBUG, INFO, WARN, ERROR) styling */
 .sidebar button[class*="px-2 py-0.5"][class*="text-xs"][class*="rounded-full"] {
-  padding: 6px 12px !important;
-  margin: 2px !important;
-  min-height: 28px !important;
+  padding: 4px 8px !important;
+  margin: 1px !important;
+  min-height: 24px !important;
   font-size: 11px !important;
-  border-radius: 14px !important;
+  border-radius: 12px !important;
+}
+
+/* LogsPanel.svelte - Ensure filter buttons wrap within the card */
+/* Container row for filters */
+.sidebar section#logs .flex.flex-wrap.items-center.gap-2.mb-3 {
+  width: 100% !important;
+  max-width: 100% !important;
+}
+/* Inner buttons group should wrap to next line instead of overflowing */
+.sidebar section#logs .flex.flex-wrap.items-center.gap-2.mb-3 > .flex.items-center {
+  flex-wrap: wrap !important;
+  width: 100% !important;
+  gap: 0.25rem !important; /* tighten a bit so wrapping looks neat */
+}
+/* Make buttons flexible so they break lines naturally */
+.sidebar section#logs .flex.flex-wrap.items-center.gap-2.mb-3 button {
+  flex: 0 1 auto !important;
+  max-width: 100% !important;
 }
 
 /* LogsPanel.svelte - Header action buttons (Clear logs, Expand/Collapse) styling */
 .sidebar button[class*="px-2 py-1"][class*="text-sm"] {
-  padding: 6px 10px !important;
-  margin: 2px !important;
-  min-height: 32px !important;
+  padding: 4px 8px !important;
+  margin: 1px !important;
+  min-height: 28px !important;
   font-size: 12px !important;
-  border-radius: 8px !important;
+  border-radius: 6px !important;
+}
+
+/* LogsPanel.svelte - Search textbox styling */
+.sidebar input[id="logs-search"] {
+  padding: 10px 12px 10px 36px !important; /* extra padding for comfort and icon spacing */
+  min-height: 36px !important;
+  font-size: 13px !important;
 }
 
 /* Title overrides: make key section headers slightly larger and consistent */

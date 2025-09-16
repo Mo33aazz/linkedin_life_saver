@@ -1359,6 +1359,6 @@ p {
 
 /* Specific styling for Manual Reply Templates heading */
 .sidebar .ai-settings-container .text-lg.font-medium.text-gray-900 {
-  font-size: 0.875rem !important; /* text-sm equivalent */
+  font-size: 1.125rem !important; /* text-lg equivalent */
   font-weight: 700 !important; /* bold */
 }
