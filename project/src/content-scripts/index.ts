@@ -126,6 +126,98 @@ console.log('Content script starting...');
 const SIDEBAR_WIDTH = 420; // keep in sync with --sidebar-width
 const UI_FONT_SCALE = 1.5; // scale base font-size (affects Tailwind rem units)
 const TRANSITION_DURATION_MS = 260; // smooth slide/shift duration
+const MIN_SIDEBAR_WIDTH = 280;
+const SIDEBAR_WIDTH_RATIO = 0.32;
+const MIN_CONTENT_FALLBACK = 360;
+const DEFAULT_VIEWPORT_META =
+  'width=device-width, initial-scale=1, viewport-fit=cover';
+
+const computeSidebarWidth = (viewportWidth: number): number => {
+  if (!Number.isFinite(viewportWidth) || viewportWidth <= 0) {
+    return SIDEBAR_WIDTH;
+  }
+
+  const ratioWidth = Math.round(viewportWidth * SIDEBAR_WIDTH_RATIO);
+  const maxWidth = SIDEBAR_WIDTH;
+  const minWidth = MIN_SIDEBAR_WIDTH;
+  let width = Math.max(minWidth, Math.min(maxWidth, ratioWidth));
+
+  const maxAllowed = Math.max(
+    minWidth,
+    Math.floor(viewportWidth - MIN_CONTENT_FALLBACK)
+  );
+
+  width = Math.min(width, maxAllowed);
+  width = Math.min(width, Math.max(minWidth, Math.floor(viewportWidth * 0.6)));
+
+  return Math.max(minWidth, Math.min(maxWidth, width));
+};
+
+const initialViewportWidth =
+  window.innerWidth || document.documentElement.clientWidth || SIDEBAR_WIDTH;
+let currentSidebarWidth = computeSidebarWidth(initialViewportWidth);
+
+let viewportMetaEl: HTMLMetaElement | null = null;
+let viewportMetaOriginalContent: string | null = null;
+let viewportMetaCreated = false;
+
+const ensureViewportMetaEl = (): HTMLMetaElement | null => {
+  if (viewportMetaEl && viewportMetaEl.isConnected) {
+    return viewportMetaEl;
+  }
+
+  const existing = document.querySelector<HTMLMetaElement>('meta[name="viewport"]');
+  if (existing) {
+    viewportMetaEl = existing;
+    viewportMetaCreated = false;
+    return existing;
+  }
+
+  const meta = document.createElement('meta');
+  meta.name = 'viewport';
+  meta.content = DEFAULT_VIEWPORT_META;
+  document.head.appendChild(meta);
+  viewportMetaEl = meta;
+  viewportMetaCreated = true;
+  return meta;
+};
+
+const applyViewportCondensedState = (contentWidth: number) => {
+  const meta = ensureViewportMetaEl();
+  if (!meta) return;
+
+  if (viewportMetaOriginalContent === null) {
+    viewportMetaOriginalContent = meta.getAttribute('content');
+  }
+
+  const width = Math.max(1, Math.round(contentWidth));
+  meta.setAttribute(
+    'content',
+    `width=${width}, initial-scale=1, maximum-scale=1, viewport-fit=cover`
+  );
+
+  const rootEl = document.documentElement;
+  rootEl.classList.add('lea-viewport-condensed');
+  rootEl.style.setProperty('--lea-viewport-width', `${width}px`);
+};
+
+const resetViewportMetaState = () => {
+  if (!viewportMetaEl) return;
+
+  const rootEl = document.documentElement;
+  if (viewportMetaOriginalContent !== null) {
+    viewportMetaEl.setAttribute('content', viewportMetaOriginalContent);
+  } else {
+    viewportMetaEl.setAttribute('content', DEFAULT_VIEWPORT_META);
+  }
+
+  if (viewportMetaCreated && !viewportMetaEl.getAttribute('content')) {
+    viewportMetaEl.setAttribute('content', DEFAULT_VIEWPORT_META);
+  }
+
+  rootEl.classList.remove('lea-viewport-condensed');
+  rootEl.style.removeProperty('--lea-viewport-width');
+};
 
 const isOnLinkedInPost = (): boolean => {
   try {
@@ -149,7 +241,205 @@ let fixedObserver: MutationObserver | null = null;
 let fixedScanScheduled = false;
 let sidebarOpen = true; // default open to preserve existing behavior/tests
 
+const syncToggleVisualState = (open: boolean) => {
+  if (!toggleEl) return;
+  toggleEl.style.setProperty('--icon-rotate', open ? '0deg' : '180deg');
+  toggleEl.style.setProperty('--icon-nudge', open ? '-1px' : '1px');
+  toggleEl.setAttribute('aria-expanded', String(Boolean(open)));
+  toggleEl.title = open ? 'Hide Assistant Sidebar' : 'Show Assistant Sidebar';
+};
+let layoutShiftEnabled = false;
+let responsiveLayoutRaf: number | null = null;
+let responsiveLayoutStyleEl: HTMLStyleElement | null = null;
+let lastKnownHref = window.location.href;
+let evaluateInFlight = false;
+let locationCheckTimer: number | null = null;
+const LOCATION_CHECK_INTERVAL_MS = 450;
+
 // ---- Sidebar toggle and page layout shift helpers ----
+const ensureLayoutShiftStyle = (): boolean => {
+  if (layoutStyleEl && layoutStyleEl.isConnected) {
+    return false;
+  }
+
+  const style = layoutStyleEl ?? document.createElement('style');
+  style.id = 'lea-layout-style';
+  style.textContent = `
+    body {
+      transition: margin-right ${TRANSITION_DURATION_MS}ms cubic-bezier(0.4, 0, 0.2, 1) !important;
+      margin-right: var(--lea-sidebar-shift, 0px) !important;
+      overflow-x: hidden !important;
+    }
+    @media (prefers-reduced-motion: reduce) {
+      body { transition: none !important; }
+    }
+  `;
+
+  if (!style.isConnected) {
+    document.head.appendChild(style);
+  }
+
+  layoutStyleEl = style;
+  return true;
+};
+
+const applyContentShift = (width: number = currentSidebarWidth) => {
+  const margin = Math.max(0, Math.round(width));
+  const styleCreated = ensureLayoutShiftStyle();
+  const root = document.documentElement;
+
+  if (styleCreated) {
+    // Ensure browsers register the starting point for the transition when
+    // the style tag is first inserted.
+    root.style.setProperty('--lea-sidebar-shift', '0px');
+    requestAnimationFrame(() => {
+      root.style.setProperty('--lea-sidebar-shift', `${margin}px`);
+    });
+  } else {
+    root.style.setProperty('--lea-sidebar-shift', `${margin}px`);
+  }
+};
+
+const removeContentShift = () => {
+  if (!layoutStyleEl) return;
+  const root = document.documentElement;
+  root.style.setProperty('--lea-sidebar-shift', '0px');
+  const el = layoutStyleEl;
+  window.setTimeout(() => {
+    if (el && el.parentElement) {
+      try {
+        el.parentElement.removeChild(el);
+      } catch {
+        // ignore errors removing stale style tag
+      }
+    }
+    if (layoutStyleEl === el) {
+      layoutStyleEl = null;
+    }
+    root.style.removeProperty('--lea-sidebar-shift');
+  }, TRANSITION_DURATION_MS + 50);
+  setSidebarOffsetVars(false);
+};
+
+const setSidebarOffsetVars = (open: boolean, width: number = currentSidebarWidth) => {
+  const root = document.documentElement;
+  if (open) {
+    root.classList.add('lea-sidebar-open');
+    root.style.setProperty('--lea-sidebar-offset', `${width}px`);
+  } else {
+    root.classList.remove('lea-sidebar-open');
+    root.style.removeProperty('--lea-sidebar-offset');
+  }
+};
+
+const ensureResponsiveStyle = () => {
+  if (responsiveLayoutStyleEl) return;
+  const style = document.createElement('style');
+  style.id = 'lea-layout-responsive-style';
+  style.textContent = `
+    html.lea-viewport-condensed body,
+    html.lea-viewport-condensed #main,
+    html.lea-viewport-condensed .application-outlet,
+    html.lea-viewport-condensed .app-outlet,
+    html.lea-viewport-condensed .scaffold-layout,
+    html.lea-viewport-condensed .scaffold-layout__container,
+    html.lea-viewport-condensed .scaffold-layout__content {
+      max-width: var(--lea-viewport-width, calc(100vw - var(--lea-sidebar-offset, 0px))) !important;
+      width: auto !important;
+      min-width: 0 !important;
+    }
+
+    html.lea-viewport-condensed .global-nav__content,
+    html.lea-viewport-condensed .msg-overlay-list-bubble,
+    html.lea-viewport-condensed .msg-overlay-list-bubble--expanded,
+    html.lea-viewport-condensed .artdeco-toasts_toast-container {
+      max-width: calc(var(--lea-viewport-width, 100vw) - 16px) !important;
+    }
+  `;
+  document.head.appendChild(style);
+  responsiveLayoutStyleEl = style;
+};
+
+const updateToggleButtonPosition = () => {
+  if (!toggleEl) return;
+  const offset = sidebarOpen ? currentSidebarWidth + 8 : 8;
+  toggleEl.style.right = `${offset}px`;
+};
+
+const animateSidebarOpen = () => {
+  if (!hostEl) return;
+  const reduceMotion = Boolean(
+    window.matchMedia?.('(prefers-reduced-motion: reduce)').matches
+  );
+
+  hostEl.style.pointerEvents = 'none';
+  hostEl.setAttribute('aria-hidden', 'true');
+  hostEl.style.transform = 'translateX(100%)';
+
+  const finalize = () => {
+    if (!hostEl) return;
+    hostEl.style.transform = 'translateX(0)';
+    hostEl.style.pointerEvents = 'auto';
+    hostEl.removeAttribute('aria-hidden');
+    updateToggleButtonPosition();
+  };
+
+  if (reduceMotion) {
+    finalize();
+    return;
+  }
+
+  requestAnimationFrame(() => {
+    requestAnimationFrame(finalize);
+  });
+};
+
+const updateResponsiveLayout = () => {
+  const viewportWidth =
+    window.innerWidth || document.documentElement.clientWidth || SIDEBAR_WIDTH;
+  const nextWidth = computeSidebarWidth(viewportWidth);
+  const widthChanged = nextWidth !== currentSidebarWidth;
+  currentSidebarWidth = nextWidth;
+
+  if (hostEl) {
+    hostEl.style.width = `${nextWidth}px`;
+  }
+
+  if (appRootEl) {
+    appRootEl.style.setProperty('--sidebar-width', `${nextWidth}px`);
+  }
+
+  document.documentElement.style.setProperty(
+    '--lea-sidebar-width',
+    `${nextWidth}px`
+  );
+
+  if (sidebarOpen && layoutShiftEnabled) {
+    ensureResponsiveStyle();
+    applyContentShift(nextWidth);
+    setSidebarOffsetVars(true, nextWidth);
+    const availableWidth = Math.max(1, Math.round(viewportWidth - nextWidth));
+    applyViewportCondensedState(availableWidth);
+    if (widthChanged) {
+      scheduleScan();
+    }
+  } else {
+    removeContentShift();
+    setSidebarOffsetVars(false, nextWidth);
+    resetViewportMetaState();
+  }
+
+  updateToggleButtonPosition();
+};
+
+const scheduleResponsiveLayout = () => {
+  if (responsiveLayoutRaf !== null) return;
+  responsiveLayoutRaf = requestAnimationFrame(() => {
+    responsiveLayoutRaf = null;
+    updateResponsiveLayout();
+  });
+};
+
 const ensureToggleStyles = () => {
   if (toggleStyleEl || document.getElementById('lea-toggle-style')) return;
   const style = document.createElement('style');
@@ -233,14 +523,8 @@ const ensureToggleButton = () => {
   svg.appendChild(path);
   btn.appendChild(svg);
 
-  const setIconDirection = (open: boolean) => {
-    // Open => left chevron (0deg). Closed => right chevron (180deg)
-    btn.style.setProperty('--icon-rotate', open ? '0deg' : '180deg');
-    btn.style.setProperty('--icon-nudge', open ? '-1px' : '1px');
-    btn.setAttribute('aria-expanded', String(Boolean(open)));
-    btn.title = open ? 'Hide Assistant Sidebar' : 'Show Assistant Sidebar';
-  };
-  setIconDirection(sidebarOpen);
+  toggleEl = btn;
+  syncToggleVisualState(sidebarOpen);
 
   btn.addEventListener('click', () => {
     const reduceMotion = window.matchMedia?.('(prefers-reduced-motion: reduce)').matches;
@@ -252,9 +536,10 @@ const ensureToggleButton = () => {
         hostEl.style.pointerEvents = 'none';
         hostEl.setAttribute('aria-hidden', 'true');
       }
-      removeContentShift();
-      stopFixedElementsAdjustment();
       sidebarOpen = false;
+      layoutShiftEnabled = false;
+      updateResponsiveLayout();
+      stopFixedElementsAdjustment();
     } else {
       if (!hostEl) {
         // If not yet injected (e.g., after navigation), inject first
@@ -264,14 +549,13 @@ const ensureToggleButton = () => {
         hostEl.style.pointerEvents = 'auto';
         hostEl.removeAttribute('aria-hidden');
       }
-      applyContentShift(true);
-      setSidebarOffsetVars(true);
-      startFixedElementsAdjustment();
       sidebarOpen = true;
+      layoutShiftEnabled = true;
+      updateResponsiveLayout();
+      startFixedElementsAdjustment();
     }
 
-    setIconDirection(sidebarOpen);
-    updateToggleButtonPosition();
+    syncToggleVisualState(sidebarOpen);
 
     // If reduced motion is requested, snap positions instantly
     if (reduceMotion) {
@@ -281,75 +565,6 @@ const ensureToggleButton = () => {
     }
   });
   document.body.appendChild(btn);
-  toggleEl = btn;
-};
-
-const updateToggleButtonPosition = () => {
-  if (!toggleEl) return;
-  // When open, place the toggle on the inner edge of the sidebar
-  // so it sits near the content area; otherwise keep it near the viewport edge.
-  toggleEl.style.right = sidebarOpen ? `${SIDEBAR_WIDTH + 8}px` : '8px';
-};
-
-const applyContentShift = (open: boolean) => {
-  if (!open) {
-    removeContentShift();
-    return;
-  }
-  const css = `
-    body { transition: margin-right ${TRANSITION_DURATION_MS}ms cubic-bezier(0.4, 0, 0.2, 1) !important; }
-    body { margin-right: ${SIDEBAR_WIDTH}px !important; overflow-x: hidden !important; }
-    @media (prefers-reduced-motion: reduce) {
-      body { transition: none !important; }
-    }
-  `;
-  if (!layoutStyleEl) {
-    layoutStyleEl = document.createElement('style');
-    layoutStyleEl.id = 'lea-layout-style';
-    layoutStyleEl.textContent = css;
-    document.head.appendChild(layoutStyleEl);
-  } else {
-    // Update to ensure transitions are applied when re-opening
-    layoutStyleEl.textContent = css;
-  }
-  setSidebarOffsetVars(true);
-};
-
-const removeContentShift = () => {
-  if (!layoutStyleEl) return;
-  // Animate back to 0 margin, then clean up the style tag after the transition
-  const css = `
-    body { transition: margin-right ${TRANSITION_DURATION_MS}ms cubic-bezier(0.4, 0, 0.2, 1) !important; }
-    body { margin-right: 0 !important; overflow-x: hidden !important; }
-    @media (prefers-reduced-motion: reduce) {
-      body { transition: none !important; }
-    }
-  `;
-  layoutStyleEl.textContent = css;
-  const el = layoutStyleEl;
-  layoutStyleEl = null;
-  window.setTimeout(() => {
-    if (el && el.parentElement) {
-      try {
-        el.parentElement.removeChild(el);
-      } catch {
-        // ignore
-      }
-    }
-  }, TRANSITION_DURATION_MS + 50);
-  setSidebarOffsetVars(false);
-};
-
-// Expose a CSS variable and class on :root so site-wide rules and our logic can key off the sidebar width
-const setSidebarOffsetVars = (open: boolean) => {
-  const root = document.documentElement;
-  if (open) {
-    root.classList.add('lea-sidebar-open');
-    root.style.setProperty('--lea-sidebar-offset', `${SIDEBAR_WIDTH}px`);
-  } else {
-    root.classList.remove('lea-sidebar-open');
-    root.style.removeProperty('--lea-sidebar-offset');
-  }
 };
 
 const RIGHT_ORIG_ATTR = 'data-lea-right-orig';
@@ -370,7 +585,7 @@ const adjustFixedRightElement = (el: HTMLElement) => {
   if (rightPx > 48) return;
   el.setAttribute(RIGHT_ORIG_ATTR, cs.right);
   el.setAttribute(ADJUSTED_ATTR, '1');
-  const newRight = rightPx + SIDEBAR_WIDTH;
+  const newRight = rightPx + currentSidebarWidth;
   el.style.right = `${newRight}px`;
 };
 
@@ -520,15 +735,23 @@ if (
   );
 }
 
+window.addEventListener('resize', scheduleResponsiveLayout, { passive: true });
+window.addEventListener('orientationchange', scheduleResponsiveLayout, {
+  passive: true,
+});
+if (window.visualViewport) {
+  window.visualViewport.addEventListener('resize', scheduleResponsiveLayout);
+}
+
 // Inject the UI on supported pages
 const injectUI = async () => {
   if (hostEl || document.getElementById('linkedin-engagement-assistant-root')) {
     console.log('Sidebar already present. Skipping injection.');
     ensureToggleButton();
-    applyContentShift(sidebarOpen);
-    updateToggleButtonPosition();
+    layoutShiftEnabled = sidebarOpen;
+    updateResponsiveLayout();
+    syncToggleVisualState(sidebarOpen);
     if (sidebarOpen) {
-      setSidebarOffsetVars(true);
       startFixedElementsAdjustment();
     }
     return;
@@ -536,6 +759,11 @@ const injectUI = async () => {
   try {
     // Pre-load CSS before creating any UI elements
     const css = await loadCSS();
+
+    const initialWidth = computeSidebarWidth(
+      window.innerWidth || document.documentElement.clientWidth || SIDEBAR_WIDTH
+    );
+    currentSidebarWidth = initialWidth;
 
     const host = document.createElement('div');
     host.id = 'linkedin-engagement-assistant-root';
@@ -545,13 +773,13 @@ const injectUI = async () => {
       top: '0',
       right: '0',
       padding: '0',
-      width: `${SIDEBAR_WIDTH}px`,
+      width: `${initialWidth}px`,
       height: '100vh',
       zIndex: '99999',
       borderLeft: '1px solid #e0e0e0',
       boxShadow: '-2px 0 8px rgba(0,0,0,0.1)',
       backgroundColor: '#fff',
-      transform: 'translateX(0)',
+      transform: 'translateX(100%)',
       transition: `transform ${TRANSITION_DURATION_MS}ms cubic-bezier(0.4, 0, 0.2, 1)`,
       willChange: 'transform',
     } as Partial<CSSStyleDeclaration>);
@@ -599,7 +827,7 @@ const injectUI = async () => {
     // Set font scaling for the shadow DOM content (affects rem-based sizes)
     appRoot.style.setProperty('--ui-font-scale', String(UI_FONT_SCALE));
     // Ensure inner sidebar width matches the host width
-    appRoot.style.setProperty('--sidebar-width', `${SIDEBAR_WIDTH}px`);
+    appRoot.style.setProperty('--sidebar-width', `${initialWidth}px`);
     shadowRoot.appendChild(appRoot);
 
     // Add host to DOM after shadow root is fully prepared
@@ -609,22 +837,20 @@ const injectUI = async () => {
     mountApp(appRoot);
     hostEl = host;
     appRootEl = appRoot;
-    // Reflect current open/closed state visually
-    if (!sidebarOpen) {
-      hostEl.style.transform = 'translateX(100%)';
-      hostEl.style.pointerEvents = 'none';
-      hostEl.setAttribute('aria-hidden', 'true');
-    }
     console.log('Mounted sidebar UI with proper CSS timing');
 
     ensureToggleButton();
-    applyContentShift(sidebarOpen);
-    updateToggleButtonPosition();
+    syncToggleVisualState(sidebarOpen);
+    layoutShiftEnabled = sidebarOpen;
+    updateResponsiveLayout();
     if (sidebarOpen) {
-      setSidebarOffsetVars(true);
+      animateSidebarOpen();
       startFixedElementsAdjustment();
     } else {
-      setSidebarOffsetVars(false);
+      if (hostEl) {
+        hostEl.style.pointerEvents = 'none';
+        hostEl.setAttribute('aria-hidden', 'true');
+      }
       stopFixedElementsAdjustment();
     }
   } catch (error) {
@@ -633,7 +859,33 @@ const injectUI = async () => {
 };
 
 // Remove the UI when not on supported pages
-const removeUI = () => {
+const removeUI = async (options: { animate?: boolean } = {}) => {
+  const reopenOnNextPost = sidebarOpen;
+  const reduceMotion = Boolean(
+    window.matchMedia?.('(prefers-reduced-motion: reduce)').matches
+  );
+  const shouldAnimate = Boolean(options.animate) && Boolean(hostEl) && !reduceMotion;
+
+  if (hostEl) {
+    sidebarOpen = false;
+    syncToggleVisualState(false);
+  }
+
+  layoutShiftEnabled = false;
+  updateResponsiveLayout();
+
+  if (shouldAnimate && hostEl) {
+    hostEl.style.transform = 'translateX(100%)';
+    hostEl.style.pointerEvents = 'none';
+    hostEl.setAttribute('aria-hidden', 'true');
+    updateToggleButtonPosition();
+    await new Promise((resolve) =>
+      window.setTimeout(resolve, TRANSITION_DURATION_MS + 80)
+    );
+  }
+
+  stopFixedElementsAdjustment();
+
   try {
     if (appRootEl) {
       unmountApp();
@@ -651,22 +903,40 @@ const removeUI = () => {
   appRootEl = null;
   console.log('Sidebar UI removed');
 
-  // Also remove toggle and layout shift when not on a post page
-  if (toggleEl && toggleEl.parentElement)
+  if (toggleEl && toggleEl.parentElement) {
     toggleEl.parentElement.removeChild(toggleEl);
+  }
   toggleEl = null;
-  removeContentShift();
-  setSidebarOffsetVars(false);
-  stopFixedElementsAdjustment();
+  sidebarOpen = reopenOnNextPost;
 };
 
 // Decide whether to show or hide the UI based on URL
 const evaluateAndToggleUI = async () => {
-  if (isOnLinkedInPost()) {
-    await injectUI();
-  } else {
-    removeUI();
+  if (evaluateInFlight) return;
+  evaluateInFlight = true;
+  lastKnownHref = window.location.href;
+  try {
+    if (isOnLinkedInPost()) {
+      await injectUI();
+    } else {
+      await removeUI({ animate: true });
+    }
+  } catch (error) {
+    console.error('Failed to evaluate sidebar state:', error);
+  } finally {
+    evaluateInFlight = false;
   }
+};
+
+const startLocationWatcher = () => {
+  if (locationCheckTimer !== null) return;
+  locationCheckTimer = window.setInterval(() => {
+    const href = window.location.href;
+    if (href !== lastKnownHref) {
+      lastKnownHref = href;
+      void evaluateAndToggleUI();
+    }
+  }, LOCATION_CHECK_INTERVAL_MS);
 };
 
 // Check if document is ready or wait for it to be ready
@@ -696,3 +966,5 @@ if (document.readyState === 'loading') {
   window.addEventListener('popstate', dispatch);
   window.addEventListener('locationchange', evaluateAndToggleUI);
 })();
+
+startLocationWatcher();
