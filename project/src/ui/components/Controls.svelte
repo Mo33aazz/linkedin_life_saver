@@ -212,7 +212,6 @@
   <!-- Settings -->
   <div class="mb-3">
     <div class="flex items-center gap-2 text-sm font-medium text-gray-800 mb-2">
-      <Settings size={16} />
     </div>
 
     <div class="space-y-3">

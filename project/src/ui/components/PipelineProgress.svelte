@@ -150,6 +150,23 @@
         <div class="pipeline-list">
           {#if $comments.length === 0}
             <p class="idle-message">No active items.</p>
+            <!-- Always show summary counters, even when empty -->
+            <div class="mt-3 bg-gray-50 border border-gray-200 rounded-xl p-3">
+              <div class="grid grid-cols-3 gap-2 text-center">
+                <div>
+                  <p class="text-lg font-bold text-gray-900">{summary.complete}</p>
+                  <p class="text-xs text-gray-600">Completed</p>
+                </div>
+                <div>
+                  <p class="text-lg font-bold text-gray-900">{summary.processing}</p>
+                  <p class="text-xs text-gray-600">Processing</p>
+                </div>
+                <div>
+                  <p class="text-lg font-bold text-gray-900">{summary.total}</p>
+                  <p class="text-xs text-gray-600">Total</p>
+                </div>
+              </div>
+            </div>
           {:else}
             {#each $comments as comment (comment.commentId)}
               {@const author = getAuthor(comment.ownerProfileUrl)}

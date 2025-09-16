@@ -78,25 +78,40 @@
 
 /* Specific styling for the AI/Manual toggle button */
 .sidebar .ai-settings-container button[class*="h-5 w-9"] {
-  height: 16px !important;
-  width: 32px !important;
-  padding: 1px !important;
-  border-radius: 10px !important;
+  /* Enforce stable size and shape in both states */
+  height: 18px !important;
+  min-height: 18px !important;
+  max-height: 18px !important;
+  width: 34px !important;
+  min-width: 34px !important;
+  padding: 2px !important;
+  border-radius: 9999px !important;
+  line-height: 0 !important;
+  display: inline-flex !important;
+  align-items: center !important;
+  justify-content: flex-start !important;
+  box-sizing: border-box !important;
+  overflow: hidden !important;
 }
 
 .sidebar .ai-settings-container button[class*="h-5 w-9"] span {
-  height: 8px !important;
-  width: 8px !important;
-  border-radius: 50% !important;
+  /* Stable knob size */
+  height: 14px !important;
+  width: 14px !important;
+  border-radius: 9999px !important;
+  line-height: 0 !important;
+  display: block !important;
 }
 
 /* Fix the translation positioning for the toggle */
 .sidebar .ai-settings-container button[class*="h-5 w-9"] span[class*="translate-x-5"] {
-  transform: translateX(18px) !important;
+  /* Travel equals (track width - padding*2 - knob width) = 34 - 4 - 14 = 16 */
+  transform: translateX(16px) !important;
 }
 
 .sidebar .ai-settings-container button[class*="h-5 w-9"] span[class*="translate-x-1"] {
-  transform: translateX(3px) !important;
+  /* Start aligned to left padding */
+  transform: translateX(0px) !important;
 }
 
 /* Add margin between AI Model section and AI Prompts section */
@@ -192,4 +207,32 @@
   height: 6px !important;
   width: 6px !important;
   margin-right: 4px !important;
+}
+
+/* LogsPanel.svelte - Filter buttons (ALL, DEBUG, INFO, WARN, ERROR) styling */
+.sidebar button[class*="px-2 py-0.5"][class*="text-xs"][class*="rounded-full"] {
+  padding: 6px 12px !important;
+  margin: 2px !important;
+  min-height: 28px !important;
+  font-size: 11px !important;
+  border-radius: 14px !important;
+}
+
+/* LogsPanel.svelte - Header action buttons (Clear logs, Expand/Collapse) styling */
+.sidebar button[class*="px-2 py-1"][class*="text-sm"] {
+  padding: 6px 10px !important;
+  margin: 2px !important;
+  min-height: 32px !important;
+  font-size: 12px !important;
+  border-radius: 8px !important;
+}
+
+/* Title overrides: make key section headers slightly larger and consistent */
+.sidebar section#logs h2,
+.sidebar section#ai-settings h2,
+.sidebar section#controls h2,
+.sidebar section#pipeline h2,
+.sidebar section#counters h2 {
+  font-size: 1.6rem !important; /* slightly bigger (Tailwind text-lg) */
+  line-height: 1.5 !important;
 }

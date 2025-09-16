@@ -75,7 +75,7 @@
         selectedModel = config.model || '';
         temperature = config.temperature || 0.7;
         topP = config.top_p || 0.9;
-        maxTokens = config.maxTokens || 150;
+        maxTokens = config.max_tokens || 150;
         replyPrompt = config.reply?.customPrompt || '';
         dmPrompt = config.dm?.customPrompt || '';
         nonConnectedTemplate =
@@ -129,7 +129,7 @@
         model: selectedModel,
         temperature,
         top_p: topP,
-        maxTokens,
+        max_tokens: maxTokens,
         reply: {
           customPrompt: replyPrompt,
           nonConnectedPrompt: nonConnectedTemplate,
