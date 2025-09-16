@@ -198,6 +198,7 @@
   min-height: 36px !important;
   font-size: 14px !important;
   border-radius: 12px !important;
+  color: #111827 !important; /* ensure readable text on white bg */
 }
 
 .sidebar button[class*="bg-red-600 hover:bg-red-700"][class*="h-9"] {
@@ -206,6 +207,39 @@
   min-height: 36px !important;
   font-size: 14px !important;
   border-radius: 12px !important;
+}
+
+/* Controls.svelte - Reset confirmation warning box */
+.sidebar .reset-warning {
+  /* Subtle entrance to draw attention without being jarring */
+  animation: sidebar-reset-alert-in 160ms cubic-bezier(0.2, 0, 0.2, 1) both;
+  /* Slight left accent to emphasize destructive action */
+  box-shadow: inset 3px 0 0 0 rgba(245, 158, 11, 0.5); /* amber-500 at 50% */
+}
+
+.sidebar .reset-warning p {
+  margin: 0 !important;
+}
+
+.sidebar .reset-warning svg {
+  margin-top: 1px !important;
+}
+
+@keyframes sidebar-reset-alert-in {
+  from {
+    opacity: 0;
+    transform: translateY(4px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .sidebar .reset-warning {
+    animation: none !important;
+  }
 }
 
 /* Controls.svelte - Status indicator (idle button) styling */

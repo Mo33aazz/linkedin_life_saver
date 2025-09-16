@@ -3,7 +3,7 @@
   import { gsap } from 'gsap';
   import { pipelineStatus, postUrn, comments } from '../store';
   import type { ExtensionMessage, LogEntry } from '../../shared/types';
-  import { Play, Pause, Square, Download, FileText, RotateCcw, Settings, Clock, MessageCircle } from 'lucide-svelte';
+  import { Play, Pause, Square, Download, FileText, RotateCcw, Settings, Clock, MessageCircle, AlertTriangle } from 'lucide-svelte';
 
   let controlsContainer: HTMLElement;
   let buttons: HTMLElement[] = [];
@@ -204,7 +204,7 @@
         on:click={stopPipeline}
         aria-label="Stop Pipeline"
       >
-        <Square size={16} />
+        <Square size={16} fill="currentColor" />
       </button>
     {/if}
   </div>
@@ -314,7 +314,14 @@
       <div class="relative z-10 w-full max-w-sm rounded-lg border bg-white p-5 shadow-lg">
         <div class="mb-2">
           <h3 class="text-lg font-semibold">Reset Session</h3>
-          <p class="text-sm text-gray-600">This will clear all collected data and reset the pipeline for the current post. This action cannot be undone.</p>
+          <div class="reset-warning mt-2 rounded-md border border-amber-200 bg-amber-50 p-3 text-amber-800" role="alert">
+            <div class="flex items-start gap-2">
+              <AlertTriangle class="h-5 w-5 text-amber-600 flex-shrink-0" aria-hidden="true" />
+              <p class="text-sm leading-5">
+                This will clear all collected data and reset the pipeline for the current post. This action cannot be undone.
+              </p>
+            </div>
+          </div>
         </div>
         <div class="flex flex-col-reverse sm:flex-row sm:justify-end gap-2 mt-4">
           <button class="inline-flex items-center justify-center h-9 px-4 rounded-md border text-sm bg-white hover:bg-gray-50" on:click={() => (showResetDialog = false)}>Cancel</button>
