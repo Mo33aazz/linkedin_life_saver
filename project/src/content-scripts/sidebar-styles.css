@@ -1,0 +1,71 @@
+/* Reset and isolate all styles within shadow DOM */
+:host {
+  all: initial;
+  display: block;
+  contain: layout style paint;
+}
+
+/* Ensure high-contrast text and placeholders within the shadow DOM */
+.sidebar input, .sidebar textarea, .sidebar select {
+  color: #111827 !important;
+  caret-color: #111827;
+  font-family: inherit !important;
+}
+.sidebar input::placeholder, .sidebar textarea::placeholder {
+  color: #111827 !important;
+  opacity: 1 !important;
+}
+.sidebar input::-webkit-input-placeholder, .sidebar textarea::-webkit-input-placeholder {
+  color: #111827 !important;
+  opacity: 1 !important;
+}
+.sidebar input::-moz-placeholder, .sidebar textarea::-moz-placeholder {
+  color: #111827 !important;
+  opacity: 1 !important;
+}
+.sidebar input:-ms-input-placeholder, .sidebar textarea:-ms-input-placeholder {
+  color: #111827 !important;
+  opacity: 1 !important;
+}
+
+/* Prevent LinkedIn styles from affecting our components */
+.sidebar * {
+  box-sizing: border-box !important;
+  font-family: inherit !important;
+  pointer-events: auto !important;
+}
+
+/* Ensure buttons are clickable */
+.sidebar button {
+  pointer-events: auto !important;
+  cursor: pointer !important;
+  user-select: none !important;
+  margin: 8px 4px !important;
+  min-height: 40px !important;
+  padding: 8px 16px !important;
+}
+
+/* Ensure proper font inheritance */
+.sidebar {
+  font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif !important;
+}
+
+.sidebar h1, .sidebar h2, .sidebar h3, .sidebar h4, .sidebar h5, .sidebar h6 {
+  font-family: 'Saira', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif !important;
+}
+
+/* Ensure textboxes in AI controls section have appropriate minimum size */
+.sidebar .ai-settings-container input[type="text"],
+.sidebar .ai-settings-container input[type="password"],
+.sidebar .ai-settings-container textarea,
+.sidebar .ai-settings-container select {
+  min-height: 36px !important;
+  min-width: 120px !important;
+  padding: 8px 12px !important;
+  line-height: 1.4 !important;
+}
+
+.sidebar .ai-settings-container textarea {
+  min-height: 72px !important;
+  resize: vertical !important;
+}

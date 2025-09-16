@@ -177,15 +177,15 @@
         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"></path>
         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"></path>
       </svg>
-      <h2 class="text-sm font-semibold text-gray-900 truncate">Auto-Reply Settings</h2>
+      <h2 class="font-semibold text-gray-900 truncate">Auto-Reply Settings</h2>
     </div>
   </div>
 
   <!-- Mode Toggle -->
   <div class="flex items-center justify-between mb-4">
-    <div class="space-y-0.5">
-      <div class="text-sm font-medium text-gray-900">Reply Mode</div>
-      <p class="text-xs text-gray-500">Choose between AI-powered or manual replies</p>
+    <div class="space-y-2">
+      <div class="text-sm font-semibold text-gray-900">Reply Mode</div>
+      <p class="text-sm text-gray-500">Choose between AI-powered or manual replies</p>
     </div>
     <div class="flex items-center gap-2">
       <span class="text-xs text-gray-500">{isAiEnabled ? 'AI' : 'Manual'}</span>
@@ -290,11 +290,11 @@
 
       <!-- AI Prompts -->
       <div class="space-y-3">
-        <div class="text-sm font-medium text-gray-900">AI Prompts</div>
+        <div class="text-sm font-semibold text-gray-900">AI Prompts</div>
 
         <div class="space-y-3">
           <div>
-            <label for="generalPrompt" class="text-xs font-medium text-gray-700 mb-1 block">General Replies</label>
+            <label for="generalPrompt" class="text-sm font-medium text-gray-700 mb-3 block">General Replies</label>
             <textarea
               id="generalPrompt"
               placeholder="Prompt for general message replies"
@@ -305,7 +305,7 @@
           </div>
 
           <div>
-            <label for="dmPrompt" class="text-xs font-medium text-gray-700 mb-1 block">Direct Messages</label>
+            <label for="dmPrompt" class="text-sm font-medium text-gray-700 mb-3 block">Direct Messages</label>
             <textarea
               id="dmPrompt"
               placeholder="Prompt for direct message replies"
@@ -316,7 +316,7 @@
           </div>
 
           <div>
-            <label for="nonConnectedPrompt" class="text-xs font-medium text-gray-700 mb-1 block">Non-Connected Users</label>
+            <label for="nonConnectedPrompt" class="text-sm font-medium text-gray-700 mb-3 block">Non-Connected Users</label>
             <textarea
               id="nonConnectedPrompt"
               placeholder="Prompt for replies to non-connected users"
@@ -331,11 +331,11 @@
   {:else}
     <!-- Manual Mode Settings -->
     <div class="space-y-4">
-      <div class="text-sm font-medium text-gray-900">Manual Reply Templates</div>
+      <div class="text-lg font-medium text-gray-900">Manual Reply Templates</div>
 
       <div class="space-y-3">
         <div>
-          <label for="generalReply" class="text-xs font-medium text-gray-700 mb-1 block">General Replies</label>
+          <label for="generalReply" class="text-sm font-medium text-gray-700 mb-3 block">General Replies</label>
           <textarea
             id="generalReply"
             placeholder="Enter your standard reply message"
@@ -346,7 +346,7 @@
         </div>
 
         <div>
-          <label for="dmReply" class="text-xs font-medium text-gray-700 mb-1 block">Direct Messages</label>
+          <label for="dmReply" class="text-sm font-medium text-gray-700 mb-3 block">Direct Messages</label>
           <textarea
             id="dmReply"
             placeholder="Enter your direct message reply"
@@ -357,7 +357,7 @@
         </div>
 
         <div>
-          <label for="nonConnectedReply" class="text-xs font-medium text-gray-700 mb-1 block">Non-Connected Users</label>
+          <label for="nonConnectedReply" class="text-sm font-medium text-gray-700 mb-3 block">Non-Connected Users</label>
           <textarea
             id="nonConnectedReply"
             placeholder="Enter reply for non-connected users"

@@ -5,6 +5,7 @@ import {
   sendDmViaProfile,
 } from './domInteractor';
 import { mountApp, unmountApp } from '../ui';
+import shadowDOMOverrides from './sidebar-styles.css?inline';
 
 import '../index.css';
 
@@ -341,60 +342,6 @@ const injectUI = async () => {
     const shadowRoot = host.attachShadow({ mode: 'open' });
 
     // Enhanced Shadow DOM isolation and styling overrides
-    const shadowDOMOverrides = `
-      /* Reset and isolate all styles within shadow DOM */
-      :host {
-        all: initial;
-        display: block;
-        contain: layout style paint;
-      }
-      
-      /* Ensure high-contrast text and placeholders within the shadow DOM */
-      .sidebar input, .sidebar textarea, .sidebar select { 
-        color: #111827 !important; 
-        caret-color: #111827; 
-        font-family: inherit !important;
-      }
-      .sidebar input::placeholder, .sidebar textarea::placeholder { 
-        color: #111827 !important; 
-        opacity: 1 !important; 
-      }
-      .sidebar input::-webkit-input-placeholder, .sidebar textarea::-webkit-input-placeholder { 
-        color: #111827 !important; 
-        opacity: 1 !important; 
-      }
-      .sidebar input::-moz-placeholder, .sidebar textarea::-moz-placeholder { 
-        color: #111827 !important; 
-        opacity: 1 !important; 
-      }
-      .sidebar input:-ms-input-placeholder, .sidebar textarea:-ms-input-placeholder { 
-        color: #111827 !important; 
-        opacity: 1 !important; 
-      }
-      
-      /* Prevent LinkedIn styles from affecting our components */
-      .sidebar * {
-        box-sizing: border-box !important;
-        font-family: inherit !important;
-        pointer-events: auto !important;
-      }
-      
-      /* Ensure buttons are clickable */
-      .sidebar button {
-        pointer-events: auto !important;
-        cursor: pointer !important;
-        user-select: none !important;
-      }
-      
-      /* Ensure proper font inheritance */
-      .sidebar {
-        font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif !important;
-      }
-      
-      .sidebar h1, .sidebar h2, .sidebar h3, .sidebar h4, .sidebar h5, .sidebar h6 {
-        font-family: 'Saira', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif !important;
-      }
-    `;
 
     // Process CSS to use extension URLs for fonts (best-effort)
     const processedCSS = css.replace(
