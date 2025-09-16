@@ -23,6 +23,35 @@ const emailRedirectTarget = (() => {
   return supabaseUrl ?? undefined;
 })();
 
+const PENDING_VERIFICATION_STORAGE_KEY = 'lea.auth.pendingVerification';
+
+type StoredPendingVerificationState = {
+  email: string;
+  cooldownUntil: number | null;
+};
+
+export type SignUpResult =
+  | { status: 'created'; email: string }
+  | { status: 'resent'; email: string }
+  | { status: 'already-confirmed'; message: string }
+  | { status: 'already-exists'; message: string }
+  | { status: 'resend-rate-limited'; message: string; retryIn?: number }
+  | { status: 'resend-error'; message: string };
+
+const safeLocalStorage = (() => {
+  if (typeof globalThis === 'undefined') return null;
+  try {
+    const storage = globalThis.localStorage;
+    if (!storage) return null;
+    const probeKey = '__lea__auth_probe__';
+    storage.setItem(probeKey, probeKey);
+    storage.removeItem(probeKey);
+    return storage;
+  } catch {
+    return null;
+  }
+})();
+
 function clearCooldownTimer() {
   if (cooldownTimer) {
     clearInterval(cooldownTimer);
@@ -47,10 +76,63 @@ function startResendCooldown(seconds: number) {
   }, 1000);
 }
 
+function persistPendingVerificationState(state: StoredPendingVerificationState | null) {
+  if (!safeLocalStorage) return;
+  if (state) {
+    safeLocalStorage.setItem(PENDING_VERIFICATION_STORAGE_KEY, JSON.stringify(state));
+  } else {
+    safeLocalStorage.removeItem(PENDING_VERIFICATION_STORAGE_KEY);
+  }
+}
+
+function restorePendingVerificationState() {
+  if (!safeLocalStorage) return;
+
+  try {
+    const raw = safeLocalStorage.getItem(PENDING_VERIFICATION_STORAGE_KEY);
+    if (!raw) return;
+
+    const stored = JSON.parse(raw) as StoredPendingVerificationState | null;
+    if (!stored?.email) return;
+
+    pendingVerificationEmail.set(stored.email);
+
+    if (stored.cooldownUntil && stored.cooldownUntil > Date.now()) {
+      const secondsRemaining = Math.max(
+        0,
+        Math.ceil((stored.cooldownUntil - Date.now()) / 1000)
+      );
+      if (secondsRemaining > 0) {
+        startResendCooldown(secondsRemaining);
+      }
+    }
+  } catch {
+    persistPendingVerificationState(null);
+  }
+}
+
+function setPendingVerification(email: string, cooldownSeconds = 0, persist = true) {
+  pendingVerificationEmail.set(email);
+
+  if (persist) {
+    const cooldownUntil = cooldownSeconds > 0 ? Date.now() + cooldownSeconds * 1000 : null;
+    persistPendingVerificationState({ email, cooldownUntil });
+  }
+
+  startResendCooldown(cooldownSeconds);
+}
+
+function clearPersistedPendingVerification() {
+  persistPendingVerificationState(null);
+}
+
+restorePendingVerificationState();
+
 export function clearPendingVerificationState() {
   pendingVerificationEmail.set(null);
   resendCooldown.set(0);
   clearCooldownTimer();
+  clearPersistedPendingVerification();
 }
 
 export async function initializeAuth(): Promise<void> {
@@ -106,15 +188,16 @@ export async function signInWithPassword(email: string, password: string) {
 
     const message = error.message.toLowerCase();
     if (message.includes('confirm')) {
-      pendingVerificationEmail.set(email);
+      setPendingVerification(email, 0);
     }
     throw error;
   }
 }
 
-export async function signUpWithPassword(email: string, password: string) {
+export async function signUpWithPassword(email: string, password: string): Promise<SignUpResult> {
   authError.set(null);
-  const { error } = await supabase.auth.signUp({
+
+  const { data, error } = await supabase.auth.signUp({
     email,
     password,
     options: emailRedirectTarget
@@ -123,17 +206,70 @@ export async function signUpWithPassword(email: string, password: string) {
         }
       : undefined,
   });
-  if (error) {
-    authError.set(error.message);
-    if (error.message.toLowerCase().includes('already registered')) {
-      pendingVerificationEmail.set(email);
+
+  const user = data?.user ?? null;
+
+  if (!error) {
+    const identities = user?.identities ?? [];
+
+    if (identities.length === 0) {
+      clearPendingVerificationState();
+      const message = 'This email address is already registered. Please sign in instead.';
+      return { status: 'already-exists', message };
     }
-    throw error;
+
+    setPendingVerification(email, RESEND_COOLDOWN_SECONDS);
+    return { status: 'created', email };
   }
 
-  pendingVerificationEmail.set(email);
-  resendCooldown.set(0);
-  clearCooldownTimer();
+  const normalized = error.message.toLowerCase();
+  const isAlreadyRegistered = /(already\s+registered|already\s+exists)/.test(normalized);
+
+  if (isAlreadyRegistered) {
+    // Ensure the user can immediately request a resend even if the next step fails.
+    setPendingVerification(email, 0);
+
+    const { error: resendError } = await supabase.auth.resend({
+      type: 'signup',
+      email,
+      options: emailRedirectTarget
+        ? {
+            emailRedirectTo: emailRedirectTarget,
+          }
+        : undefined,
+    });
+
+    if (!resendError) {
+      authError.set(null);
+      setPendingVerification(email, RESEND_COOLDOWN_SECONDS);
+      return { status: 'resent', email };
+    }
+
+    const resendMessage = resendError.message ?? 'Unable to resend verification email.';
+    const normalizedResendMessage = resendMessage.toLowerCase();
+
+    if (/already\s+(confirmed|verified)/.test(normalizedResendMessage)) {
+      clearPendingVerificationState();
+      const message = 'This email address is already verified. Please sign in instead.';
+      authError.set(message);
+      return { status: 'already-confirmed', message };
+    }
+
+    if (/rate|attempts|limit/.test(normalizedResendMessage)) {
+      const message =
+        'We recently sent a verification email. Please wait a moment before requesting another one.';
+      authError.set(message);
+      // Use a slightly longer cooldown when Supabase rate limits us.
+      setPendingVerification(email, RESEND_COOLDOWN_SECONDS * 2);
+      return { status: 'resend-rate-limited', message };
+    }
+
+    authError.set(resendMessage);
+    return { status: 'resend-error', message: resendMessage };
+  }
+
+  authError.set(error.message);
+  throw error;
 }
 
 export async function resendVerificationEmail() {
@@ -168,11 +304,28 @@ export async function resendVerificationEmail() {
   });
 
   if (error) {
+    const normalized = error.message.toLowerCase();
+
+    if (/already\s+(confirmed|verified)/.test(normalized)) {
+      clearPendingVerificationState();
+      const message = 'This email address has already been verified. You can sign in now.';
+      authError.set(message);
+      throw new Error(message);
+    }
+
+    if (/rate|attempts|limit/.test(normalized)) {
+      const message =
+        'You have requested too many emails in a short period. Please wait a minute before trying again.';
+      authError.set(message);
+      setPendingVerification(email, RESEND_COOLDOWN_SECONDS * 2);
+      throw new Error(message);
+    }
+
     authError.set(error.message);
     throw error;
   }
 
-  startResendCooldown(RESEND_COOLDOWN_SECONDS);
+  setPendingVerification(email, RESEND_COOLDOWN_SECONDS);
 }
 
 export async function signOut() {

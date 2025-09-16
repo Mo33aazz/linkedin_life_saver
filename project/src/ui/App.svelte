@@ -24,6 +24,7 @@
     resendCooldown,
     clearPendingVerificationState,
   } from './store/auth';
+  import type { SignUpResult } from './store/auth';
 
   let appContainer: HTMLElement;
   let activeSection: string | null = null;
@@ -110,7 +111,7 @@
 
   $: if ($pendingVerificationEmail !== lastPendingEmail) {
     lastPendingEmail = $pendingVerificationEmail;
-    if (lastPendingEmail) {
+    if (lastPendingEmail && !$authError) {
       authMessage = `We just sent a verification email to ${lastPendingEmail}. Check your inbox, then sign in here once confirmed.`;
     }
   }
@@ -126,8 +127,23 @@
       if (event.detail.mode === 'sign-in') {
         await signInWithPassword(event.detail.email, event.detail.password);
       } else {
-        await signUpWithPassword(event.detail.email, event.detail.password);
-        authMessage = `Almost there! Confirm the verification email sent to ${event.detail.email}, then sign in.`;
+        const result: SignUpResult = await signUpWithPassword(
+          event.detail.email,
+          event.detail.password
+        );
+
+        if (result.status === 'resent') {
+          authMessage = `A new verification email has been sent to ${result.email}.`;
+        } else if (
+          result.status === 'already-confirmed' ||
+          result.status === 'already-exists' ||
+          result.status === 'resend-rate-limited' ||
+          result.status === 'resend-error'
+        ) {
+          authMessage = result.message;
+        } else {
+          authMessage = `Almost there! Confirm the verification email sent to ${event.detail.email}, then sign in.`;
+        }
       }
     } catch (error) {
       console.error('Authentication failed', error);
