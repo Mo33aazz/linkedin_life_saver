@@ -1,5 +1,5 @@
 <script lang="ts">
-  import { CheckCircle2, XCircle, Loader2, Clock, Heart, Send, MessageCircle, ChevronRight, ChevronDown } from 'lucide-svelte';
+  import { CheckCircle2, XCircle, Loader2, Clock, Heart, Send, MessageCircle, ChevronRight, ChevronDown, Workflow } from 'lucide-svelte';
   import { comments, uiState } from '../store';
   import type { Comment } from '../../shared/types';
 
@@ -92,7 +92,10 @@
 
 <div class="pipeline-container bg-white rounded-xl shadow-sm border border-gray-100 p-4 mb-4" data-testid="pipeline-progress">
   <div class="pipeline-header flex items-center justify-between mb-3">
-    <h2 class="font-semibold text-gray-900">Pipeline</h2>
+    <div class="flex items-center gap-2">
+      <Workflow class="h-5 w-5 text-blue-600" aria-hidden="true" />
+      <h2 class="font-semibold text-gray-900">Pipeline</h2>
+    </div>
     <button
       class="inline-flex items-center gap-1 text-sm text-gray-700 hover:text-gray-900 px-2 py-1 rounded-md hover:bg-gray-100"
       aria-expanded={!collapsed}

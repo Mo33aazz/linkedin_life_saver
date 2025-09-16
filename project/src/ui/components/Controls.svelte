@@ -147,7 +147,10 @@
 <div bind:this={controlsContainer} class="bg-white rounded-xl shadow-sm border border-gray-100 p-4 mb-4">
   <!-- Header -->
   <div class="flex items-center justify-between mb-3">
-    <h2 class="font-semibold text-gray-900">LinkedIn Pipeline</h2>
+    <div class="flex items-center gap-2">
+      <Settings class="h-5 w-5 text-blue-600" aria-hidden="true" />
+      <h2 class="font-semibold text-gray-900">Pipeline Settings</h2>
+    </div>
     <div class="px-2 py-1 rounded-full text-xs font-medium border flex items-center gap-1"
       class:bg-green-50={$pipelineStatus === 'running'}
       class:text-green-700={$pipelineStatus === 'running'}
@@ -210,7 +213,6 @@
   <div class="mb-3">
     <div class="flex items-center gap-2 text-sm font-medium text-gray-800 mb-2">
       <Settings size={16} />
-      Pipeline Settings
     </div>
 
     <div class="space-y-3">

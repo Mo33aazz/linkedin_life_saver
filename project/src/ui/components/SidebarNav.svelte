@@ -110,9 +110,5 @@
     z-index: 50;
   }
 
-  .nav-item:hover .tooltip,
-  .nav-item.active .tooltip {
-    opacity: 1;
-    transform: translateY(-50%) translateX(2px);
-  }
+  /* Tooltips are now hidden - removed hover and active states */
 </style>

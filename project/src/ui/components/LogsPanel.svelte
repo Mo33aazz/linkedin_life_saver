@@ -2,7 +2,20 @@
   import { onMount } from 'svelte';
   import { gsap } from 'gsap';
   import { logs } from '../store';
-  import type { LogEntry, LogLevel } from '../../shared/types';
+  import type { LogLevel } from '../../shared/types';
+
+  // Icons to match other sections
+  import {
+    ScrollText,
+    Trash2,
+    ChevronDown,
+    ChevronRight,
+    Search as SearchIcon,
+    Info,
+    AlertTriangle,
+    Bug,
+    XCircle
+  } from 'lucide-svelte';
 
   let logsContainer: HTMLElement;
   let logEntries: HTMLElement[] = [];
@@ -10,58 +23,55 @@
   let selectedLevel: LogLevel | 'ALL' = 'ALL';
   let searchTerm = '';
 
-  // Log level configuration with colors
-  const logLevelConfig: Record<LogLevel, { color: string; bgColor: string; icon: string }> = {
-    DEBUG: { color: 'text-gray-600', bgColor: 'bg-gray-100', icon: '🔍' },
-    INFO: { color: 'text-blue-600', bgColor: 'bg-blue-100', icon: 'ℹ️' },
-    WARN: { color: 'text-amber-600', bgColor: 'bg-amber-100', icon: '⚠️' },
-    ERROR: { color: 'text-red-600', bgColor: 'bg-red-100', icon: '❌' }
+  // Log level configuration with colors + lucide icons
+  const logLevelConfig: Record<LogLevel, { textColor: string; badgeBg: string; badgeBorder: string; Icon: any }> = {
+    DEBUG: { textColor: 'text-gray-700', badgeBg: 'bg-gray-50', badgeBorder: 'border-gray-200', Icon: Bug },
+    INFO: { textColor: 'text-blue-700', badgeBg: 'bg-blue-50', badgeBorder: 'border-blue-200', Icon: Info },
+    WARN: { textColor: 'text-amber-700', badgeBg: 'bg-amber-50', badgeBorder: 'border-amber-200', Icon: AlertTriangle },
+    ERROR: { textColor: 'text-red-700', badgeBg: 'bg-red-50', badgeBorder: 'border-red-200', Icon: XCircle }
   };
 
   // Filter logs based on level and search term. Show newest first.
-  $: filteredLogs = $logs.filter(log => {
-    const levelMatch = selectedLevel === 'ALL' || log.level === selectedLevel;
-    const searchMatch = searchTerm === '' || 
-      log.message.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      (log.context && JSON.stringify(log.context).toLowerCase().includes(searchTerm.toLowerCase()));
-    return levelMatch && searchMatch;
-  })
+  $: filteredLogs = $logs
+    .filter((log) => {
+      const levelMatch = selectedLevel === 'ALL' || log.level === selectedLevel;
+      const s = searchTerm.trim().toLowerCase();
+      const searchMatch =
+        s === '' ||
+        log.message.toLowerCase().includes(s) ||
+        (log.context && JSON.stringify(log.context).toLowerCase().includes(s));
+      return levelMatch && searchMatch;
+    })
     .slice(-50) // Take latest 50
     .reverse(); // Newest at the top
 
   // Get log count by level
   $: logCounts = {
     ALL: $logs.length,
-    DEBUG: $logs.filter(log => log.level === 'DEBUG').length,
-    INFO: $logs.filter(log => log.level === 'INFO').length,
-    WARN: $logs.filter(log => log.level === 'WARN').length,
-    ERROR: $logs.filter(log => log.level === 'ERROR').length
-  };
+    DEBUG: $logs.filter((log) => log.level === 'DEBUG').length,
+    INFO: $logs.filter((log) => log.level === 'INFO').length,
+    WARN: $logs.filter((log) => log.level === 'WARN').length,
+    ERROR: $logs.filter((log) => log.level === 'ERROR').length
+  } as const;
 
   onMount(() => {
     // Initial animation
-    gsap.fromTo(logsContainer,
-      { opacity: 0, y: 20 },
-      { opacity: 1, y: 0, duration: 0.6, ease: 'power2.out' }
+    gsap.fromTo(
+      logsContainer,
+      { opacity: 0, y: 16 },
+      { opacity: 1, y: 0, duration: 0.35, ease: 'power2.out' }
     );
   });
 
   function toggleExpanded() {
     isExpanded = !isExpanded;
-    
-    // Animate expansion
+    const content = logsContainer.querySelector('.logs-content') as HTMLElement | null;
+    if (!content) return;
+    // Animate expansion height for a smoother feel
     if (isExpanded) {
-      gsap.to(logsContainer.querySelector('.logs-content'), {
-        height: 'auto',
-        duration: 0.4,
-        ease: 'power2.out'
-      });
+      gsap.to(content, { maxHeight: 384, duration: 0.3, ease: 'power2.out' }); // 96 * 4
     } else {
-      gsap.to(logsContainer.querySelector('.logs-content'), {
-        height: '120px',
-        duration: 0.4,
-        ease: 'power2.out'
-      });
+      gsap.to(content, { maxHeight: 128, duration: 0.3, ease: 'power2.out' }); // 32 * 4
     }
   }
 
@@ -78,9 +88,9 @@
     // Animate log removal
     gsap.to(logEntries.filter(Boolean), {
       opacity: 0,
-      x: -20,
-      duration: 0.3,
-      stagger: 0.05,
+      x: -12,
+      duration: 0.2,
+      stagger: 0.04,
       onComplete: () => {
         // Clear logs from store
         import('../store').then(({ uiStore }) => {
@@ -93,72 +103,73 @@
   // Animate new log entries (animate top entries since newest are first)
   $: if (filteredLogs.length > 0) {
     setTimeout(() => {
-      const newEntries = logEntries.filter(Boolean).slice(0, 3); // Animate first 3 entries
-      gsap.fromTo(newEntries,
-        { opacity: 0, x: 20, scale: 0.95 },
-        { 
-          opacity: 1, 
-          x: 0, 
+      const newEntries = logEntries.filter(Boolean).slice(0, 3);
+      gsap.fromTo(
+        newEntries,
+        { opacity: 0, x: 12, scale: 0.98 },
+        {
+          opacity: 1,
+          x: 0,
           scale: 1,
-          duration: 0.4, 
+          duration: 0.28,
           ease: 'power2.out',
-          stagger: 0.1 
+          stagger: 0.08
         }
       );
     }, 100);
   }
 </script>
 
-<div bind:this={logsContainer} class="logs-container bg-white rounded-xl shadow-sm border border-gray-100 p-4">
+<div bind:this={logsContainer} class="bg-white rounded-xl shadow-sm border border-gray-100 p-4 mb-4">
   <!-- Header -->
-  <div class="flex items-center justify-between mb-4">
-    <h2 class="font-semibold text-gray-900 flex items-center">
-      <span class="text-3xl mr-2">📋</span>
-      System Logs
-      <span class="ml-2 text-base font-normal text-gray-700">({logCounts.ALL})</span>
-    </h2>
-    
-    <div class="flex items-center space-x-2">
-      <!-- Clear Logs Button -->
+  <div class="flex items-center justify-between mb-3">
+    <div class="flex items-center gap-2 min-w-0">
+      <ScrollText class="h-5 w-5 text-blue-600" aria-hidden="true" />
+      <h2 class="text-sm font-semibold text-gray-900 truncate">Logs</h2>
+      <span class="ml-1 text-xs font-medium text-gray-600">({logCounts.ALL})</span>
+    </div>
+
+    <div class="flex items-center gap-2">
+      <!-- Clear Logs Button (icon only) -->
       <button
-        class="text-gray-500 hover:text-red-600 p-1 rounded transition-colors duration-200"
+        class="inline-flex items-center text-sm text-gray-700 hover:text-red-600 px-2 py-1 rounded-md hover:bg-red-50 border border-transparent hover:border-red-200"
         on:click={clearLogs}
         aria-label="Clear logs"
         title="Clear logs"
       >
-        <svg class="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
-          <path fill-rule="evenodd" d="M9 2a1 1 0 000 2h2a1 1 0 100-2H9z" clip-rule="evenodd" />
-          <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8 7a1 1 0 012 0v4a1 1 0 11-2 0V7zm5-1a1 1 0 00-1 1v4a1 1 0 102 0V7a1 1 0 00-1-1z" clip-rule="evenodd" />
-        </svg>
+        <Trash2 size={16} />
       </button>
-      
-      <!-- Expand/Collapse Button -->
+
+      <!-- Expand/Collapse Button (icons only) -->
       <button
-        class="text-gray-500 hover:text-blue-600 p-1 rounded transition-colors duration-200"
+        class="inline-flex items-center text-sm text-gray-700 hover:text-gray-900 px-2 py-1 rounded-md hover:bg-gray-100"
         on:click={toggleExpanded}
         aria-label={isExpanded ? 'Collapse logs' : 'Expand logs'}
+        aria-expanded={isExpanded}
         title={isExpanded ? 'Collapse logs' : 'Expand logs'}
       >
-        <svg class="w-4 h-4 transform transition-transform duration-200 {isExpanded ? 'rotate-180' : ''}" fill="currentColor" viewBox="0 0 20 20">
-          <path fill-rule="evenodd" d="M5.293 7.293a1 1 0 011.414 0L10 10.586l3.293-3.293a1 1 0 111.414 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 010-1.414z" clip-rule="evenodd" />
-        </svg>
+        {#if isExpanded}
+          <ChevronDown size={18} />
+        {:else}
+          <ChevronRight size={18} />
+        {/if}
       </button>
     </div>
   </div>
 
   <!-- Filters -->
-  <div class="flex flex-wrap items-center gap-2 mb-4">
+  <div class="flex flex-wrap items-center gap-2 mb-3">
     <!-- Level Filter -->
-    <div class="flex items-center space-x-1">
+    <div class="flex items-center gap-1">
       {#each ['ALL', 'DEBUG', 'INFO', 'WARN', 'ERROR'] as level}
         <button
-          class="filter-button px-2 py-1 text-xs font-medium rounded-full transition-all duration-200 {selectedLevel === level ? 'bg-blue-500 text-white shadow-md' : 'bg-gray-100 text-gray-600 hover:bg-gray-200'}"
-          on:click={() => selectedLevel = level}
-          aria-label="Filter by {level}"
+          class="inline-flex items-center gap-1 px-2 py-0.5 text-xs font-medium rounded-full border transition-colors {selectedLevel === level ? 'bg-blue-50 border-blue-200 text-blue-700' : 'bg-white border-gray-200 text-gray-700 hover:bg-gray-50'}"
+          on:click={() => (selectedLevel = level)}
+          aria-label={`Filter by ${level}`}
         >
           {level}
           {#if logCounts[level] > 0}
-            <span class="ml-1 opacity-75">({logCounts[level]})</span>
+            <span class="ml-0.5 opacity-75">({logCounts[level]})</span>
           {/if}
         </button>
       {/each}
@@ -166,62 +177,60 @@
   </div>
 
   <!-- Search -->
-  <div class="mb-4">
+  <div class="mb-3">
     <div class="relative">
+      <label for="logs-search" class="sr-only">Search logs</label>
       <input
+        id="logs-search"
         type="text"
         placeholder="Search logs..."
         bind:value={searchTerm}
-        class="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent pl-8"
+        class="h-8 text-sm w-full min-w-0 rounded-md border border-gray-300 bg-white px-2 py-1 pl-8 shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
       />
-      <svg class="absolute left-2.5 top-2.5 w-4 h-4 text-gray-400" fill="currentColor" viewBox="0 0 20 20">
-        <path fill-rule="evenodd" d="M8 4a4 4 0 100 8 4 4 0 000-8zM2 8a6 6 0 1110.89 3.476l4.817 4.817a1 1 0 01-1.414 1.414l-4.816-4.816A6 6 0 012 8z" clip-rule="evenodd" />
-      </svg>
+      <SearchIcon class="pointer-events-none absolute left-2 top-1/2 -translate-y-1/2 h-5 w-5 text-gray-400" aria-hidden="true" />
     </div>
   </div>
 
   <!-- Logs Content -->
-  <div class="logs-content {isExpanded ? 'max-h-96' : 'max-h-32'} overflow-y-auto transition-all duration-300">
+  <div class="logs-content overflow-y-auto transition-all duration-300 {isExpanded ? 'max-h-96' : 'max-h-32'}">
     {#if filteredLogs.length === 0}
-      <div class="text-center py-8 text-gray-500">
-        <div class="text-4xl mb-2">📝</div>
-        <p class="text-sm">
+      <div class="text-center py-8 text-gray-600">
+        <div class="inline-flex items-center gap-2 rounded-full border border-gray-200 bg-white/70 px-3 py-1 text-xs font-medium">
+          <ScrollText class="h-4 w-4 text-gray-500" />
           {$logs.length === 0 ? 'No logs yet' : 'No logs match your filters'}
-        </p>
+        </div>
       </div>
     {:else}
       <div class="space-y-2">
         {#each filteredLogs as log, index}
-          <div 
+          <div
             bind:this={logEntries[index]}
-        class="log-entry flex items-start space-x-3 p-3 rounded-lg border border-gray-200 hover:border-gray-300 transition-colors duration-200 {logLevelConfig[log.level].bgColor} bg-opacity-40"
+            class="flex items-start gap-3 p-3 rounded-xl border border-gray-200 bg-white hover:shadow-sm transition-all duration-200"
           >
-            <!-- Level Icon -->
+            <!-- Level Badge -->
             <div class="flex-shrink-0 mt-0.5">
-              <span class="text-sm">{logLevelConfig[log.level].icon}</span>
+              <span class={`inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[11px] font-medium border ${logLevelConfig[log.level].badgeBg} ${logLevelConfig[log.level].badgeBorder} ${logLevelConfig[log.level].textColor}`}>
+                <svelte:component this={logLevelConfig[log.level].Icon} size={14} />
+                {log.level}
+              </span>
             </div>
-            
+
             <!-- Log Content -->
             <div class="flex-1 min-w-0">
-              <div class="flex items-center space-x-2 mb-1">
-                <span class="text-sm font-medium {logLevelConfig[log.level].color} uppercase tracking-wide">
-                  {log.level}
-                </span>
-                <span class="text-sm text-gray-700">
+              <div class="flex items-center gap-2 mb-1">
+                <span class={`text-xs font-medium uppercase tracking-wide ${logLevelConfig[log.level].textColor}`}>
                   {formatTimestamp(log.timestamp)}
                 </span>
               </div>
-              
-              <p class="text-base text-gray-900 leading-relaxed">
+
+              <p class="text-sm text-gray-900 leading-relaxed">
                 {log.message}
               </p>
-              
+
               {#if log.context && Object.keys(log.context).length > 0}
                 <details class="mt-2">
-                  <summary class="text-sm text-gray-700 cursor-pointer hover:text-gray-900 transition-colors duration-200">
-                    Context
-                  </summary>
-                  <pre class="mt-1 text-sm text-gray-800 bg-gray-50 p-2 rounded border overflow-x-auto">{JSON.stringify(log.context, null, 2)}</pre>
+                  <summary class="text-xs text-gray-700 cursor-pointer hover:text-gray-900 transition-colors">Context</summary>
+                  <pre class="mt-1 text-xs text-gray-800 bg-gray-50 p-2 rounded border overflow-x-auto">{JSON.stringify(log.context, null, 2)}</pre>
                 </details>
               {/if}
             </div>
@@ -233,11 +242,6 @@
 </div>
 
 <style>
-  .logs-container {
-    backdrop-filter: blur(10px);
-    background: rgba(255, 255, 255, 0.95);
-  }
-
   .logs-content {
     scrollbar-width: thin;
     scrollbar-color: #e5e7eb #f9fafb;
@@ -266,10 +270,6 @@
     outline-offset: 1px;
   }
 
-  .log-entry {
-    backdrop-filter: blur(5px);
-  }
-
   /* Accessibility */
   @media (prefers-reduced-motion: reduce) {
     .transition-all,
@@ -281,19 +281,10 @@
   
   /* Responsive adjustments */
   @media (max-width: 640px) {
-    .logs-container {
-      padding: 0.75rem;
-    }
-    
     .flex.flex-wrap {
       flex-direction: column;
       align-items: stretch;
       gap: 0.5rem;
-    }
-    
-    .filter-button {
-      padding: 0.5rem 0.75rem;
-      min-height: 36px;
     }
     
     .logs-content {
@@ -302,15 +293,6 @@
   }
   
   @media (max-width: 480px) {
-    .logs-container {
-      padding: 0.5rem;
-    }
-    
-    .log-entry {
-      padding: 0.5rem;
-      margin-bottom: 0.5rem;
-    }
-    
     .text-sm {
       font-size: 0.75rem;
     }
