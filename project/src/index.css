@@ -1356,3 +1356,9 @@ p {
 .sidebar select {
   font-size: calc(1rem * var(--ui-font-scale, 1)) !important;
 }
+
+/* Specific styling for Manual Reply Templates heading */
+.sidebar .ai-settings-container .text-lg.font-medium.text-gray-900 {
+  font-size: 0.875rem !important; /* text-sm equivalent */
+  font-weight: 700 !important; /* bold */
+}

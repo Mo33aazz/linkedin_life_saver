@@ -1,7 +1,7 @@
 <script lang="ts">
   import { onMount } from 'svelte';
   import { gsap } from 'gsap';
-  import { pipelineStatus, postUrn, comments, logs } from '../store';
+  import { pipelineStatus, postUrn, comments } from '../store';
   import type { ExtensionMessage, LogEntry } from '../../shared/types';
   import { Play, Pause, Square, Download, FileText, RotateCcw, Settings, Clock, MessageCircle } from 'lucide-svelte';
 
@@ -144,10 +144,10 @@
   }
 </script>
 
-<div bind:this={controlsContainer} class="sidebar-section">
+<div bind:this={controlsContainer} class="bg-white rounded-xl shadow-sm border border-gray-100 p-4 mb-4">
   <!-- Header -->
   <div class="flex items-center justify-between mb-3">
-    <h2 class="text-lg font-semibold text-gray-900">LinkedIn Pipeline</h2>
+    <h2 class="font-semibold text-gray-900">LinkedIn Pipeline</h2>
     <div class="px-2 py-1 rounded-full text-xs font-medium border flex items-center gap-1"
       class:bg-green-50={$pipelineStatus === 'running'}
       class:text-green-700={$pipelineStatus === 'running'}
@@ -207,7 +207,7 @@
   </div>
 
   <!-- Settings -->
-  <div class="p-3 bg-gray-50 rounded-lg mb-3 border border-gray-100">
+  <div class="mb-3">
     <div class="flex items-center gap-2 text-sm font-medium text-gray-800 mb-2">
       <Settings size={16} />
       Pipeline Settings
@@ -217,7 +217,7 @@
       <div>
         <label for="maxComments" class="text-xs text-gray-600">Max Comments</label>
         <div class="flex items-center gap-2 mt-1">
-          <MessageCircle size={14} class="text-gray-500" />
+          <MessageCircle size={14} class="text-gray-500" aria-hidden="true" />
           <input
             id="maxComments"
             type="number"
@@ -233,7 +233,7 @@
         <div>
           <label for="minDelay" class="text-xs text-gray-600">Min Delay (ms)</label>
           <div class="flex items-center gap-1 mt-1">
-            <Clock size={12} class="text-gray-500" />
+            <Clock size={12} class="text-gray-500" aria-hidden="true" />
             <input
               id="minDelay"
               type="number"
@@ -248,7 +248,7 @@
         <div>
           <label for="maxDelay" class="text-xs text-gray-600">Max Delay (ms)</label>
           <div class="flex items-center gap-1 mt-1">
-            <Clock size={12} class="text-gray-500" />
+            <Clock size={12} class="text-gray-500" aria-hidden="true" />
             <input
               id="maxDelay"
               type="number"
@@ -298,20 +298,7 @@
     </button>
   </div>
 
-  <!-- Activity Log Preview -->
-  <div class="mt-3">
-    <div class="text-xs font-medium text-gray-600 mb-1">Recent Activity</div>
-    <div class="bg-gray-50 rounded-lg p-2 max-h-24 overflow-y-auto border border-gray-100">
-      {#each ($logs || []).slice(-3).reverse() as log}
-        <div class="text-xs text-gray-600 mb-1 last:mb-0">
-          <span class="font-medium">{log.level}:</span> {log.message}
-        </div>
-      {/each}
-      {#if ($logs || []).length === 0}
-        <div class="text-xs text-gray-500">No recent activity.</div>
-      {/if}
-    </div>
-  </div>
+  
 
   {#if showResetDialog}
     <!-- Simple Dialog -->

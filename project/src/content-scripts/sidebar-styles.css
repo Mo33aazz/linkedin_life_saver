@@ -41,8 +41,6 @@
   cursor: pointer !important;
   user-select: none !important;
   margin: 8px 4px !important;
-  min-height: 40px !important;
-  padding: 8px 16px !important;
 }
 
 /* Ensure proper font inheritance */
@@ -68,4 +66,130 @@
 .sidebar .ai-settings-container textarea {
   min-height: 72px !important;
   resize: vertical !important;
+}
+
+/* Specific height adjustments for Test and Save Configuration buttons */
+.sidebar .ai-settings-container button[class*="px-3 py-2"],
+.sidebar .ai-settings-container button[class*="px-4 py-2"] {
+  padding-top: 4px !important;
+  padding-bottom: 4px !important;
+  min-height: 33px !important;
+}
+
+/* Specific styling for the AI/Manual toggle button */
+.sidebar .ai-settings-container button[class*="h-5 w-9"] {
+  height: 16px !important;
+  width: 32px !important;
+  padding: 1px !important;
+  border-radius: 10px !important;
+}
+
+.sidebar .ai-settings-container button[class*="h-5 w-9"] span {
+  height: 8px !important;
+  width: 8px !important;
+  border-radius: 50% !important;
+}
+
+/* Fix the translation positioning for the toggle */
+.sidebar .ai-settings-container button[class*="h-5 w-9"] span[class*="translate-x-5"] {
+  transform: translateX(18px) !important;
+}
+
+.sidebar .ai-settings-container button[class*="h-5 w-9"] span[class*="translate-x-1"] {
+  transform: translateX(3px) !important;
+}
+
+/* Add margin between AI Model section and AI Prompts section */
+.sidebar .ai-settings-container .space-y-3 .text-sm.font-semibold.text-gray-900 {
+  margin-top: 24px !important;
+}
+
+/* Add margin between Reply Mode heading and description */
+.sidebar .ai-settings-container .space-y-2 .text-sm.text-gray-500 {
+  margin-top: 8px !important;
+}
+
+/* Controls.svelte - Input text boxes styling */
+.sidebar input[type="number"] {
+  padding: 6px 8px !important;
+  margin: 4px 0 !important;
+  min-height: 32px !important;
+  font-size: 13px !important;
+}
+
+/* Controls.svelte - Pipeline Settings section spacing */
+.sidebar .bg-white.rounded-xl .mb-3:has(.text-sm.font-medium.text-gray-800) {
+  margin-bottom: 4px !important;
+  margin-top: 16px !important;
+}
+
+/* Controls.svelte - Main control buttons styling */
+.sidebar button[class*="bg-blue-600"] {
+  padding: 8px 16px !important;
+  margin: 4px 2px !important;
+  min-height: 36px !important;
+  font-size: 14px !important;
+  border-radius: 12px !important;
+}
+
+.sidebar button[class*="bg-red-600"][class*="h-9 w-9"] {
+  padding: 8px !important;
+  margin: 4px 2px !important;
+  min-height: 36px !important;
+  min-width: 36px !important;
+  border-radius: 12px !important;
+}
+
+/* Controls.svelte - Secondary action buttons styling */
+.sidebar button[class*="bg-white hover:bg-gray-50"] {
+  padding: 6px 12px !important;
+  margin: 3px 2px !important;
+  min-height: 32px !important;
+  font-size: 12px !important;
+  border-radius: 10px !important;
+}
+
+/* Controls.svelte - Reset session button styling */
+.sidebar button[class*="text-red-600 bg-white hover:bg-red-50"] {
+  padding: 6px 12px !important;
+  margin: 3px 2px !important;
+  min-height: 32px !important;
+  font-size: 12px !important;
+  border-radius: 10px !important;
+}
+
+/* Controls.svelte - Secondary Actions section margin */
+.sidebar .bg-white.rounded-xl .space-y-2:last-child {
+  margin-top: 16px !important;
+}
+
+/* Controls.svelte - Dialog buttons styling */
+.sidebar button[class*="bg-white hover:bg-gray-50"][class*="h-9"] {
+  padding: 6px 16px !important;
+  margin: 4px 2px !important;
+  min-height: 36px !important;
+  font-size: 14px !important;
+  border-radius: 12px !important;
+}
+
+.sidebar button[class*="bg-red-600 hover:bg-red-700"][class*="h-9"] {
+  padding: 6px 16px !important;
+  margin: 4px 2px !important;
+  min-height: 36px !important;
+  font-size: 14px !important;
+  border-radius: 12px !important;
+}
+
+/* Controls.svelte - Status indicator (idle button) styling */
+.sidebar .bg-white.rounded-xl .px-2.py-1.rounded-full.text-xs.font-medium.border {
+  padding: 4px 8px !important;
+  margin: 2px !important;
+  min-height: 24px !important;
+  font-size: 11px !important;
+}
+
+.sidebar .bg-white.rounded-xl .px-2.py-1.rounded-full .inline-block.h-2.w-2.rounded-full {
+  height: 6px !important;
+  width: 6px !important;
+  margin-right: 4px !important;
 }
