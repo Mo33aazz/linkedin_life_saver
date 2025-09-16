@@ -42,6 +42,13 @@
     }
   })();
 
+  $: if (typeof document !== 'undefined') {
+    document.documentElement.classList.toggle(
+      'lea-bot-running',
+      $pipelineStatus === 'running'
+    );
+  }
+
   function scrollToSection(id: string) {
     console.log('App: scrollToSection called with id:', id);
     // Query within our shadow root (not the page document)
@@ -127,6 +134,9 @@
     if (observer) {
       observer.disconnect();
       observer = null;
+    }
+    if (typeof document !== 'undefined') {
+      document.documentElement.classList.remove('lea-bot-running');
     }
   });
 </script>

@@ -87,29 +87,40 @@ const broadcastStateUpdate = (state: Partial<UIState>) => {
   // rejected if no UI component is open to receive it. We can safely
   // ignore this rejection as it's an expected condition.
   (async () => {
-    const [tab] = await chrome.tabs.query({
-      active: true,
-      lastFocusedWindow: true,
-    });
-    if (!tab || !tab.id) {
-      logger.warn('No active tab found to send state update.');
-      return;
-    }
-    chrome.tabs
-      .sendMessage(tab.id, {
-        type: 'STATE_UPDATE',
-        payload: state,
-      })
-      .catch((error) => {
-        if (error.message.includes('Receiving end does not exist')) {
-          // Expected error when no UI is listening. Safe to ignore.
-        } else {
-          logger.warn(
-            'An unexpected error occurred during state broadcast',
-            error
-          );
-        }
+    try {
+      const tabs = await chrome.tabs.query({
+        url: ['https://www.linkedin.com/*'],
       });
+
+      if (!tabs.length) {
+        logger.warn('No LinkedIn tabs found to send state update.');
+        return;
+      }
+
+      await Promise.all(
+        tabs
+          .filter((tab): tab is chrome.tabs.Tab & { id: number } => typeof tab.id === 'number')
+          .map((tab) =>
+            chrome.tabs
+              .sendMessage(tab.id, {
+                type: 'STATE_UPDATE',
+                payload: state,
+              })
+              .catch((error) => {
+                const message = (error as Error).message || '';
+                if (message.includes('Receiving end does not exist')) {
+                  return;
+                }
+                logger.warn('An unexpected error occurred during state broadcast', {
+                  tabId: tab.id,
+                  error: message || String(error),
+                });
+              })
+          )
+      );
+    } catch (error) {
+      logger.error('Failed to broadcast state update to tabs', error);
+    }
     // do something with response here, not outside the function
   })();
 
@@ -563,6 +574,20 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
         logger.error('Failed to start pipeline', error, {
           payload: message.payload,
         });
+        sendResponse({ status: 'error', message: (error as Error).message });
+      }
+    })();
+    return true;
+  }
+
+  if (message.type === 'GET_PIPELINE_STATUS') {
+    (async () => {
+      try {
+        await configInitializationPromise;
+        const status = getPipelineStatus();
+        sendResponse({ status: 'success', payload: status });
+      } catch (error) {
+        logger.error('Failed to retrieve pipeline status', error);
         sendResponse({ status: 'error', message: (error as Error).message });
       }
     })();

@@ -168,6 +168,13 @@
   border-radius: 12px !important;
 }
 
+/* Stop button icon styling - make it larger and more visible */
+.sidebar button[class*="bg-red-600"] svg {
+  width: 50px !important;
+  height: 50px !important;
+  stroke-width: 2.5 !important;
+}
+
 /* Controls.svelte - Secondary action buttons styling */
 .sidebar button[class*="bg-white hover:bg-gray-50"] {
   padding: 6px 12px !important;

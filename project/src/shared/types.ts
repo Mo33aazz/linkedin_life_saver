@@ -159,8 +159,9 @@ export type ExtensionMessage =
         delayMax?: number;
       };
     }
-  | { type: 'STOP_PIPELINE' }
+  | { type: 'STOP_PIPELINE'; payload?: { reason?: string } }
   | { type: 'RESUME_PIPELINE' }
+  | { type: 'GET_PIPELINE_STATUS' }
   | { type: 'GET_AI_CONFIG'; payload?: never }
   | { type: 'UPDATE_AI_CONFIG'; payload: Partial<AIConfig> }
   | { type: 'GET_MODELS'; payload?: never }

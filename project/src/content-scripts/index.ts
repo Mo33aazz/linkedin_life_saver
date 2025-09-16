@@ -6,6 +6,7 @@ import {
 } from './domInteractor';
 import { mountApp, unmountApp } from '../ui';
 import shadowDOMOverrides from './sidebar-styles.css?inline';
+import type { RunState, UIState } from '../shared/types';
 
 import '../index.css';
 
@@ -120,6 +121,209 @@ const preloadFonts = () => {
 preloadFonts();
 
 console.log('Content script starting...');
+
+let unloadStopHandlerRegistered = false;
+let botOverlayEl: HTMLDivElement | null = null;
+let botPauseButtonEl: HTMLButtonElement | null = null;
+let botOverlayObserver: MutationObserver | null = null;
+let currentPipelineStatus: RunState = 'idle';
+
+const updateBotOverlayAccessibility = () => {
+  const running = document.documentElement.classList.contains('lea-bot-running');
+  if (botOverlayEl) {
+    botOverlayEl.setAttribute('aria-hidden', String(!running));
+  }
+  if (botPauseButtonEl) {
+    botPauseButtonEl.tabIndex = running ? 0 : -1;
+  }
+};
+
+const applyPipelineStatusClass = (status: RunState | undefined) => {
+  if (!status) return;
+  const hasChanged = status !== currentPipelineStatus;
+  currentPipelineStatus = status;
+  if (status === 'running') {
+    ensureLayoutShiftStyle();
+  }
+  if (hasChanged) {
+    document.documentElement.classList.toggle('lea-bot-running', status === 'running');
+  } else if (status === 'running') {
+    document.documentElement.classList.add('lea-bot-running');
+  } else {
+    document.documentElement.classList.remove('lea-bot-running');
+  }
+  updateBotOverlayAccessibility();
+};
+
+const requestPipelineStop = (reason: 'page-unload' | 'overlay-pause' = 'page-unload') => {
+  if (reason === 'overlay-pause' && botPauseButtonEl && !botPauseButtonEl.disabled) {
+    botPauseButtonEl.disabled = true;
+    window.setTimeout(() => {
+      if (botPauseButtonEl) {
+        botPauseButtonEl.disabled = false;
+      }
+    }, 1200);
+  }
+  if (typeof chrome === 'undefined' || !chrome.runtime?.sendMessage) return;
+  try {
+    chrome.runtime.sendMessage(
+      { type: 'STOP_PIPELINE', payload: { reason } },
+      () => {
+        const err = chrome.runtime?.lastError;
+        const errMessage = typeof err?.message === 'string' ? err.message : '';
+        if (err && !/The message port closed before a response was received/i.test(errMessage)) {
+          console.warn('STOP_PIPELINE message error:', err);
+        }
+      }
+    );
+  } catch (error) {
+    console.warn('Failed to request STOP_PIPELINE on unload:', error);
+  }
+};
+
+const ensureUnloadStopHandler = () => {
+  if (unloadStopHandlerRegistered) return;
+  const handler = () => requestPipelineStop('page-unload');
+  window.addEventListener('pagehide', handler, { capture: false });
+  window.addEventListener('beforeunload', handler, { capture: false });
+  unloadStopHandlerRegistered = true;
+};
+
+ensureUnloadStopHandler();
+
+const ensureBotControlOverlay = () => {
+  const setup = () => {
+    if (botOverlayEl && botOverlayEl.isConnected) {
+      updateBotOverlayAccessibility();
+      return;
+    }
+    const existing = document.getElementById('lea-bot-overlay');
+    if (existing) {
+      botOverlayEl = existing as HTMLDivElement;
+      botPauseButtonEl = botOverlayEl.querySelector('button') as HTMLButtonElement | null;
+      updateBotOverlayAccessibility();
+      if (!botOverlayObserver) {
+        botOverlayObserver = new MutationObserver(() => updateBotOverlayAccessibility());
+        botOverlayObserver.observe(document.documentElement, {
+          attributes: true,
+          attributeFilter: ['class'],
+        });
+      }
+      return;
+    }
+
+    if (!document.body) return;
+
+    const overlay = document.createElement('div');
+    overlay.id = 'lea-bot-overlay';
+    overlay.setAttribute('aria-hidden', 'true');
+    overlay.addEventListener('click', (event) => {
+      if (event.target === overlay) {
+        event.stopPropagation();
+        event.preventDefault();
+      }
+    });
+    overlay.addEventListener(
+      'wheel',
+      (event) => {
+        event.preventDefault();
+      },
+      { passive: false }
+    );
+    overlay.addEventListener(
+      'touchmove',
+      (event) => {
+        event.preventDefault();
+      },
+      { passive: false }
+    );
+
+    const button = document.createElement('button');
+    button.type = 'button';
+    button.id = 'lea-bot-pause-button';
+    button.setAttribute('aria-live', 'polite');
+    button.setAttribute('aria-label', 'Pause automation');
+    button.innerHTML = `
+      <span class="lea-bot-pause-icon" aria-hidden="true">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <rect x="6" y="4.5" width="4" height="15" rx="1.2" />
+          <rect x="14" y="4.5" width="4" height="15" rx="1.2" />
+        </svg>
+      </span>
+      <span class="lea-bot-pause-text">Pause Bot</span>
+    `;
+    button.addEventListener('click', (event) => {
+      event.preventDefault();
+      event.stopPropagation();
+      requestPipelineStop('overlay-pause');
+    });
+
+    overlay.appendChild(button);
+    document.body.appendChild(overlay);
+
+    botOverlayEl = overlay;
+    botPauseButtonEl = button;
+    updateBotOverlayAccessibility();
+    if (!botOverlayObserver) {
+      botOverlayObserver = new MutationObserver(() => updateBotOverlayAccessibility());
+      botOverlayObserver.observe(document.documentElement, {
+        attributes: true,
+        attributeFilter: ['class'],
+      });
+    }
+  };
+
+  if (document.body) {
+    setup();
+  } else {
+    window.addEventListener('DOMContentLoaded', setup, { once: true });
+  }
+};
+
+ensureBotControlOverlay();
+
+let pipelineStatusInitAttempts = 0;
+const MAX_PIPELINE_STATUS_ATTEMPTS = 6;
+
+const requestInitialPipelineStatus = () => {
+  if (pipelineStatusInitAttempts >= MAX_PIPELINE_STATUS_ATTEMPTS) {
+    return;
+  }
+  pipelineStatusInitAttempts += 1;
+  if (typeof chrome === 'undefined' || !chrome.runtime?.sendMessage) return;
+  try {
+    chrome.runtime.sendMessage(
+      { type: 'GET_PIPELINE_STATUS' },
+      (response?: { status?: string; payload?: RunState }) => {
+        const err = chrome.runtime?.lastError;
+        const errMessage = typeof err?.message === 'string' ? err.message : '';
+        if (
+          err &&
+          !/The message port closed before a response was received/i.test(errMessage)
+        ) {
+          console.warn('GET_PIPELINE_STATUS message error:', err);
+          return;
+        }
+        if (err && pipelineStatusInitAttempts < MAX_PIPELINE_STATUS_ATTEMPTS) {
+          const backoffMs = pipelineStatusInitAttempts * 200;
+          window.setTimeout(requestInitialPipelineStatus, backoffMs);
+          return;
+        }
+        if (response?.status === 'success' && response.payload) {
+          applyPipelineStatusClass(response.payload);
+          pipelineStatusInitAttempts = MAX_PIPELINE_STATUS_ATTEMPTS;
+        } else if (pipelineStatusInitAttempts < MAX_PIPELINE_STATUS_ATTEMPTS) {
+          const backoffMs = pipelineStatusInitAttempts * 200;
+          window.setTimeout(requestInitialPipelineStatus, backoffMs);
+        }
+      }
+    );
+  } catch (error) {
+    console.warn('Failed to request current pipeline status:', error);
+  }
+};
+
+requestInitialPipelineStatus();
 
 // UI layout and scale settings
 // Sidebar width (px) for the injected UI
@@ -270,8 +474,136 @@ const ensureLayoutShiftStyle = (): boolean => {
       margin-right: var(--lea-sidebar-shift, 0px) !important;
       overflow-x: hidden !important;
     }
+    @keyframes lea-bot-control-pulse {
+      0%, 100% {
+        opacity: 0.7;
+        box-shadow:
+          inset 0 0 0 1px rgba(59, 130, 246, 0.85),
+          inset 0 0 60px rgba(59, 130, 246, 0.78),
+          inset 0 0 120px rgba(37, 99, 235, 0.6);
+      }
+      45% {
+        opacity: 1;
+        box-shadow:
+          inset 0 0 0 2px rgba(59, 130, 246, 1),
+          inset 0 0 120px rgba(59, 130, 246, 0.95),
+          inset 0 0 200px rgba(37, 99, 235, 0.9);
+      }
+    }
+    body::after {
+      content: '';
+      position: fixed;
+      inset: 0;
+      right: var(--lea-sidebar-offset, 0px);
+      pointer-events: none;
+      opacity: 0;
+      z-index: 2147480000;
+      transition: opacity ${TRANSITION_DURATION_MS}ms cubic-bezier(0.4, 0, 0.2, 1);
+      background:
+        radial-gradient(120% 120% at 50% 50%, rgba(59, 130, 246, 0) 58%, rgba(37, 99, 235, 0.9) 90%, rgba(59, 130, 246, 0.95) 100%);
+      box-shadow:
+        inset 0 0 0 1px rgba(59, 130, 246, 0.9),
+        inset 0 0 40px rgba(59, 130, 246, 0.85);
+    }
+    html.lea-sidebar-open body::after {
+      opacity: 1;
+    }
+    html.lea-bot-running body::after {
+      opacity: 1;
+      background:
+        radial-gradient(140% 140% at 50% 50%, rgba(59, 130, 246, 0.05) 45%, rgba(37, 99, 235, 0.95) 86%, rgba(14, 67, 177, 0.98) 100%);
+      box-shadow:
+        inset 0 0 0 3px rgba(59, 130, 246, 1),
+        inset 0 0 160px rgba(37, 99, 235, 0.95),
+        inset 0 0 320px rgba(12, 74, 165, 0.92);
+      animation: lea-bot-control-pulse 0.7s ease-in-out infinite;
+    }
+    #lea-bot-overlay {
+      position: fixed;
+      inset: 0;
+      right: var(--lea-sidebar-offset, 0px);
+      z-index: 2147480001;
+      display: none;
+      pointer-events: none;
+      align-items: flex-end;
+      justify-content: center;
+      padding: 0 0 clamp(40px, 8vh, 96px);
+      background: transparent;
+      backdrop-filter: none;
+    }
+    html.lea-bot-running #lea-bot-overlay {
+      display: flex;
+      pointer-events: auto;
+      cursor: not-allowed;
+    }
+    #lea-bot-overlay button {
+      pointer-events: auto;
+      border: none;
+      border-radius: 999px;
+      padding: 0.85rem 2.7rem;
+      font-size: 1rem;
+      font-weight: 600;
+      letter-spacing: -0.01em;
+      font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Helvetica Neue', sans-serif;
+      background: linear-gradient(135deg, #2563eb 0%, #1d4ed8 100%);
+      color: #f8fafc;
+      box-shadow:
+        0 22px 45px rgba(37, 99, 235, 0.36),
+        0 10px 24px rgba(15, 23, 42, 0.28);
+      display: inline-flex;
+      align-items: center;
+      gap: 0.75rem;
+      transition: transform 0.25s cubic-bezier(0.4, 0, 0.2, 1),
+        box-shadow 0.25s cubic-bezier(0.4, 0, 0.2, 1),
+        background 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+      cursor: pointer;
+    }
+    #lea-bot-overlay button:hover {
+      transform: translateY(-2px) scale(1.01);
+      box-shadow:
+        0 28px 55px rgba(37, 99, 235, 0.42),
+        0 12px 28px rgba(15, 23, 42, 0.32);
+      background: linear-gradient(135deg, #1d4ed8 0%, #1e40af 100%);
+    }
+    #lea-bot-overlay button:active {
+      transform: translateY(0) scale(0.99);
+      box-shadow:
+        0 12px 32px rgba(30, 64, 175, 0.38),
+        0 6px 18px rgba(15, 23, 42, 0.3);
+    }
+    #lea-bot-overlay button:disabled {
+      opacity: 0.7;
+      cursor: progress;
+    }
+    #lea-bot-overlay button svg {
+      width: 20px;
+      height: 20px;
+    }
+    #lea-bot-overlay button .lea-bot-pause-icon {
+      width: 36px;
+      height: 36px;
+      border-radius: 50%;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      background: rgba(255, 255, 255, 0.16);
+      box-shadow: inset 0 0 0 1px rgba(248, 250, 252, 0.15);
+    }
+    #lea-bot-overlay button .lea-bot-pause-text {
+      font-size: 1.05rem;
+      line-height: 1.2;
+      white-space: nowrap;
+    }
+    html.lea-bot-running,
+    html.lea-bot-running body {
+      overflow: hidden !important;
+      overscroll-behavior: none !important;
+    }
     @media (prefers-reduced-motion: reduce) {
       body { transition: none !important; }
+      body::after { transition: none !important; }
+      html.lea-bot-running body::after { animation: none; }
+      #lea-bot-overlay button { transition: none !important; }
     }
   `;
 
@@ -648,8 +980,16 @@ if (
     console.log('[Content Script] Message received:', message.type);
 
     // DOM actions are handled here.
-    // STATE_UPDATE and LOG_ENTRY are handled by the listener in App.tsx
-    // to ensure they are tied to the UI lifecycle.
+    // UI components still listen for STATE_UPDATE, but we also tap the
+    // pipeline status to keep global overlays in sync across tabs.
+
+    if (message.type === 'STATE_UPDATE' && message.payload) {
+      const payload = message.payload as Partial<UIState>;
+      if (payload.pipelineStatus) {
+        applyPipelineStatusClass(payload.pipelineStatus);
+      }
+      return;
+    }
 
     if (message.type === 'LIKE_COMMENT') {
       console.log('Content script received LIKE_COMMENT:', message.payload);

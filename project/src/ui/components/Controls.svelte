@@ -3,7 +3,7 @@
   import { gsap } from 'gsap';
   import { pipelineStatus, postUrn, comments } from '../store';
   import type { ExtensionMessage, LogEntry } from '../../shared/types';
-  import { Play, Pause, Square, Download, FileText, RotateCcw, Settings, Clock, MessageCircle, AlertTriangle } from 'lucide-svelte';
+  import { Play, Pause, StopCircle, Download, FileText, RotateCcw, Settings, Clock, MessageCircle, AlertTriangle } from 'lucide-svelte';
 
   let controlsContainer: HTMLElement;
   let buttons: HTMLElement[] = [];
@@ -204,7 +204,7 @@
         on:click={stopPipeline}
         aria-label="Stop Pipeline"
       >
-        <Square size={16} fill="currentColor" />
+        <StopCircle size={16} />
       </button>
     {/if}
   </div>
