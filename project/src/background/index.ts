@@ -598,7 +598,27 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
     (async () => {
       try {
         await configInitializationPromise;
-        logger.info('Received STOP_PIPELINE message');
+        const senderTabId = sender.tab?.id ?? null;
+        const activeTabId = getActiveTabId();
+
+        if (
+          senderTabId !== null &&
+          activeTabId !== null &&
+          senderTabId !== activeTabId
+        ) {
+          logger.info('Ignoring STOP_PIPELINE from non-active tab', {
+            senderTabId,
+            activeTabId,
+            reason: message.payload?.reason,
+          });
+          sendResponse({ status: 'ignored' });
+          return;
+        }
+
+        logger.info('Received STOP_PIPELINE message', {
+          senderTabId,
+          reason: message.payload?.reason,
+        });
         await stopPipeline();
         sendResponse({ status: 'success' });
       } catch (error) {

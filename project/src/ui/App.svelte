@@ -10,11 +10,30 @@
   import SidebarNav from './components/SidebarNav.svelte';
   import type { ExtensionMessage, UIState, LogEntry } from '../shared/types';
   import { getById, query } from './utils/domQuery';
+  import AuthWelcome from './components/AuthWelcome.svelte';
+  import {
+    authStatus,
+    authError,
+    initializeAuth,
+    signInWithPassword,
+    signUpWithPassword,
+    signOut,
+    teardownAuth,
+    pendingVerificationEmail,
+    resendVerificationEmail,
+    resendCooldown,
+    clearPendingVerificationState,
+  } from './store/auth';
 
   let appContainer: HTMLElement;
   let activeSection: string | null = null;
   let observer: IntersectionObserver | null = null;
   const sectionIds = ['counters', 'pipeline', 'controls', 'ai-settings', 'logs'];
+  let authLoading = false;
+  let resendLoading = false;
+  let authMessage: string | null = null;
+  let hasAnimatedDashboard = false;
+  let lastPendingEmail: string | null = null;
 
   // Computed styles for status chip in the header
   $: statusChip = (() => {
@@ -49,6 +68,24 @@
     );
   }
 
+  $: if ($authStatus === 'authenticated') {
+    authMessage = null;
+    clearPendingVerificationState();
+  }
+
+  $: if ($authStatus !== 'authenticated') {
+    hasAnimatedDashboard = false;
+  }
+
+  $: if ($authStatus === 'authenticated' && appContainer && !hasAnimatedDashboard) {
+    gsap.fromTo(
+      appContainer,
+      { opacity: 0, y: 20 },
+      { opacity: 1, y: 0, duration: 0.6, ease: 'power2.out' }
+    );
+    hasAnimatedDashboard = true;
+  }
+
   function scrollToSection(id: string) {
     console.log('App: scrollToSection called with id:', id);
     // Query within our shadow root (not the page document)
@@ -63,16 +100,88 @@
       console.warn('App: Could not find element with id inside shadow root:', id);
     }
   }
+  $: if ($authError && /invalid or has expired/i.test($authError)) {
+    authMessage = 'Your verification link has expired. Request a fresh email below.';
+  }
+
+  $: if ($authError && /email not confirmed/i.test($authError)) {
+    authMessage = 'Please verify your email to finish setting up your account. You can resend the link below.';
+  }
+
+  $: if ($pendingVerificationEmail !== lastPendingEmail) {
+    lastPendingEmail = $pendingVerificationEmail;
+    if (lastPendingEmail) {
+      authMessage = `We just sent a verification email to ${lastPendingEmail}. Check your inbox, then sign in here once confirmed.`;
+    }
+  }
+
+  async function handleAuthenticate(event: CustomEvent<{
+    mode: 'sign-in' | 'sign-up';
+    email: string;
+    password: string;
+  }>) {
+    authLoading = true;
+    authMessage = null;
+    try {
+      if (event.detail.mode === 'sign-in') {
+        await signInWithPassword(event.detail.email, event.detail.password);
+      } else {
+        await signUpWithPassword(event.detail.email, event.detail.password);
+        authMessage = `Almost there! Confirm the verification email sent to ${event.detail.email}, then sign in.`;
+      }
+    } catch (error) {
+      console.error('Authentication failed', error);
+      if (error instanceof Error && /not confirmed/i.test(error.message)) {
+        authMessage =
+          'Your account is awaiting verification. Please check your inbox or resend the verification email below.';
+      }
+    } finally {
+      authLoading = false;
+    }
+  }
+
+  async function handleSignOut() {
+    try {
+      await signOut();
+      authMessage = 'You have been signed out.';
+    } catch (error) {
+      console.error('Failed to sign out', error);
+    }
+  }
+
+  async function handleResendVerification() {
+    if (!$pendingVerificationEmail || resendLoading) return;
+
+    resendLoading = true;
+    try {
+      await resendVerificationEmail();
+      authMessage = `A fresh verification email is on its way to ${$pendingVerificationEmail}.`;
+    } catch (error) {
+      console.error('Failed to resend verification email', error);
+      if (error instanceof Error && !/supabase is not configured/i.test(error.message)) {
+        authMessage = null;
+      }
+    } finally {
+      resendLoading = false;
+    }
+  }
   let messageListener: (message: ExtensionMessage) => void;
 
   onMount(() => {
     console.log('UI App component mounted. Sending ping to service worker.');
-    
-    // Initialize GSAP animations
-    gsap.fromTo(appContainer, 
-      { opacity: 0, y: 20 },
-      { opacity: 1, y: 0, duration: 0.6, ease: 'power2.out' }
-    );
+
+    initializeAuth().catch((error) => {
+      console.error('Unable to initialise Supabase authentication', error);
+    });
+
+    // Initialize GSAP animations when the dashboard renders
+    if (appContainer) {
+      gsap.fromTo(
+        appContainer,
+        { opacity: 0, y: 20 },
+        { opacity: 1, y: 0, duration: 0.6, ease: 'power2.out' }
+      );
+    }
 
     // Send ping to service worker
     if (typeof chrome !== 'undefined' && chrome.runtime?.sendMessage) {
@@ -128,6 +237,7 @@
   });
 
   onDestroy(() => {
+    teardownAuth();
     if (messageListener && typeof chrome !== 'undefined' && chrome.runtime?.onMessage?.removeListener) {
       chrome.runtime.onMessage.removeListener(messageListener);
     }
@@ -141,6 +251,7 @@
   });
 </script>
 
+{#if $authStatus === 'authenticated'}
 <div bind:this={appContainer} id="sidebar-app" class="sidebar animate-fade-in">
   <div class="ui-scale">
       <!-- Header with animated title, refactored to use same card style -->
@@ -215,11 +326,34 @@
       
       <!-- Navigation positioned on the right side -->
       <aside class="nav-sidebar">
-        <SidebarNav active={activeSection} on:navigate={(e) => scrollToSection(e.detail.id)} />
+        <SidebarNav
+          active={activeSection}
+          on:navigate={(e) => scrollToSection(e.detail.id)}
+          on:logout={handleSignOut}
+        />
       </aside>
     </div>
   </div>
 </div>
+{:else if $authStatus === 'initializing'}
+  <div class="auth-loading">
+    <div class="auth-loading__card">
+      <div class="auth-loading__spinner" aria-hidden="true"></div>
+      <p>Preparing your workspace…</p>
+    </div>
+  </div>
+{:else}
+  <AuthWelcome
+    error={$authError}
+    message={authMessage}
+    loading={authLoading}
+    pendingEmail={$pendingVerificationEmail}
+    resendCooldown={$resendCooldown}
+    resendLoading={resendLoading}
+    on:authenticate={handleAuthenticate}
+    on:resendVerification={handleResendVerification}
+  />
+{/if}
 
 <style>
   #sidebar-app {
@@ -297,6 +431,15 @@
     }
   }
 
+  @keyframes spin {
+    from {
+      transform: rotate(0deg);
+    }
+    to {
+      transform: rotate(360deg);
+    }
+  }
+
   /* Accessibility improvements */
   @media (prefers-reduced-motion: reduce) {
     :global(*) {
@@ -336,5 +479,38 @@
       order: 2;
       align-self: center;
     }
+  }
+
+  .auth-loading {
+    min-height: 100vh;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: linear-gradient(135deg, #f1f5f9 0%, #e0e7ff 100%);
+    padding: 2rem;
+  }
+
+  .auth-loading__card {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 1rem;
+    padding: 2.5rem;
+    border-radius: 1.5rem;
+    background: rgba(255, 255, 255, 0.9);
+    border: 1px solid rgba(148, 163, 184, 0.2);
+    box-shadow: 0 20px 45px -18px rgba(15, 23, 42, 0.25);
+    text-align: center;
+    color: #1f2937;
+    font-weight: 500;
+  }
+
+  .auth-loading__spinner {
+    width: 2.25rem;
+    height: 2.25rem;
+    border-radius: 9999px;
+    border: 3px solid rgba(99, 102, 241, 0.2);
+    border-top-color: #6366f1;
+    animation: spin 0.9s linear infinite;
   }
 </style>

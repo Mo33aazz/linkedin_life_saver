@@ -1,6 +1,6 @@
 <script lang="ts">
   import { createEventDispatcher } from 'svelte';
-  import { BarChart3, Workflow, Sliders, Settings2, ScrollText } from 'lucide-svelte';
+  import { BarChart3, Workflow, Sliders, Settings2, ScrollText, LogOut } from 'lucide-svelte';
 
   type Section = {
     id: string;
@@ -17,12 +17,19 @@
   ];
 
   export let active: string | null = null;
-  const dispatch = createEventDispatcher<{ navigate: { id: string } }>();
+  const dispatch = createEventDispatcher<{
+    navigate: { id: string };
+    logout: void;
+  }>();
 
   function handleClick(id: string) {
     console.log('SidebarNav: Button clicked for section:', id);
     dispatch('navigate', { id });
     console.log('SidebarNav: Navigate event dispatched for:', id);
+  }
+
+  function handleLogout() {
+    dispatch('logout');
   }
 </script>
 
@@ -41,6 +48,16 @@
       <span class="tooltip">{s.label}</span>
     </button>
   {/each}
+  <div class="nav-separator" aria-hidden="true"></div>
+  <button
+    type="button"
+    class="nav-item logout"
+    title="Sign out"
+    on:click={handleLogout}
+  >
+    <LogOut size={18} style="filter: drop-shadow(0 1px 3px rgba(255,255,255,0.1));" />
+    <span class="tooltip">Sign out</span>
+  </button>
 </nav>
 
 <style>
@@ -113,5 +130,25 @@
   .nav-item:hover .tooltip {
     opacity: 1;
     transform: translateY(-50%) translateX(2px);
+  }
+
+  .nav-item.logout {
+    margin-top: 0.75rem;
+    background: #fee2e2;
+    border-color: rgba(248, 113, 113, 0.8);
+    color: #b91c1c;
+  }
+
+  .nav-item.logout:hover {
+    background: #fecaca;
+    border-color: rgba(239, 68, 68, 0.9);
+    color: #7f1d1d;
+  }
+
+  .nav-separator {
+    height: 1px;
+    width: 100%;
+    background: linear-gradient(90deg, transparent, rgba(148, 163, 184, 0.4), transparent);
+    margin: 0.5rem 0;
   }
 </style>

@@ -171,12 +171,20 @@ const requestPipelineStop = (reason: 'page-unload' | 'overlay-pause' = 'page-unl
       () => {
         const err = chrome.runtime?.lastError;
         const errMessage = typeof err?.message === 'string' ? err.message : '';
-        if (err && !/The message port closed before a response was received/i.test(errMessage)) {
+        const isContextInvalid = /Extension context invalidated/i.test(errMessage);
+        if (err &&
+          !/The message port closed before a response was received/i.test(errMessage) &&
+          !isContextInvalid
+        ) {
           console.warn('STOP_PIPELINE message error:', err);
         }
       }
     );
   } catch (error) {
+    const message = (error as Error | undefined)?.message || '';
+    if (/Extension context invalidated/i.test(message)) {
+      return; // Ignore expected error when the extension is unloading.
+    }
     console.warn('Failed to request STOP_PIPELINE on unload:', error);
   }
 };
@@ -184,8 +192,10 @@ const requestPipelineStop = (reason: 'page-unload' | 'overlay-pause' = 'page-unl
 const ensureUnloadStopHandler = () => {
   if (unloadStopHandlerRegistered) return;
   const handler = () => requestPipelineStop('page-unload');
-  window.addEventListener('pagehide', handler, { capture: false });
+  // Only rely on unload events so the pipeline keeps running when the tab is
+  // merely hidden (for example while a profile opens in a new tab).
   window.addEventListener('beforeunload', handler, { capture: false });
+  window.addEventListener('unload', handler, { capture: false });
   unloadStopHandlerRegistered = true;
 };
 

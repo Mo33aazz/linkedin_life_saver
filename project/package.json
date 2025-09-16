@@ -13,6 +13,7 @@
     "test": "playwright test"
   },
   "dependencies": {
+    "@supabase/supabase-js": "^2.57.4",
     "@tailwindcss/typography": "^0.5.16",
     "autoprefixer": "^10.4.21",
     "gsap": "^3.13.0",
