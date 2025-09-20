@@ -6,6 +6,7 @@ import {
   ChatMessage,
   UIState,
   CapturedPostState,
+  AIConfig,
 } from '../../shared/types';
 import {
   getPostState,
@@ -19,6 +20,79 @@ import { OpenRouterClient } from './openRouterClient';
 // Retry logic constants
 const MAX_RETRIES = 3;
 const INITIAL_DELAY = 2000; // Start with a 2-second delay for DOM actions
+
+const getModeLabel = (config: AIConfig): 'manual' | 'ai' =>
+  config.aiEnabled === false ? 'manual' : 'ai';
+
+const getManualTemplates = (config: AIConfig) =>
+  config.manual || config.staticTexts || null;
+
+const determineDelay = (config: AIConfig): number => {
+  const defaultMin = 1500;
+  const defaultMax = 4000;
+  const min = Math.max(0, config.minDelay ?? defaultMin);
+  const max = Math.max(min, config.maxDelay ?? defaultMax);
+  if (min === max) return min;
+  return Math.floor(Math.random() * (max - min + 1)) + min;
+};
+
+const waitForConfiguredDelay = async (config: AIConfig) => {
+  const delayMs = determineDelay(config);
+  logger.info('Waiting before processing next comment', {
+    delayMs,
+    delayRange: {
+      min: config.minDelay,
+      max: config.maxDelay,
+    },
+    mode: getModeLabel(config),
+  });
+
+  if (delayMs <= 0) {
+    broadcastState({ delayCountdownMs: null });
+    return;
+  }
+
+  await new Promise<void>((resolve) => {
+    const start = Date.now();
+    const endTime = start + delayMs;
+    let resolved = false;
+    let intervalId: ReturnType<typeof setInterval> | null = null;
+    let timeoutId: ReturnType<typeof setTimeout> | null = null;
+
+    const finalize = () => {
+      if (intervalId !== null) {
+        clearInterval(intervalId);
+        intervalId = null;
+      }
+      if (timeoutId !== null) {
+        clearTimeout(timeoutId);
+        timeoutId = null;
+      }
+      if (!resolved) {
+        resolved = true;
+        broadcastState({ delayCountdownMs: null });
+        resolve();
+      }
+    };
+
+    const emitCountdown = () => {
+      if (pipelineStatus !== 'running') {
+        finalize();
+        return;
+      }
+      const remaining = Math.max(0, endTime - Date.now());
+      broadcastState({ delayCountdownMs: remaining });
+      if (remaining <= 0) {
+        finalize();
+      }
+    };
+
+    emitCountdown();
+
+    intervalId = setInterval(emitCountdown, 1000);
+    timeoutId = setTimeout(finalize, delayMs);
+  });
+};
 
 // Internal state variables
 let pipelineStatus: RunState = 'idle';
@@ -116,16 +190,27 @@ const generateReply = async (
 
   // Check if AI is disabled, use static text
   if (aiConfig.aiEnabled === false) {
-    logger.info('Using static reply text (AI disabled)', context);
-    const staticText = comment.connected
-      ? aiConfig.staticTexts?.replyText
-      : aiConfig.staticTexts?.nonConnectedText;
-
-    if (!staticText) {
-      logger.warn('No static text configured for reply', context);
+    const manualTemplates = getManualTemplates(aiConfig);
+    const manualContext = {
+      ...context,
+      mode: 'manual',
+      templateKey: comment.connected ? 'replyText' : 'nonConnectedText',
+    };
+    if (!manualTemplates) {
+      logger.warn('Manual templates missing while AI is disabled', manualContext);
       return null;
     }
 
+    const staticText = comment.connected
+      ? manualTemplates.replyText
+      : manualTemplates.nonConnectedText;
+
+    if (!staticText) {
+      logger.warn('Manual template not configured for comment type', manualContext);
+      return null;
+    }
+
+    logger.info('Using manual reply template', manualContext);
     return staticText;
   }
 
@@ -198,15 +283,20 @@ const generateDm = async (
 
   // Check if AI is disabled, use static text
   if (aiConfig.aiEnabled === false) {
-    logger.info('Using static DM text (AI disabled)', context);
-    const staticDmText = aiConfig.staticTexts?.dmText;
-
-    if (!staticDmText) {
-      logger.warn('No static DM text configured', context);
+    const manualTemplates = getManualTemplates(aiConfig);
+    const manualContext = { ...context, mode: 'manual', templateKey: 'dmText' };
+    if (!manualTemplates) {
+      logger.warn('Manual templates missing while AI is disabled', manualContext);
       return null;
     }
 
-    return staticDmText;
+    if (!manualTemplates.dmText) {
+      logger.warn('Manual DM template not configured', manualContext);
+      return null;
+    }
+
+    logger.info('Using manual DM template', manualContext);
+    return manualTemplates.dmText;
   }
 
   // AI is enabled, proceed with AI generation
@@ -855,16 +945,22 @@ const processComment = async (
         const aiConfig = getConfig();
         let replyText: string | null;
 
-        if (comment.connected === false) {
+        if (aiConfig.aiEnabled === false) {
+          replyText = await generateReply(comment, postState);
+        } else if (comment.connected === false) {
           replyText =
             aiConfig.reply?.nonConnectedPrompt ||
             "Thanks for your comment! I'd love to connect first.";
-          logger.info('Using non-connected reply template', { ...stepContext });
+          logger.info('Using non-connected AI reply template', {
+            ...stepContext,
+            mode: getModeLabel(aiConfig),
+          });
         } else {
           replyText = await generateReply(comment, postState);
         }
 
-        if (replyText === null) throw new Error('AI reply generation failed.');
+        if (replyText === null)
+          throw new Error('Reply generation failed for current comment.');
 
         if (replyText === '__SKIP__') {
           logger.info('AI requested to skip comment, skipping reply', {
@@ -983,7 +1079,14 @@ const processQueue = async (): Promise<void> => {
     }
 
     await processComment(nextComment, postState);
-    await new Promise((resolve) => setTimeout(resolve, 2000));
+    if (pipelineStatus !== 'running') {
+      logger.info('Pipeline status changed, skipping configured delay.', {
+        pipelineStatus,
+      });
+      break;
+    }
+    const aiConfig = getConfig();
+    await waitForConfiguredDelay(aiConfig);
   }
 
   isProcessing = false;
@@ -991,7 +1094,11 @@ const processQueue = async (): Promise<void> => {
   if (activePostUrn) {
     const finalPostState = getPostState(activePostUrn);
     if (finalPostState) finalPostState._meta.runState = pipelineStatus;
-    broadcastState({ pipelineStatus, comments: finalPostState?.comments });
+    broadcastState({
+      pipelineStatus,
+      comments: finalPostState?.comments,
+      delayCountdownMs: null,
+    });
   }
 };
 
@@ -1080,6 +1187,7 @@ export const startPipeline = async (
     pipelineStatus: 'running',
     comments: postState.comments,
     postUrn: activePostUrn,
+    delayCountdownMs: null,
   });
   processQueue();
 };
@@ -1099,7 +1207,7 @@ export const stopPipeline = async (): Promise<void> => {
     postState._meta.runState = 'paused';
     await savePostState(activePostUrn, postState);
   }
-  broadcastState({ pipelineStatus: 'paused' });
+  broadcastState({ pipelineStatus: 'paused', delayCountdownMs: null });
 };
 
 export const resumePipeline = async (
@@ -1132,6 +1240,7 @@ export const resumePipeline = async (
     pipelineStatus: 'running',
     postUrn: activePostUrn,
     comments: postState.comments,
+    delayCountdownMs: null,
   });
   processQueue();
 };
@@ -1143,7 +1252,11 @@ export const resetPipeline = async (postUrn?: string): Promise<void> => {
     activeTabId = null;
     isProcessing = false;
   }
-  broadcastState({ pipelineStatus: 'idle', postUrn: postUrn ?? undefined });
+  broadcastState({
+    pipelineStatus: 'idle',
+    postUrn: postUrn ?? undefined,
+    delayCountdownMs: null,
+  });
 };
 
 export const getPipelineStatus = (): RunState => {

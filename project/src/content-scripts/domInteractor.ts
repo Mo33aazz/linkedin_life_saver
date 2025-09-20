@@ -1,4 +1,5 @@
 import type { ParsedComment, CapturedPostState } from '../shared/types';
+import { getPostUrnFromUrl } from '../shared/linkedin';
 
 /**
  * A helper function to pause execution for a specified duration.
@@ -736,9 +737,7 @@ export const capturePostStateFromDOM = (
   const comments = extractComments(maxComments);
   const userProfileUrl = getSignedInUserProfileUrl() || '';
 
-  const postUrnRegex = /(urn:li:activity:\d+)/;
-  const match = window.location.href.match(postUrnRegex);
-  const postUrn = match && match[1] ? match[1] : null;
+  const postUrn = getPostUrnFromUrl(window.location.href);
   const postUrl = window.location.href;
 
   console.log(`Capture complete. Found ${comments.length} comments.`);

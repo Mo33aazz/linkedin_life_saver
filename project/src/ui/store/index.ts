@@ -102,6 +102,7 @@ const initialState: UIState = {
   postAuthor: 'Demo User',
   postTimestamp: new Date().toISOString(),
   aiConfig: undefined,
+  delayCountdownMs: null,
 };
 
 // Create writable stores
@@ -173,3 +174,6 @@ export const uiStore = {
 
 // Export individual stores for component use
 export { uiState as default };
+
+// Export changelog store
+export { changelogStore } from './changelog';

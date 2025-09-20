@@ -7,6 +7,7 @@ import {
 import { mountApp, unmountApp } from '../ui';
 import shadowDOMOverrides from './sidebar-styles.css?inline';
 import type { RunState, UIState } from '../shared/types';
+import { isLinkedInPostUrl } from '../shared/linkedin';
 
 import '../index.css';
 
@@ -125,8 +126,10 @@ console.log('Content script starting...');
 let unloadStopHandlerRegistered = false;
 let botOverlayEl: HTMLDivElement | null = null;
 let botPauseButtonEl: HTMLButtonElement | null = null;
+let botDelayCountdownEl: HTMLDivElement | null = null;
 let botOverlayObserver: MutationObserver | null = null;
 let currentPipelineStatus: RunState = 'idle';
+let currentDelayCountdownMs: number | null = null;
 
 const updateBotOverlayAccessibility = () => {
   const running = document.documentElement.classList.contains('lea-bot-running');
@@ -136,6 +139,35 @@ const updateBotOverlayAccessibility = () => {
   if (botPauseButtonEl) {
     botPauseButtonEl.tabIndex = running ? 0 : -1;
   }
+};
+
+const formatDelayCountdown = (remainingMs: number): string => {
+  const clamped = Math.max(0, Math.floor(remainingMs));
+  const totalSeconds = Math.max(0, Math.ceil(clamped / 1000));
+  const minutes = Math.floor(totalSeconds / 60);
+  const seconds = totalSeconds % 60;
+  if (minutes <= 0) {
+    return `${totalSeconds}s`;
+  }
+  return `${minutes}m ${seconds.toString().padStart(2, '0')}s`;
+};
+
+const updateDelayCountdownIndicator = (remainingMs: number | null | undefined) => {
+  const hasValue = typeof remainingMs === 'number' && remainingMs > 0;
+  currentDelayCountdownMs = hasValue ? remainingMs : null;
+
+  if (!botDelayCountdownEl) return;
+
+  if (!hasValue) {
+    botDelayCountdownEl.textContent = '';
+    botDelayCountdownEl.classList.remove('is-visible');
+    botDelayCountdownEl.setAttribute('aria-hidden', 'true');
+    return;
+  }
+
+  botDelayCountdownEl.textContent = `Next action in ${formatDelayCountdown(remainingMs)}`;
+  botDelayCountdownEl.classList.add('is-visible');
+  botDelayCountdownEl.setAttribute('aria-hidden', 'false');
 };
 
 const applyPipelineStatusClass = (status: RunState | undefined) => {
@@ -151,6 +183,9 @@ const applyPipelineStatusClass = (status: RunState | undefined) => {
     document.documentElement.classList.add('lea-bot-running');
   } else {
     document.documentElement.classList.remove('lea-bot-running');
+  }
+  if (status !== 'running') {
+    updateDelayCountdownIndicator(null);
   }
   updateBotOverlayAccessibility();
 };
@@ -211,7 +246,9 @@ const ensureBotControlOverlay = () => {
     if (existing) {
       botOverlayEl = existing as HTMLDivElement;
       botPauseButtonEl = botOverlayEl.querySelector('button') as HTMLButtonElement | null;
+      botDelayCountdownEl = botOverlayEl.querySelector('.lea-bot-delay-indicator') as HTMLDivElement | null;
       updateBotOverlayAccessibility();
+      updateDelayCountdownIndicator(currentDelayCountdownMs);
       if (!botOverlayObserver) {
         botOverlayObserver = new MutationObserver(() => updateBotOverlayAccessibility());
         botOverlayObserver.observe(document.documentElement, {
@@ -248,6 +285,16 @@ const ensureBotControlOverlay = () => {
       { passive: false }
     );
 
+    const contentWrap = document.createElement('div');
+    contentWrap.className = 'lea-bot-overlay-content';
+
+    const countdown = document.createElement('div');
+    countdown.className = 'lea-bot-delay-indicator';
+    countdown.id = 'lea-bot-delay-countdown';
+    countdown.setAttribute('role', 'status');
+    countdown.setAttribute('aria-live', 'polite');
+    countdown.setAttribute('aria-hidden', 'true');
+
     const button = document.createElement('button');
     button.type = 'button';
     button.id = 'lea-bot-pause-button';
@@ -268,11 +315,16 @@ const ensureBotControlOverlay = () => {
       requestPipelineStop('overlay-pause');
     });
 
-    overlay.appendChild(button);
+    contentWrap.appendChild(countdown);
+    contentWrap.appendChild(button);
+
+    overlay.appendChild(contentWrap);
     document.body.appendChild(overlay);
 
     botOverlayEl = overlay;
     botPauseButtonEl = button;
+    botDelayCountdownEl = countdown;
+    updateDelayCountdownIndicator(currentDelayCountdownMs);
     updateBotOverlayAccessibility();
     if (!botOverlayObserver) {
       botOverlayObserver = new MutationObserver(() => updateBotOverlayAccessibility());
@@ -435,12 +487,7 @@ const resetViewportMetaState = () => {
 
 const isOnLinkedInPost = (): boolean => {
   try {
-    const href = window.location.href;
-    // Match: https://www.linkedin.com/feed/update/urn:li:activity:123456/
-    // Allow optional trailing params or missing trailing slash
-    return /^https:\/\/www\.linkedin\.com\/feed\/update\/urn:li:activity:\d+\/?(\?.*)?$/.test(
-      href
-    );
+    return isLinkedInPostUrl(window.location.href);
   } catch {
     return false;
   }
@@ -545,6 +592,43 @@ const ensureLayoutShiftStyle = (): boolean => {
       display: flex;
       pointer-events: auto;
       cursor: not-allowed;
+    }
+    #lea-bot-overlay .lea-bot-overlay-content {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 0.9rem;
+      pointer-events: none;
+    }
+    #lea-bot-overlay .lea-bot-overlay-content > * {
+      pointer-events: none;
+    }
+    #lea-bot-overlay .lea-bot-overlay-content > button {
+      pointer-events: auto;
+    }
+    #lea-bot-overlay .lea-bot-delay-indicator {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      padding: 0.5rem 1.6rem;
+      border-radius: 999px;
+      font-size: 0.95rem;
+      font-weight: 600;
+      letter-spacing: -0.01em;
+      color: #f8fafc;
+      background: rgba(15, 23, 42, 0.55);
+      box-shadow:
+        0 20px 38px rgba(15, 23, 42, 0.38),
+        0 6px 18px rgba(15, 23, 42, 0.22);
+      opacity: 0;
+      transform: translateY(12px);
+      transition: opacity 0.2s ease, transform 0.2s ease;
+      white-space: nowrap;
+      pointer-events: none;
+    }
+    #lea-bot-overlay .lea-bot-delay-indicator.is-visible {
+      opacity: 1;
+      transform: translateY(0);
     }
     #lea-bot-overlay button {
       pointer-events: auto;
@@ -997,6 +1081,14 @@ if (
       const payload = message.payload as Partial<UIState>;
       if (payload.pipelineStatus) {
         applyPipelineStatusClass(payload.pipelineStatus);
+      }
+      if ('delayCountdownMs' in payload) {
+        updateDelayCountdownIndicator(payload.delayCountdownMs ?? null);
+      } else if (
+        payload.pipelineStatus &&
+        payload.pipelineStatus !== 'running'
+      ) {
+        updateDelayCountdownIndicator(null);
       }
       return;
     }

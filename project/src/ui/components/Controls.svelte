@@ -3,6 +3,7 @@
   import { gsap } from 'gsap';
   import { pipelineStatus, postUrn, comments } from '../store';
   import type { ExtensionMessage, LogEntry } from '../../shared/types';
+  import { getPostUrnFromUrl } from '../../shared/linkedin';
   import { Play, Pause, StopCircle, Download, FileText, RotateCcw, Settings, Clock, MessageCircle, AlertTriangle } from 'lucide-svelte';
 
   let controlsContainer: HTMLElement;
@@ -25,9 +26,7 @@
 
   // Helper: Get post URN from current tab URL as fallback
   const getPostUrnFromCurrentTab = (): string | null => {
-    const postUrnRegex = /(urn:li:activity:\\d+)/;
-    const match = window.location.href.match(postUrnRegex);
-    return match && match[1] ? match[1] : null;
+    return getPostUrnFromUrl(window.location.href);
   };
 
   // Main button configuration based on status

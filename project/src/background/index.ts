@@ -36,6 +36,7 @@ import {
 } from '../shared/types';
 import { OpenRouterClient } from './services/openRouterClient';
 import { logger } from './logger';
+import { getPostUrnFromUrl } from '../shared/linkedin';
 
 // Define the broadcaster function
 const broadcastLog = (logEntry: LogEntry) => {
@@ -264,9 +265,7 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
   if (message.type === 'EXPORT_JSON') {
     logger.debug('Received EXPORT_JSON request');
     // Get the current post URN from the sender tab URL
-    const postUrnRegex = /(urn:li:activity:\d+)/;
-    const match = sender.tab?.url?.match(postUrnRegex);
-    const postUrn = match ? match[1] : null;
+    const postUrn = getPostUrnFromUrl(sender.tab?.url);
     const state = postUrn ? getPostState(postUrn) : null;
     // Expose for E2E verification without relying on downloads
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -281,10 +280,8 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
 
     // Proactively send state to the UI that just connected.
     (async () => {
-      const postUrnRegex = /(urn:li:activity:\d+)/;
-      const match = sender.tab?.url?.match(postUrnRegex);
-      if (match && match[1]) {
-        const postUrn = match[1];
+      const postUrn = getPostUrnFromUrl(sender.tab?.url);
+      if (postUrn) {
         // Attempt to load from storage if not in memory, to handle SW startup race conditions
         let state = getPostState(postUrn);
         if (!state) {
@@ -388,11 +385,9 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
 
   if (message.type === 'REQUEST_POST_STATE_FOR_EXPORT') {
     logger.info('Received request for post state export.');
-    const postUrnRegex = /(urn:li:activity:\d+)/;
-    const match = sender.tab?.url?.match(postUrnRegex);
+    const postUrn = getPostUrnFromUrl(sender.tab?.url);
 
-    if (match && match[1]) {
-      const postUrn = match[1];
+    if (postUrn) {
       const state = getPostState(postUrn);
       if (state) {
         sendResponse({ status: 'success', payload: state });
@@ -419,9 +414,7 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
         const explicitUrn = (message.postUrn as string) || undefined;
         let postUrn = explicitUrn;
         if (!postUrn) {
-          const postUrnRegex = /(urn:li:activity:\d+)/;
-          const match = sender.tab?.url?.match(postUrnRegex);
-          postUrn = match && match[1] ? match[1] : undefined;
+          postUrn = getPostUrnFromUrl(sender.tab?.url) || undefined;
         }
 
         if (!postUrn) {
@@ -555,9 +548,11 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
     (async () => {
       try {
         await configInitializationPromise;
-        const { postUrn, maxComments } = message.payload as {
+        const { postUrn, maxComments, delayMin, delayMax } = message.payload as {
           postUrn: string;
           maxComments?: number;
+          delayMin?: number;
+          delayMax?: number;
         };
         const tabId = sender.tab?.id;
         if (!tabId) {
@@ -567,7 +562,15 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
           postUrn,
           tabId,
           maxComments,
+          delayMin,
+          delayMax,
         });
+        if (typeof delayMin === 'number' || typeof delayMax === 'number') {
+          await updateConfig({
+            minDelay: delayMin,
+            maxDelay: delayMax,
+          });
+        }
         await startPipeline(postUrn, tabId, maxComments);
         sendResponse({ status: 'success' });
       } catch (error) {
@@ -657,10 +660,7 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
         const postUrn =
           (message.postUrn as string) ||
           (message.payload?.postUrn as string) ||
-          (() => {
-            const m = sender.tab?.url?.match(/(urn:li:activity:\d+)/);
-            return m && m[1] ? m[1] : undefined;
-          })();
+          (getPostUrnFromUrl(sender.tab?.url) || undefined);
         logger.info('Received RESET_PIPELINE request', { postUrn });
         await resetPipeline(postUrn);
         sendResponse({ status: 'success' });
@@ -679,10 +679,7 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
         const postUrn =
           (message.postUrn as string) ||
           (message.payload?.postUrn as string) ||
-          (() => {
-            const m = sender.tab?.url?.match(/(urn:li:activity:\d+)/);
-            return m && m[1] ? m[1] : undefined;
-          })();
+          (getPostUrnFromUrl(sender.tab?.url) || undefined);
         logger.info('Received RESET_SESSION request', { postUrn });
         if (!postUrn) {
           sendResponse({
@@ -878,8 +875,17 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
                   });
                 }
               });
-              const m = location.href.match(/(urn:li:activity:\d+)/);
-              const postUrn = m && m[1] ? m[1] : null;
+              const postUrn = (() => {
+                const urnMatch = location.href.match(/(urn:li:activity:\d+)/);
+                if (urnMatch?.[1]) {
+                  return urnMatch[1];
+                }
+                const activityMatch = location.href.match(/activity-(\d+)/);
+                if (activityMatch?.[1]) {
+                  return `urn:li:activity:${activityMatch[1]}`;
+                }
+                return null;
+              })();
               return { postUrn, comments, postUrl: location.href };
             },
           } as chrome.scripting.ScriptInjection<[], unknown>);
@@ -892,8 +898,17 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
           let postUrn = response?.postUrn;
           if (!postUrn) {
             const urlToParse = response?.postUrl || target.url || '';
-            const m = urlToParse.match(/(urn:li:activity:\d+)/);
-            postUrn = m && m[1] ? m[1] : null;
+            postUrn = (() => {
+              const urnMatch = urlToParse.match(/(urn:li:activity:\d+)/);
+              if (urnMatch?.[1]) {
+                return urnMatch[1];
+              }
+              const activityMatch = urlToParse.match(/activity-(\d+)/);
+              if (activityMatch?.[1]) {
+                return `urn:li:activity:${activityMatch[1]}`;
+              }
+              return null;
+            })();
           }
           if (!postUrn) {
             reject(new Error('Capture returned no postUrn.'));

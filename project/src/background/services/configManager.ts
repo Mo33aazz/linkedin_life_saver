@@ -24,6 +24,18 @@ const defaultAIConfig: AIConfig = {
     customPrompt:
       'Thank them, reference comment, offer short helpful resource; soft opt-in; no pressure.',
   },
+  manual: {
+    replyText: "Thank you for your message. I'll respond as soon as possible.",
+    nonConnectedText:
+      'Thank you for reaching out. I will review your message and respond soon.',
+    dmText: 'Thanks for the direct message! I will get back to you shortly.',
+  },
+  staticTexts: {
+    replyText: "Thank you for your message. I'll respond as soon as possible.",
+    nonConnectedText:
+      'Thank you for reaching out. I will review your message and respond soon.',
+    dmText: 'Thanks for the direct message! I will get back to you shortly.',
+  },
   attribution: {
     httpReferer: 'https://github.com/your-repo/linkedin-engagement-assistant', // Replace with your actual repo/homepage
     xTitle: 'LinkedIn Engagement Assistant',
@@ -73,6 +85,14 @@ export const updateConfig = async (
       ...existingConfig.dm,
       ...(newConfig.dm || {}),
     },
+    manual: {
+      ...existingConfig.manual,
+      ...(newConfig.manual || {}),
+    },
+    staticTexts: {
+      ...existingConfig.staticTexts,
+      ...(newConfig.staticTexts || {}),
+    },
     attribution: {
       ...existingConfig.attribution,
       ...(newConfig.attribution || {}),
@@ -107,7 +127,22 @@ export const initializeConfig = async (): Promise<void> => {
   try {
     const result = await chrome.storage.sync.get(AI_CONFIG_KEY);
     if (result[AI_CONFIG_KEY]) {
-      currentConfig = result[AI_CONFIG_KEY];
+      const storedConfig = result[AI_CONFIG_KEY] as AIConfig;
+      const hydratedManual = storedConfig.manual
+        ? { ...storedConfig.manual }
+        : storedConfig.staticTexts
+        ? { ...storedConfig.staticTexts }
+        : { ...defaultAIConfig.manual };
+      const hydratedStatic = storedConfig.staticTexts
+        ? { ...storedConfig.staticTexts }
+        : { ...hydratedManual };
+
+      currentConfig = {
+        ...defaultAIConfig,
+        ...storedConfig,
+        manual: hydratedManual,
+        staticTexts: hydratedStatic,
+      };
       console.log('Loaded AI config from storage:', currentConfig);
     } else {
       console.log(

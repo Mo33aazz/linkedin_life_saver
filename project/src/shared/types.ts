@@ -82,6 +82,7 @@ export interface UIState {
   postAuthor?: string;
   postTimestamp?: string;
   aiConfig?: AIConfig;
+  delayCountdownMs?: number | null;
 }
 
 export interface Post {
@@ -105,6 +106,12 @@ export interface OpenRouterModel {
   context_length: number;
 }
 
+export interface ManualConfig {
+  replyText?: string;
+  nonConnectedText?: string;
+  dmText?: string;
+}
+
 export interface AIConfig {
   provider?: string;
   apiKey?: string;
@@ -126,6 +133,7 @@ export interface AIConfig {
   dm?: {
     customPrompt?: string;
   };
+  manual?: ManualConfig;
   staticTexts?: {
     replyText?: string;
     nonConnectedText?: string;

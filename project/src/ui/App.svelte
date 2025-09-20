@@ -1,11 +1,12 @@
 <script lang="ts">
-  import { onMount, onDestroy } from 'svelte';
+  import { onMount, onDestroy, tick } from 'svelte';
   import { gsap } from 'gsap';
   import Counters from './components/Counters.svelte';
   import PipelineProgress from './components/PipelineProgress.svelte';
   import Controls from './components/Controls.svelte';
   import LogsPanel from './components/LogsPanel.svelte';
   import AiSettings from './components/AiSettings.svelte';
+  import Changelog from './components/Changelog.svelte';
   import { uiStore, pipelineStatus } from './store';
   import SidebarNav from './components/SidebarNav.svelte';
   import type { ExtensionMessage, UIState, LogEntry } from '../shared/types';
@@ -29,7 +30,8 @@
   let appContainer: HTMLElement;
   let activeSection: string | null = null;
   let observer: IntersectionObserver | null = null;
-  const sectionIds = ['counters', 'pipeline', 'controls', 'ai-settings', 'logs'];
+  const dashboardSectionIds = ['counters', 'pipeline', 'controls', 'ai-settings', 'logs'];
+  let activePage: 'dashboard' | 'changelog' = 'dashboard';
   let authLoading = false;
   let resendLoading = false;
   let authMessage: string | null = null;
@@ -100,6 +102,41 @@
     } else {
       console.warn('App: Could not find element with id inside shadow root:', id);
     }
+  }
+
+  function setupSectionObservers() {
+    if (!observer || !appContainer || activePage !== 'dashboard') {
+      return;
+    }
+
+    observer.disconnect();
+
+    dashboardSectionIds.forEach((id) => {
+      const el =
+        (appContainer && getById<HTMLElement>(appContainer, id)) ||
+        (appContainer && query<HTMLElement>(appContainer, `#${CSS.escape(id)}`));
+
+      if (el) {
+        observer.observe(el as Element);
+      }
+    });
+  }
+
+  async function handleNavigate(id: string) {
+    if (id === 'changelog') {
+      activePage = 'changelog';
+      activeSection = 'changelog';
+      observer?.disconnect();
+      return;
+    }
+
+    if (activePage !== 'dashboard') {
+      activePage = 'dashboard';
+      await tick();
+      setupSectionObservers();
+    }
+
+    scrollToSection(id);
   }
   $: if ($authError && /invalid or has expired/i.test($authError)) {
     authMessage = 'Your verification link has expired. Request a fresh email below.';
@@ -245,11 +282,7 @@
     );
 
     // Query sections from shadow root
-    sectionIds.forEach((id) => {
-      const el = (appContainer && getById<HTMLElement>(appContainer, id))
-        || (appContainer && query<HTMLElement>(appContainer, `#${CSS.escape(id)}`));
-      if (el) observer?.observe(el as Element);
-    });
+    setupSectionObservers();
   });
 
   onDestroy(() => {
@@ -270,81 +303,89 @@
 {#if $authStatus === 'authenticated'}
 <div bind:this={appContainer} id="sidebar-app" class="sidebar animate-fade-in">
   <div class="ui-scale">
-      <!-- Header with animated title, refactored to use same card style -->
-      <div class="header-section">
-        <div class="header-card relative overflow-hidden rounded-2xl border border-gray-100 bg-white p-5 mb-4 shadow-sm animate-slide-up">
-          <!-- subtle gradients inspired by geometric hero (no heavy motion) -->
-          <div class="pointer-events-none absolute -top-16 -left-20 h-48 w-48 rounded-full bg-gradient-to-br from-indigo-500/10 to-rose-400/10 blur-2xl"></div>
-          <div class="pointer-events-none absolute -bottom-16 -right-20 h-40 w-40 rounded-full bg-gradient-to-tr from-violet-500/10 to-cyan-400/10 blur-2xl"></div>
+      {#if activePage === 'dashboard'}
+        <!-- Header with animated title, refactored to use same card style -->
+        <div class="header-section">
+          <div class="header-card relative overflow-hidden rounded-2xl border border-gray-100 bg-white p-5 mb-4 shadow-sm animate-slide-up">
+            <!-- subtle gradients inspired by geometric hero (no heavy motion) -->
+            <div class="pointer-events-none absolute -top-16 -left-20 h-48 w-48 rounded-full bg-gradient-to-br from-indigo-500/10 to-rose-400/10 blur-2xl"></div>
+            <div class="pointer-events-none absolute -bottom-16 -right-20 h-40 w-40 rounded-full bg-gradient-to-tr from-violet-500/10 to-cyan-400/10 blur-2xl"></div>
 
-          <div class="relative flex items-start justify-between gap-4">
-            <div class="min-w-0">
-              <div class="inline-flex items-center gap-2 rounded-full border px-2.5 py-1 text-xs font-medium bg-gradient-to-r {statusChip.classes}">
-                <span class="inline-block h-2 w-2 rounded-full {statusChip.dot}"></span>
-                <span>{$pipelineStatus.charAt(0).toUpperCase() + $pipelineStatus.slice(1)}</span>
+            <div class="relative flex items-start justify-between gap-4">
+              <div class="min-w-0">
+                <div class="inline-flex items-center gap-2 rounded-full border px-2.5 py-1 text-xs font-medium bg-gradient-to-r {statusChip.classes}">
+                  <span class="inline-block h-2 w-2 rounded-full {statusChip.dot}"></span>
+                  <span>{$pipelineStatus.charAt(0).toUpperCase() + $pipelineStatus.slice(1)}</span>
+                </div>
+
+                <h1 class="mt-2 text-2xl sm:text-3xl font-extrabold tracking-tight bg-clip-text text-transparent bg-gradient-to-b from-gray-900 to-gray-700" style="font-family: 'Saira', 'Inter', 'Segoe UI', 'Roboto', 'Helvetica Neue', Arial, sans-serif;">
+                  <span class="inline-flex items-center gap-2 align-middle">
+                    <!-- LinkedIn logo to the left of the title -->
+                    <svg
+                      aria-hidden="true"
+                      focusable="false"
+                      viewBox="0 0 24 24"
+                      class="h-7 w-7 shrink-0"
+                    >
+                      <rect x="0" y="0" width="24" height="24" rx="4" fill="#0A66C2" />
+                      <text
+                        x="12"
+                        y="16"
+                        text-anchor="middle"
+                        font-size="12"
+                        font-weight="700"
+                        font-family="Inter, Segoe UI, Roboto, Helvetica Neue, Arial, sans-serif"
+                        fill="#FFFFFF"
+                      >in</text>
+                    </svg>
+                    <span>LinkedIn Life Saver</span>
+                  </span>
+                </h1>
+                <p class="mt-1 text-sm text-gray-600 leading-relaxed">Smart LinkedIn automation and insight tools — neatly organized in your sidebar.</p>
               </div>
 
-              <h1 class="mt-2 text-2xl sm:text-3xl font-extrabold tracking-tight bg-clip-text text-transparent bg-gradient-to-b from-gray-900 to-gray-700" style="font-family: 'Saira', 'Inter', 'Segoe UI', 'Roboto', 'Helvetica Neue', Arial, sans-serif;">
-                <span class="inline-flex items-center gap-2 align-middle">
-                  <!-- LinkedIn logo to the left of the title -->
-                  <svg
-                    aria-hidden="true"
-                    focusable="false"
-                    viewBox="0 0 24 24"
-                    class="h-7 w-7 shrink-0"
-                  >
-                    <rect x="0" y="0" width="24" height="24" rx="4" fill="#0A66C2" />
-                    <text
-                      x="12"
-                      y="16"
-                      text-anchor="middle"
-                      font-size="12"
-                      font-weight="700"
-                      font-family="Inter, Segoe UI, Roboto, Helvetica Neue, Arial, sans-serif"
-                      fill="#FFFFFF"
-                    >in</text>
-                  </svg>
-                  <span>LinkedIn Life Saver</span>
-                </span>
-              </h1>
-              <p class="mt-1 text-sm text-gray-600 leading-relaxed">Smart LinkedIn automation and insight tools — neatly organized in your sidebar.</p>
+              <img
+                src={chrome?.runtime?.getURL('logo.svg') || '/logo.svg'}
+                alt="LinkedIn Life Saver"
+                class="h-8 w-8 shrink-0 opacity-90 invert"
+              />
             </div>
-
-            <img
-              src={chrome?.runtime?.getURL('logo.svg') || '/logo.svg'}
-              alt="LinkedIn Life Saver"
-              class="h-8 w-8 shrink-0 opacity-90 invert"
-            />
           </div>
         </div>
-      </div>
+      {/if}
 
     <!-- Main layout with navigation on the right -->
-    <div class="main-layout">
+    <div class="main-layout" class:changelog-view={activePage === 'changelog'}>
       <!-- Main content sections -->
-      <main class="content-area">
-        <section id="counters" class="section-block">
-          <Counters />
-        </section>
-        <section id="pipeline" class="section-block">
-          <PipelineProgress />
-        </section>
-        <section id="controls" class="section-block">
-          <Controls />
-        </section>
-        <section id="ai-settings" class="section-block">
-          <AiSettings />
-        </section>
-        <section id="logs" class="section-block">
-          <LogsPanel />
-        </section>
+      <main class="content-area" class:changelog-content={activePage === 'changelog'}>
+        {#if activePage === 'dashboard'}
+          <section id="counters" class="section-block">
+            <Counters />
+          </section>
+          <section id="pipeline" class="section-block">
+            <PipelineProgress />
+          </section>
+          <section id="controls" class="section-block">
+            <Controls />
+          </section>
+          <section id="ai-settings" class="section-block">
+            <AiSettings />
+          </section>
+          <section id="logs" class="section-block">
+            <LogsPanel />
+          </section>
+        {:else}
+          <div class="changelog-page">
+            <Changelog />
+          </div>
+        {/if}
       </main>
-      
+
       <!-- Navigation positioned on the right side -->
       <aside class="nav-sidebar">
         <SidebarNav
-          active={activeSection}
-          on:navigate={(e) => scrollToSection(e.detail.id)}
+          active={activePage === 'changelog' ? 'changelog' : activeSection}
+          on:navigate={(e) => handleNavigate(e.detail.id)}
           on:logout={handleSignOut}
         />
       </aside>
@@ -413,12 +454,25 @@
     align-items: flex-start;
   }
 
+  .main-layout.changelog-view {
+    align-items: stretch;
+  }
+
   .content-area {
     flex: 1;
     display: flex;
     flex-direction: column;
     gap: 1rem;
     min-width: 0;
+  }
+
+  .content-area.changelog-content {
+    gap: 0;
+  }
+
+  .changelog-page {
+    flex: 1;
+    display: flex;
   }
 
   .nav-sidebar {

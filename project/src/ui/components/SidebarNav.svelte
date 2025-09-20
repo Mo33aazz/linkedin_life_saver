@@ -1,6 +1,6 @@
 <script lang="ts">
   import { createEventDispatcher } from 'svelte';
-  import { BarChart3, Workflow, Sliders, Settings2, ScrollText, LogOut } from 'lucide-svelte';
+  import { BarChart3, Workflow, Sliders, Settings2, ScrollText, LogOut, GitBranch } from 'lucide-svelte';
 
   type Section = {
     id: string;
@@ -14,6 +14,7 @@
     { id: 'controls', label: 'Controls', icon: Sliders },
     { id: 'ai-settings', label: 'AI Settings', icon: Settings2 },
     { id: 'logs', label: 'Logs', icon: ScrollText },
+    { id: 'changelog', label: 'Changelog', icon: GitBranch },
   ];
 
   export let active: string | null = null;

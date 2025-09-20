@@ -1,8 +1,8 @@
 <script lang="ts">
-  import { onMount } from 'svelte';
+  import { onDestroy, onMount } from 'svelte';
   import { gsap } from 'gsap';
   import type { OpenRouterModel, AIConfig } from '../../shared/types';
-  import { MessageSquare, Eye, EyeOff, Check, X, Save, Loader2 } from 'lucide-svelte';
+  import { MessageSquare, Eye, EyeOff, Check, X, Loader2 } from 'lucide-svelte';
 
   let containerElement: HTMLElement;
   let formElements: HTMLElement[] = [];
@@ -35,6 +35,38 @@
   let temperature = 0.7;
   let topP = 0.9;
   let maxTokens = 150;
+
+  const AUTO_SAVE_DELAY = 800;
+  let autoSaveTimer: ReturnType<typeof setTimeout> | null = null;
+  let lastSavedConfigSnapshot = '';
+  let initialized = false;
+  let currentConfigSnapshot = '';
+
+  function buildConfigPayload(): Partial<AIConfig> {
+    const manualConfig = {
+      replyText: staticReplyText,
+      nonConnectedText: staticNonConnectedText,
+      dmText: staticDmText,
+    };
+
+    return {
+      apiKey,
+      model: selectedModel,
+      temperature,
+      top_p: topP,
+      max_tokens: maxTokens,
+      reply: {
+        customPrompt: replyPrompt,
+        nonConnectedPrompt: nonConnectedTemplate,
+      },
+      dm: {
+        customPrompt: dmPrompt,
+      },
+      manual: manualConfig,
+      staticTexts: manualConfig,
+      aiEnabled: isAiEnabled,
+    };
+  }
 
   function handleFetchModels(apiKeyToTest: string, currentModel: string | undefined) {
     if (!apiKeyToTest) return;
@@ -84,17 +116,23 @@
         
         // Load AI enabled state and static texts
         isAiEnabled = config.aiEnabled !== undefined ? config.aiEnabled : true;
-        staticReplyText = config.staticTexts?.replyText || '';
-        staticNonConnectedText = config.staticTexts?.nonConnectedText || '';
-        staticDmText = config.staticTexts?.dmText || '';
+        const manualConfig = config.manual || config.staticTexts || {};
+        staticReplyText = manualConfig.replyText || '';
+        staticNonConnectedText = manualConfig.nonConnectedText || '';
+        staticDmText = manualConfig.dmText || '';
 
         // If an API key is already present, fetch models automatically.
         if (config.apiKey) {
           handleFetchModels(config.apiKey, config.model);
         }
+
+        lastSavedConfigSnapshot = JSON.stringify(buildConfigPayload());
+        initialized = true;
       } else {
         console.error('Failed to load reply settings:', response.message);
         error = `Failed to load reply settings: ${response.message}`;
+        lastSavedConfigSnapshot = JSON.stringify(buildConfigPayload());
+        initialized = true;
       }
     });
     
@@ -121,37 +159,21 @@
     }
   });
 
-  function handleSaveConfig() {
+  function handleSaveConfig(
+    payload: Partial<AIConfig> = buildConfigPayload(),
+    snapshot: string = JSON.stringify(payload)
+  ) {
     saveMessage = '';
     return new Promise<void>((resolve, reject) => {
-      const partialConfig: Partial<AIConfig> = {
-        apiKey,
-        model: selectedModel,
-        temperature,
-        top_p: topP,
-        max_tokens: maxTokens,
-        reply: {
-          customPrompt: replyPrompt,
-          nonConnectedPrompt: nonConnectedTemplate,
-        },
-        dm: {
-          customPrompt: dmPrompt,
-        },
-        // Add static text fields and AI toggle state
-        staticTexts: {
-          replyText: staticReplyText,
-          nonConnectedText: staticNonConnectedText,
-          dmText: staticDmText,
-        },
-        aiEnabled: isAiEnabled,
-      };
       chrome.runtime.sendMessage(
-        { type: 'UPDATE_AI_CONFIG', payload: partialConfig },
+        { type: 'UPDATE_AI_CONFIG', payload },
         (response) => {
           if (response && response.status === 'success') {
-            console.log('Reply settings saved.');
-            saveMessage = 'Settings saved successfully!';
-            setTimeout(() => (saveMessage = ''), 3000); // Clear after 3s
+            console.log('Reply settings auto-saved.');
+            saveMessage = 'Settings auto-saved successfully!';
+            error = null;
+            lastSavedConfigSnapshot = snapshot;
+            setTimeout(() => (saveMessage = ''), 3000);
             resolve();
           } else {
             const errorMsg = `Failed to save reply settings: ${
@@ -168,6 +190,50 @@
 
   function onTestClick() {
     handleFetchModels(apiKey, selectedModel);
+  }
+
+  function scheduleAutoSave(snapshot: string) {
+    if (!initialized || snapshot === lastSavedConfigSnapshot) {
+      return;
+    }
+
+    if (autoSaveTimer) {
+      clearTimeout(autoSaveTimer);
+    }
+
+    autoSaveTimer = setTimeout(runAutoSave, AUTO_SAVE_DELAY);
+  }
+
+  async function runAutoSave() {
+    if (autoSaveTimer) {
+      clearTimeout(autoSaveTimer);
+      autoSaveTimer = null;
+    }
+
+    const payload = buildConfigPayload();
+    const snapshot = JSON.stringify(payload);
+
+    if (snapshot === lastSavedConfigSnapshot) {
+      return;
+    }
+
+    try {
+      await handleSaveConfig(payload, snapshot);
+    } catch (autoSaveError) {
+      console.error('Auto-save failed:', autoSaveError);
+    }
+  }
+
+  onDestroy(() => {
+    if (autoSaveTimer) {
+      clearTimeout(autoSaveTimer);
+      autoSaveTimer = null;
+    }
+  });
+
+  $: currentConfigSnapshot = JSON.stringify(buildConfigPayload());
+  $: if (initialized) {
+    scheduleAutoSave(currentConfigSnapshot);
   }
 </script>
 
@@ -439,19 +505,11 @@
     </div>
   {/if}
 
-  <div class="border-t border-gray-100 pt-3 mt-4">
-    <button
-      on:click={handleSaveConfig}
-      class="w-full px-4 py-2 text-sm font-medium text-white bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 rounded-lg transition-all duration-200 transform hover:scale-[1.02] active:scale-[0.98] shadow-sm hover:shadow-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2"
-    >
-      <div class="flex items-center justify-center gap-2">
-        <Save class="w-4 h-4" aria-hidden="true" />
-        <span>Save Configuration</span>
-      </div>
-    </button>
+  <div class="border-t border-gray-100 pt-3 mt-4 space-y-2">
+    <p class="text-xs text-gray-500 text-center">Changes are saved automatically.</p>
 
     {#if saveMessage}
-      <div class="mt-2 p-2 bg-green-50 border border-green-200 rounded-lg">
+      <div class="p-2 bg-green-50 border border-green-200 rounded-lg">
         <div class="flex items-center gap-2">
           <Check class="w-4 h-4 text-green-600" aria-hidden="true" />
           <span class="text-xs text-green-800">{saveMessage}</span>
