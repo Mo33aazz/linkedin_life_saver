@@ -79,7 +79,13 @@
 <style>
   .changelog-container {
     max-width: 100%;
+    width: 100%;
     margin: 0 auto;
+    padding: 2rem;
+    background: #ffffff;
+    border-radius: 1.25rem;
+    border: 1px solid rgba(148, 163, 184, 0.25);
+    box-shadow: 0 20px 45px -24px rgba(15, 23, 42, 0.35);
   }
 
   .changelog-header {
@@ -181,7 +187,7 @@
 
   @media (max-width: 640px) {
     .changelog-container {
-      padding: 0 0.25rem;
+      padding: 1rem;
     }
 
     .version-header {

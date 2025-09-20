@@ -13,9 +13,10 @@
     { id: 'pipeline', label: 'Pipeline', icon: Workflow },
     { id: 'controls', label: 'Controls', icon: Sliders },
     { id: 'ai-settings', label: 'AI Settings', icon: Settings2 },
-    { id: 'logs', label: 'Logs', icon: ScrollText },
-    { id: 'changelog', label: 'Changelog', icon: GitBranch },
+    { id: 'logs', label: 'Logs', icon: ScrollText }
   ];
+
+  const changelogSection: Section = { id: 'changelog', label: 'Changelog', icon: GitBranch };
 
   export let active: string | null = null;
   const dispatch = createEventDispatcher<{
@@ -49,6 +50,19 @@
       <span class="tooltip">{s.label}</span>
     </button>
   {/each}
+  <div class="nav-separator" aria-hidden="true"></div>
+  <button
+    type="button"
+    class="nav-item {active === changelogSection.id ? 'active' : ''}"
+    title={changelogSection.label}
+    aria-current={active === changelogSection.id ? 'true' : 'false'}
+    on:click={() => handleClick(changelogSection.id)}
+    on:mousedown={() => console.log('SidebarNav: mousedown on', changelogSection.id)}
+    on:pointerdown={() => console.log('SidebarNav: pointerdown on', changelogSection.id)}
+  >
+    <changelogSection.icon size={18} style="filter: drop-shadow(0 1px 3px rgba(255,255,255,0.1));" />
+    <span class="tooltip">{changelogSection.label}</span>
+  </button>
   <div class="nav-separator" aria-hidden="true"></div>
   <button
     type="button"
@@ -134,7 +148,6 @@
   }
 
   .nav-item.logout {
-    margin-top: 0.75rem;
     background: #fee2e2;
     border-color: rgba(248, 113, 113, 0.8);
     color: #b91c1c;

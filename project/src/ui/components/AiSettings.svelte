@@ -4,6 +4,12 @@
   import type { OpenRouterModel, AIConfig } from '../../shared/types';
   import { MessageSquare, Eye, EyeOff, Check, X, Loader2 } from 'lucide-svelte';
 
+  declare global {
+    interface Window {
+      __LINKEDIN_SAVE_AI_CONFIG?: () => Promise<void>;
+    }
+  }
+
   let containerElement: HTMLElement;
   let formElements: HTMLElement[] = [];
 
@@ -35,12 +41,6 @@
   let temperature = 0.7;
   let topP = 0.9;
   let maxTokens = 150;
-
-  const AUTO_SAVE_DELAY = 800;
-  let autoSaveTimer: ReturnType<typeof setTimeout> | null = null;
-  let lastSavedConfigSnapshot = '';
-  let initialized = false;
-  let currentConfigSnapshot = '';
 
   function buildConfigPayload(): Partial<AIConfig> {
     const manualConfig = {
@@ -98,82 +98,19 @@
     );
   }
 
-  // Load config on component mount
-  onMount(() => {
-    chrome.runtime.sendMessage({ type: 'GET_AI_CONFIG' }, (response) => {
-      if (response.status === 'success') {
-        const config: AIConfig = response.payload;
-        apiKey = config.apiKey || '';
-        selectedModel = config.model || '';
-        temperature = config.temperature || 0.7;
-        topP = config.top_p || 0.9;
-        maxTokens = config.max_tokens || 150;
-        replyPrompt = config.reply?.customPrompt || '';
-        dmPrompt = config.dm?.customPrompt || '';
-        nonConnectedTemplate =
-          config.reply?.nonConnectedPrompt ||
-          "Thanks for your comment! I'd love to connect first so we can continue the conversation.";
-        
-        // Load AI enabled state and static texts
-        isAiEnabled = config.aiEnabled !== undefined ? config.aiEnabled : true;
-        const manualConfig = config.manual || config.staticTexts || {};
-        staticReplyText = manualConfig.replyText || '';
-        staticNonConnectedText = manualConfig.nonConnectedText || '';
-        staticDmText = manualConfig.dmText || '';
-
-        // If an API key is already present, fetch models automatically.
-        if (config.apiKey) {
-          handleFetchModels(config.apiKey, config.model);
-        }
-
-        lastSavedConfigSnapshot = JSON.stringify(buildConfigPayload());
-        initialized = true;
-      } else {
-        console.error('Failed to load reply settings:', response.message);
-        error = `Failed to load reply settings: ${response.message}`;
-        lastSavedConfigSnapshot = JSON.stringify(buildConfigPayload());
-        initialized = true;
-      }
-    });
-    
-    // Initial animation
-    if (containerElement) {
-      gsap.fromTo(containerElement,
-        { opacity: 0, y: 20 },
-        { opacity: 1, y: 0, duration: 0.6, ease: 'power2.out' }
-      );
-    }
-    
-    // Stagger animate form elements
-    if (formElements.length > 0) {
-      gsap.fromTo(formElements.filter(Boolean),
-        { opacity: 0, x: -20 },
-        { 
-          opacity: 1, 
-          x: 0,
-          duration: 0.4, 
-          ease: 'power2.out',
-          stagger: 0.1 
-        }
-      );
-    }
-  });
-
-  function handleSaveConfig(
-    payload: Partial<AIConfig> = buildConfigPayload(),
-    snapshot: string = JSON.stringify(payload)
-  ) {
+  function handleSaveConfig() {
     saveMessage = '';
+    const partialConfig = buildConfigPayload();
+
     return new Promise<void>((resolve, reject) => {
       chrome.runtime.sendMessage(
-        { type: 'UPDATE_AI_CONFIG', payload },
+        { type: 'UPDATE_AI_CONFIG', payload: partialConfig },
         (response) => {
           if (response && response.status === 'success') {
-            console.log('Reply settings auto-saved.');
-            saveMessage = 'Settings auto-saved successfully!';
+            console.log('Reply settings saved.');
+            saveMessage = 'Settings saved successfully!';
             error = null;
-            lastSavedConfigSnapshot = snapshot;
-            setTimeout(() => (saveMessage = ''), 3000);
+            setTimeout(() => (saveMessage = ''), 3000); // Clear after 3s
             resolve();
           } else {
             const errorMsg = `Failed to save reply settings: ${
@@ -192,52 +129,78 @@
     handleFetchModels(apiKey, selectedModel);
   }
 
-  function scheduleAutoSave(snapshot: string) {
-    if (!initialized || snapshot === lastSavedConfigSnapshot) {
-      return;
+  onMount(() => {
+    if (typeof window !== 'undefined') {
+      window.__LINKEDIN_SAVE_AI_CONFIG = handleSaveConfig;
     }
 
-    if (autoSaveTimer) {
-      clearTimeout(autoSaveTimer);
+    chrome.runtime.sendMessage({ type: 'GET_AI_CONFIG' }, (response) => {
+      if (response.status === 'success') {
+        const config: AIConfig = response.payload;
+        apiKey = config.apiKey || '';
+        selectedModel = config.model || '';
+        temperature = config.temperature || 0.7;
+        topP = config.top_p || 0.9;
+        maxTokens = config.max_tokens || 150;
+        replyPrompt = config.reply?.customPrompt || '';
+        dmPrompt = config.dm?.customPrompt || '';
+        nonConnectedTemplate =
+          config.reply?.nonConnectedPrompt ||
+          "Thanks for your comment! I'd love to connect first so we can continue the conversation.";
+
+        // Load AI enabled state and static texts
+        isAiEnabled = config.aiEnabled !== undefined ? config.aiEnabled : true;
+        const manualConfig = config.manual || config.staticTexts || {};
+        staticReplyText = manualConfig.replyText || '';
+        staticNonConnectedText = manualConfig.nonConnectedText || '';
+        staticDmText = manualConfig.dmText || '';
+
+        // If an API key is already present, fetch models automatically.
+        if (config.apiKey) {
+          handleFetchModels(config.apiKey, config.model);
+        }
+      } else {
+        console.error('Failed to load reply settings:', response.message);
+        error = `Failed to load reply settings: ${response.message}`;
+      }
+    });
+
+    // Initial animation
+    if (containerElement) {
+      gsap.fromTo(
+        containerElement,
+        { opacity: 0, y: 20 },
+        { opacity: 1, y: 0, duration: 0.6, ease: 'power2.out' }
+      );
     }
 
-    autoSaveTimer = setTimeout(runAutoSave, AUTO_SAVE_DELAY);
-  }
-
-  async function runAutoSave() {
-    if (autoSaveTimer) {
-      clearTimeout(autoSaveTimer);
-      autoSaveTimer = null;
-    }
-
-    const payload = buildConfigPayload();
-    const snapshot = JSON.stringify(payload);
-
-    if (snapshot === lastSavedConfigSnapshot) {
-      return;
-    }
-
-    try {
-      await handleSaveConfig(payload, snapshot);
-    } catch (autoSaveError) {
-      console.error('Auto-save failed:', autoSaveError);
-    }
-  }
-
-  onDestroy(() => {
-    if (autoSaveTimer) {
-      clearTimeout(autoSaveTimer);
-      autoSaveTimer = null;
+    // Stagger animate form elements
+    if (formElements.length > 0) {
+      gsap.fromTo(
+        formElements.filter(Boolean),
+        { opacity: 0, x: -20 },
+        {
+          opacity: 1,
+          x: 0,
+          duration: 0.4,
+          ease: 'power2.out',
+          stagger: 0.1,
+        }
+      );
     }
   });
 
-  $: currentConfigSnapshot = JSON.stringify(buildConfigPayload());
-  $: if (initialized) {
-    scheduleAutoSave(currentConfigSnapshot);
-  }
+  onDestroy(() => {
+    if (typeof window !== 'undefined' && window.__LINKEDIN_SAVE_AI_CONFIG === handleSaveConfig) {
+      window.__LINKEDIN_SAVE_AI_CONFIG = undefined;
+    }
+  });
 </script>
 
-<div class="ai-settings-container bg-white rounded-xl shadow-sm border border-gray-100 p-4 mb-4 animate-slide-up" bind:this={containerElement}>
+<div
+  class="ai-settings-container bg-white rounded-xl shadow-sm border border-gray-100 p-4 mb-4 animate-slide-up"
+  bind:this={containerElement}
+>
   <div class="flex items-center justify-between mb-3">
     <div class="flex items-center gap-2 min-w-0">
       <MessageSquare class="h-5 w-5 text-blue-600" aria-hidden="true" />
@@ -256,7 +219,7 @@
       <button
         type="button"
         class="relative inline-flex h-5 w-9 items-center rounded-full transition-colors duration-300 ease-out focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 {isAiEnabled ? 'bg-blue-600' : 'bg-gray-300'}"
-        on:click={() => isAiEnabled = !isAiEnabled}
+        on:click={() => (isAiEnabled = !isAiEnabled)}
         aria-pressed={isAiEnabled}
         aria-label="Toggle AI mode"
       >
@@ -284,7 +247,7 @@
             />
             <button
               type="button"
-              on:click={() => showApiKey = !showApiKey}
+              on:click={() => (showApiKey = !showApiKey)}
               class="absolute inset-y-0 right-0 pr-3 flex items-center hover:text-gray-600 transition-colors"
               aria-label={showApiKey ? 'Hide API key' : 'Show API key'}
             >
@@ -434,7 +397,12 @@
       >
         <div class="text-sm font-medium flex items-center gap-2 text-gray-900">
           <svg class="h-4 w-4 text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6V4m0 2a2 2 0 100 4m0-4a2 2 0 110 4m-6 8a2 2 0 100-4m0 4a2 2 0 100 4m0-4v2m0-6V4m6 6v10m6-2a2 2 0 100-4m0 4a2 2 0 100 4m0-4v2m0-6V4"></path>
+            <path
+              stroke-linecap="round"
+              stroke-linejoin="round"
+              stroke-width="2"
+              d="M12 6V4m0 2a2 2 0 100 4m0-4a2 2 0 110 4m-6 8a2 2 0 100-4m0 4a2 2 0 100 4m0-4v2m0-6V4m6 6v10m6-2a2 2 0 100-4m0 4a2 2 0 100 4m0-4v2m0-6V4"
+            ></path>
           </svg>
           Advanced Settings
         </div>
@@ -505,18 +473,16 @@
     </div>
   {/if}
 
-  <div class="border-t border-gray-100 pt-3 mt-4 space-y-2">
-    <p class="text-xs text-gray-500 text-center">Changes are saved automatically.</p>
-
-    {#if saveMessage}
+  {#if saveMessage}
+    <div class="border-t border-gray-100 pt-3 mt-4">
       <div class="p-2 bg-green-50 border border-green-200 rounded-lg">
         <div class="flex items-center gap-2">
           <Check class="w-4 h-4 text-green-600" aria-hidden="true" />
           <span class="text-xs text-green-800">{saveMessage}</span>
         </div>
       </div>
-    {/if}
-  </div>
+    </div>
+  {/if}
 </div>
 
 <style>

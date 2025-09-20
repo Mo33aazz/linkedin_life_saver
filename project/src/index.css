@@ -58,6 +58,14 @@ body {
   box-sizing: border-box;
 }
 
+/* Stop button icon sizing */
+button#stop svg {
+  width: 1.25rem;
+  height: 1.25rem;
+  flex-shrink: 0;
+  stroke-width: 2.5;
+}
+
 /* Enhanced Typography Scale */
 h1,
 h2,

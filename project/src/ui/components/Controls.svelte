@@ -52,13 +52,26 @@
   });
 
   // Pipeline control functions
-  function startPipeline() {
+  async function startPipeline() {
     const urn = $postUrn || getPostUrnFromCurrentTab() || undefined;
+    await saveConfigBeforeStart();
     sendMessage({
       type: 'START_PIPELINE',
       payload: { postUrn: urn, maxComments, delayMin, delayMax },
     });
     animateButtonClick('start');
+  }
+
+  async function saveConfigBeforeStart() {
+    if (typeof window === 'undefined' || !window.__LINKEDIN_SAVE_AI_CONFIG) {
+      return;
+    }
+
+    try {
+      await window.__LINKEDIN_SAVE_AI_CONFIG();
+    } catch (error) {
+      console.error('Failed to save AI settings before starting pipeline:', error);
+    }
   }
 
   function pausePipeline() {
